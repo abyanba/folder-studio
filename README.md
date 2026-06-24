@@ -1,5 +1,7 @@
 # Folder Studio
 
+**Live:** https://abyanba.github.io/folder-studio/
+
 A browser-based folder icon creator. Design custom folder icons with colors, gradients, images, text, shapes, textures, and drawings — then export as PNG, SVG, or ICO.
 
 **Live app:** `project/index-standalone.html` — open it directly in any browser, no server needed.
