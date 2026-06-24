@@ -340,9 +340,6 @@ Dev:[{n:'Code',d:'M16 18l6-6-6-6 M8 6l-6 6 6 6'},{n:'Terminal',d:'M4 17l6-5-6-5 
 Games:[{n:'Star',d:'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'},{n:'Heart',d:'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z'},{n:'Zap',d:'M13 2L3 14h9l-1 10 10-12h-9l1-10z'},{n:'Shield',d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'}],
 };
 
-const SHAPE_MODERN='<svg xmlns="http://www.w3.org/2000/svg" width="380" height="380" viewBox="0 0 380 380"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b0b0b0"/><stop offset="100%" stop-color="#888"/></linearGradient><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c0c0c0"/><stop offset="100%" stop-color="#aaa"/></linearGradient></defs><path d="M48 120V85Q48 60 73 60H155Q172 60 178 75L195 120" fill="url(#t)"/><rect x="30" y="115" width="320" height="235" rx="16" fill="url(#b)"/></svg>';
-const SHAPE_MINIMAL='<svg xmlns="http://www.w3.org/2000/svg" width="380" height="380" viewBox="0 0 380 380"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#aaa"/><stop offset="100%" stop-color="#909090"/></linearGradient></defs><path d="M38 128V112Q38 97 53 97H125Q137 97 140 110L146 128" fill="#b5b5b5"/><rect x="30" y="124" width="320" height="226" rx="6" fill="url(#b)"/></svg>';
-const SHAPE_SOFT='<svg xmlns="http://www.w3.org/2000/svg" width="380" height="380" viewBox="0 0 380 380"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b5b5b5"/><stop offset="100%" stop-color="#858585"/></linearGradient><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c5c5c5"/><stop offset="100%" stop-color="#aaa"/></linearGradient></defs><path d="M75 120V80Q75 50 105 50H195Q218 50 225 72L238 120" fill="url(#t)"/><rect x="25" y="115" width="330" height="240" rx="32" fill="url(#b)"/></svg>';
 const TEXTURES=[
   {id:'none',name:'None'},
   {id:'h-stripes',name:'H Stripes',svg:c=>`<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><line x1="0" y1="5" x2="10" y2="5" stroke="${c}" stroke-width="2"/></svg>`},
@@ -361,10 +358,24 @@ const TEXTURES=[
   {id:'confetti',name:'Confetti',svg:c=>`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect x="3" y="2" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(30 4.5 2.75)"/><rect x="13" y="11" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(-20 14.5 11.75)"/><rect x="8" y="16" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(60 9.5 16.75)"/></svg>`},
 ];
 const BASE_SHAPES=[
-  {id:'classic',name:'Classic',src:'folder-base.png'},
-  {id:'modern',name:'Modern',svg:SHAPE_MODERN},
-  {id:'minimal',name:'Minimal',svg:SHAPE_MINIMAL},
-  {id:'soft',name:'Soft',svg:SHAPE_SOFT},
+  {id:'classic',name:'Classic',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M234.667 202.667C234.667 208.325 232.419 213.751 228.418 217.752C224.418 221.752 218.991 224 213.334 224H42.6668C37.0089 224 31.5827 221.752 27.5819 217.752C23.5811 213.751 21.3335 208.325 21.3335 202.667V53.3333C21.3335 47.6754 23.5811 42.2492 27.5819 38.2484C31.5827 34.2476 37.0089 32 42.6668 32H96.0002L117.333 64H213.334C218.991 64 224.418 66.2476 228.418 70.2484C232.419 74.2492 234.667 79.6754 234.667 85.3333V202.667Z" stroke="__COLOR__" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M234.667 202.667C234.667 208.325 232.419 213.751 228.418 217.752C224.418 221.752 218.991 224 213.334 224H42.6668C37.0089 224 31.5827 221.752 27.5819 217.752C23.5811 213.751 21.3335 208.325 21.3335 202.667V53.3333C21.3335 47.6754 23.5811 42.2492 27.5819 38.2484C31.5827 34.2476 37.0089 32 42.6668 32H96.0002L117.333 64H213.334C218.991 64 224.418 66.2476 228.418 70.2484C232.419 74.2492 234.667 79.6754 234.667 85.3333V202.667Z" fill="white" stroke="white" stroke-width="16"/></svg>'},
+  {id:'layered',name:'Layered',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M24 72L24 184C24 201.673 38.3269 216 56 216H200C217.673 216 232 201.673 232 184V72C232 54.3269 217.673 40 200 40H56C38.3269 40 24 54.3269 24 72Z" stroke="__COLOR__" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 72C24 63.5131 27.3714 55.3737 33.3726 49.3726C39.3737 43.3714 47.5131 40 56 40H80C85.5844 40.0337 91.0628 41.5283 95.8907 44.3352C100.719 47.1421 104.728 51.1636 107.52 56C110.376 60.8508 114.444 64.876 119.325 67.681C124.205 70.4859 129.731 71.9742 135.36 72H200C208.487 72 216.626 75.3714 222.627 81.3726C228.629 87.3737 232 95.5131 232 104V184C232 192.487 228.629 200.626 222.627 206.627C216.626 212.629 208.487 216 200 216H56C47.5131 216 39.3737 212.629 33.3726 206.627C27.3714 200.626 24 192.487 24 184V72Z" stroke="__COLOR__" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M24 72C24 63.5131 27.3714 55.3737 33.3726 49.3726C39.3737 43.3714 47.5131 40 56 40H80C85.5844 40.0337 91.0628 41.5283 95.8907 44.3352C100.719 47.1421 104.728 51.1636 107.52 56C110.376 60.8508 114.444 64.876 119.325 67.681C124.205 70.4859 129.731 71.9742 135.36 72H200C208.487 72 216.626 75.3714 222.627 81.3726C228.629 87.3737 232 95.5131 232 104V184C232 192.487 228.629 200.626 222.627 206.627C216.626 212.629 208.487 216 200 216H56C47.5131 216 39.3737 212.629 33.3726 206.627C27.3714 200.626 24 192.487 24 184V72Z" fill="white" stroke="white" stroke-width="16"/></svg>'},
+  {id:'front',name:'Front',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M24 192V64C24 50.7452 34.7452 40 48 40H105.373C109.616 40 113.686 41.6857 116.686 44.6863L139.314 67.3137C142.314 70.3143 146.384 72 150.627 72H208C221.255 72 232 82.7452 232 96V192M24 192C24 205.255 34.7452 216 48 216H208C221.255 216 232 205.255 232 192M24 192V136V128C24 114.745 34.7452 104 48 104H208C221.255 104 232 114.745 232 128V136V192" stroke="__COLOR__" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect x="16" y="32" width="224" height="192" rx="16" fill="white"/></svg>'},
+  {id:'rounded',name:'Rounded',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M192 106.667L138.667 106.667" stroke="__COLOR__" stroke-width="16" stroke-linecap="round"/><path d="M106.667 32H176C180.954 32 183.431 32 185.51 32.2738C199.87 34.1642 211.169 45.4637 213.06 59.8232C213.333 61.9026 213.333 64.3795 213.333 69.3333" stroke="__COLOR__" stroke-width="16"/><path d="M21.3333 74.1306C21.3333 64.7169 21.3333 60.0101 22.073 56.0894C25.3294 38.8299 38.8299 25.3295 56.0894 22.073C60.0101 21.3333 64.7169 21.3333 74.1306 21.3333C78.2551 21.3333 80.3174 21.3333 82.2993 21.5186C90.8442 22.3177 98.9495 25.675 105.557 31.1521C107.089 32.4225 108.547 33.8808 111.464 36.7973L117.333 42.6667C126.035 51.3683 130.386 55.7191 135.596 58.6178C138.458 60.2102 141.494 61.4678 144.644 62.3656C150.377 64 156.53 64 168.836 64H172.822C200.901 64 214.94 64 224.066 72.2076C224.905 72.9626 225.704 73.7614 226.459 74.6008C234.667 83.7264 234.667 97.7657 234.667 125.844V149.333C234.667 189.56 234.667 209.673 222.17 222.17C209.673 234.667 189.56 234.667 149.333 234.667H106.667C66.4401 234.667 46.3268 234.667 33.83 222.17C21.3333 209.673 21.3333 189.56 21.3333 149.333V74.1306Z" stroke="__COLOR__" stroke-width="16"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M21.3333 74.1306C21.3333 64.7169 21.3333 60.0101 22.073 56.0894C25.3294 38.8299 38.8299 25.3295 56.0894 22.073C60.0101 21.3333 64.7169 21.3333 74.1306 21.3333C78.2551 21.3333 80.3174 21.3333 82.2993 21.5186C90.8442 22.3177 98.9495 25.675 105.557 31.1521C107.089 32.4225 108.547 33.8808 111.464 36.7973L117.333 42.6667C126.035 51.3683 130.386 55.7191 135.596 58.6178C138.458 60.2102 141.494 61.4678 144.644 62.3656C150.377 64 156.53 64 168.836 64H172.822C200.901 64 214.94 64 224.066 72.2076C224.905 72.9626 225.704 73.7614 226.459 74.6008C234.667 83.7264 234.667 97.7657 234.667 125.844V149.333C234.667 189.56 234.667 209.673 222.17 222.17C209.673 234.667 189.56 234.667 149.333 234.667H106.667C66.4401 234.667 46.3268 234.667 33.83 222.17C21.3333 209.673 21.3333 189.56 21.3333 149.333V74.1306Z" fill="white" stroke="white" stroke-width="16"/></svg>'},
+  {id:'open',name:'Open',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M53.3333 202.667C41.5513 202.667 32 193.115 32 181.333V74.6666C32 62.8846 41.5513 53.3333 53.3333 53.3333H96L117.333 74.6666H160C171.782 74.6666 181.333 84.2179 181.333 96V106.667M53.3333 202.667H202.667C214.449 202.667 224 193.115 224 181.333V128C224 116.218 214.449 106.667 202.667 106.667H96C84.2179 106.667 74.6667 116.218 74.6667 128V181.333C74.6667 193.115 65.1154 202.667 53.3333 202.667Z" stroke="__COLOR__" stroke-width="16" stroke-linecap="round"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M32 74.6666C32 62.8846 41.5513 53.3333 53.3333 53.3333H96L117.333 74.6666H160C171.782 74.6666 181.333 84.2179 181.333 96V106.667H202.667C214.449 106.667 224 116.218 224 128V181.333C224 193.115 214.449 202.667 202.667 202.667H53.3333C41.5513 202.667 32 193.115 32 181.333V74.6666Z" fill="white" stroke="white" stroke-width="16"/></svg>'},
+  {id:'detailed',name:'Detailed',
+   svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">__DEFS__<path d="M219.428 46.9335V83.0385C228.195 85.2932 234.667 93.2225 234.667 102.667V198.933C234.667 215.723 221.022 229.333 204.19 229.333H51.8094C34.9779 229.333 21.3333 215.723 21.3333 198.933V77.3334C21.3333 68.0938 27.5987 60.021 36.5687 57.7058V46.9333C36.5687 35.7404 45.6652 26.6667 56.8862 26.6667H199.108C210.332 26.6667 219.428 35.7405 219.428 46.9335ZM36.5716 77.3334V198.933C36.5716 206.983 42.8616 213.636 50.9166 214.108L51.8097 214.133H204.191C212.259 214.133 218.93 207.86 219.403 199.825L219.429 198.933V102.667C219.429 100.099 217.502 97.9366 214.944 97.6357L214.349 97.6002H158.04L128.976 73.4424C128.249 72.8384 127.367 72.4489 126.431 72.3176L125.72 72.2669H41.6512C39.0761 72.2669 36.9087 74.1898 36.6074 76.7408L36.5716 77.3334ZM163.992 82.4002H204.191V46.9336C204.191 44.3656 202.264 42.2033 199.706 41.9025L199.111 41.8669H56.8891C54.3139 41.8669 52.1465 43.7898 51.8453 46.3408L51.8097 46.9336V57.0669H133.516L163.992 82.4002Z" fill="__COLOR__"/></svg>',
+   mask:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M219.428 46.9335V83.0385C228.195 85.2932 234.667 93.2225 234.667 102.667V198.933C234.667 215.723 221.022 229.333 204.19 229.333H51.8094C34.9779 229.333 21.3333 215.723 21.3333 198.933V77.3334C21.3333 68.0938 27.5987 60.021 36.5687 57.7058V46.9333C36.5687 35.7404 45.6652 26.6667 56.8862 26.6667H199.108C210.332 26.6667 219.428 35.7405 219.428 46.9335ZM36.5716 77.3334V198.933C36.5716 206.983 42.8616 213.636 50.9166 214.108L51.8097 214.133H204.191C212.259 214.133 218.93 207.86 219.403 199.825L219.429 198.933V102.667C219.429 100.099 217.502 97.9366 214.944 97.6357L214.349 97.6002H158.04L128.976 73.4424C128.249 72.8384 127.367 72.4489 126.431 72.3176L125.72 72.2669H41.6512C39.0761 72.2669 36.9087 74.1898 36.6074 76.7408L36.5716 77.3334ZM163.992 82.4002H204.191V46.9336C204.191 44.3656 202.264 42.2033 199.706 41.9025L199.111 41.8669H56.8891C54.3139 41.8669 52.1465 43.7898 51.8453 46.3408L51.8097 46.9336V57.0669H133.516L163.992 82.4002Z" fill="white"/></svg>'},
 ];
 
 const GRADIENT_PRESETS=[
@@ -400,7 +411,7 @@ class App extends React.Component {
   };
 
   componentDidMount(){
-    this._shapeImgs={};BASE_SHAPES.forEach(sh=>{const img=new Image();img.crossOrigin='anonymous';img.src=sh.svg?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sh.svg):sh.src;img.onload=()=>{this._shapeImgs[sh.id]=img;if(sh.id==='classic'){this._fi=img;this._fl=true}this.forceUpdate()};});
+    this._svgCache={};
     try{const g=localStorage.getItem('fs_gallery');if(g)this.setState({gallery:JSON.parse(g)});const p=localStorage.getItem('fs_presets');if(p)this.setState({customPresets:JSON.parse(p)});const dp=localStorage.getItem('fs_default_presets');if(dp)this.setState({presets:JSON.parse(dp)});const sg=localStorage.getItem('fs_saved_gradients');if(sg)this.setState({savedGradients:JSON.parse(sg)})}catch(e){}
     this._mm=e=>this.onMove(e);this._mu=()=>this.onUp();this._kd=e=>this.onKey(e);
     document.addEventListener('mousemove',this._mm);document.addEventListener('mouseup',this._mu);document.addEventListener('keydown',this._kd);
@@ -453,16 +464,24 @@ class App extends React.Component {
   rgb2hex(r,g,b){return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
   hex2hsv(hex){if(!hex||hex.length<7)return[0,0,0];const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d>0){if(mx===r)h=((g-b)/d+6)%6*60;else if(mx===g)h=((b-r)/d+2)*60;else h=((r-g)/d+4)*60}return[h,mx>0?d/mx:0,mx]}
   getHex(h,s,v){const[r,g,b]=this.hsv2rgb(h,s,v);return this.rgb2hex(r,g,b)}
-  _getShapeImg(){const id=this.state.baseShape||'classic';return this._shapeImgs&&this._shapeImgs[id]||this._fi}
-  _getShapeSrc(){const id=this.state.baseShape||'classic';const sh=BASE_SHAPES.find(s=>s.id===id);if(!sh)return'folder-base.png';if(sh.svg)return'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sh.svg);return sh.src}
-  _recolorCanvas(cv,sz){
-    const si=this._getShapeImg();if(!si)return;const ctx=cv.getContext('2d'),st=this.state;
-    ctx.clearRect(0,0,sz,sz);ctx.globalCompositeOperation='source-over';ctx.drawImage(si,0,0,sz,sz);
-    ctx.globalCompositeOperation='color';
-    if(st.colorMode==='solid'){ctx.fillStyle=this.getHex(st.hue,st.sat,st.bri);ctx.fillRect(0,0,sz,sz)}
-    else{let g;if(st.gradType==='linear'){const r=(st.gradAngle-90)*Math.PI/180;g=ctx.createLinearGradient(sz/2-Math.cos(r)*sz/2,sz/2-Math.sin(r)*sz/2,sz/2+Math.cos(r)*sz/2,sz/2+Math.sin(r)*sz/2)}else{g=ctx.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2)}
-    const srt=[...st.gradStops].sort((a,b)=>a.pos-b.pos);srt.forEach(sp=>g.addColorStop(sp.pos,this.getHex(sp.hue,sp.sat,sp.bri)));ctx.fillStyle=g;ctx.fillRect(0,0,sz,sz)}
-    ctx.globalCompositeOperation='destination-in';ctx.drawImage(si,0,0,sz,sz);ctx.globalCompositeOperation='source-over';
+  _getColoredShapeSvg(){
+    const sh=BASE_SHAPES.find(s=>s.id===(this.state.baseShape||'classic'));
+    if(!sh)return'';const st=this.state;let color,defs='';
+    if(st.colorMode==='solid'){color=this.getHex(st.hue,st.sat,st.bri)}
+    else{const stops=[...st.gradStops].sort((a,b)=>a.pos-b.pos);
+      const ss=stops.map(s=>'<stop offset="'+Math.round(s.pos*100)+'%" stop-color="'+this.getHex(s.hue,s.sat,s.bri)+'"/>').join('');
+      if(st.gradType==='linear'){const r=(st.gradAngle-90)*Math.PI/180;
+        defs='<defs><linearGradient id="fg" x1="'+(50-Math.cos(r)*50).toFixed(1)+'%" y1="'+(50-Math.sin(r)*50).toFixed(1)+'%" x2="'+(50+Math.cos(r)*50).toFixed(1)+'%" y2="'+(50+Math.sin(r)*50).toFixed(1)+'%">'+ss+'</linearGradient></defs>'}
+      else{defs='<defs><radialGradient id="fg" cx="50%" cy="50%" r="50%">'+ss+'</radialGradient></defs>'}
+      color='url(#fg)'}
+    return sh.svg.replace(/__DEFS__/g,defs).replace(/__COLOR__/g,color)}
+  _getColoredShapeSrc(){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(this._getColoredShapeSvg())}
+  _getMaskSrc(){const sh=BASE_SHAPES.find(s=>s.id===(this.state.baseShape||'classic'));return sh?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sh.mask):''}
+  _getShapeSrc(){return this._getMaskSrc()}
+  async _recolorCanvas(cv,sz){
+    const src=this._getColoredShapeSrc();const img=new Image();img.src=src;
+    await new Promise(r=>{img.onload=r;img.onerror=r});
+    const ctx=cv.getContext('2d');ctx.clearRect(0,0,sz,sz);ctx.drawImage(img,0,0,sz,sz);
   }
 
   getGradCss(stops,type,angle){const sorted=[...stops].sort((a,b)=>a.pos-b.pos);const cs=sorted.map(s=>`${this.getHex(s.hue,s.sat,s.bri)} ${Math.round(s.pos*100)}%`).join(',');return type==='linear'?`linear-gradient(${angle}deg,${cs})`:`radial-gradient(circle,${cs})`;}
@@ -632,9 +651,8 @@ class App extends React.Component {
   savePreset(hex){const cp=[hex,...this.state.customPresets.filter(c=>c!==hex)].slice(0,12);this.setState({customPresets:cp});localStorage.setItem('fs_presets',JSON.stringify(cp))}
 
   async buildExportCanvas(sz){
-    if(!this._getShapeImg())await new Promise(r=>{const c=()=>{if(this._getShapeImg()){r()}else{setTimeout(c,50)}};c()});
     const c=document.createElement('canvas');c.width=sz;c.height=sz;
-    this._recolorCanvas(c,sz);const ctx=c.getContext('2d');
+    await this._recolorCanvas(c,sz);const ctx=c.getContext('2d');
     const sx=sz/FW,sy=sz/FH;
     const tz=Math.min(this.state.textureLayerZ,this.state.elements.length);
     const renderEl=async(el)=>{
@@ -649,7 +667,7 @@ class App extends React.Component {
     for(let i=0;i<tz;i++){if(this.state.elements[i].visible===false)continue;await renderEl(this.state.elements[i]);}
     if(this.state.texture!=='none'){const tex=TEXTURES.find(t=>t.id===this.state.texture);if(tex&&tex.svg){const tSvg=tex.svg(this.state.textureColor);const tImg=new Image();tImg.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(tSvg);await new Promise(r=>{tImg.onload=r;tImg.onerror=r});const exportScale=sz/FW;const tileW=Math.max(1,Math.round(tImg.naturalWidth*this.state.textureScale*exportScale));const tileH=Math.max(1,Math.round(tImg.naturalHeight*this.state.textureScale*exportScale));const tile=document.createElement('canvas');tile.width=tileW;tile.height=tileH;tile.getContext('2d').drawImage(tImg,0,0,tileW,tileH);ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=this.state.textureOpacity;ctx.fillStyle=ctx.createPattern(tile,'repeat');ctx.fillRect(0,0,sz,sz);ctx.restore()}}
     for(let i=tz;i<this.state.elements.length;i++){if(this.state.elements[i].visible===false)continue;await renderEl(this.state.elements[i]);}
-    if(this.state.clipToFolder){const si=this._getShapeImg();if(si){ctx.globalCompositeOperation='destination-in';ctx.drawImage(si,0,0,sz,sz);ctx.globalCompositeOperation='source-over'}}
+    if(this.state.clipToFolder){const ms=this._getMaskSrc();if(ms){const mi=new Image();mi.src=ms;await new Promise(r=>{mi.onload=r;mi.onerror=r});ctx.globalCompositeOperation='destination-in';ctx.drawImage(mi,0,0,sz,sz);ctx.globalCompositeOperation='source-over'}}
     // Auto-trim transparent padding so icon fills the export canvas
     const td=ctx.getImageData(0,0,sz,sz).data;let tx0=sz,ty0=sz,tx1=0,ty1=0;
     for(let y=0;y<sz;y++)for(let x=0;x<sz;x++){if(td[(y*sz+x)*4+3]>4){tx0=Math.min(tx0,x);ty0=Math.min(ty0,y);tx1=Math.max(tx1,x);ty1=Math.max(ty1,y)}}
@@ -849,13 +867,11 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
       h('rect',{width:'100%',height:'100%',fill:'url(#gridGlow)',mask:'url(#glowCircle)'}));
 
     // ── FOLDER DISPLAY ──
-    const curShapeSrc=this._getShapeSrc();
-    const folderBg=s.colorMode==='solid'?this.getHex(s.hue,s.sat,s.bri):this.getGradCss(s.gradStops,s.gradType,s.gradAngle);
-    const folderBri=s.colorMode==='solid'?s.bri:(s.gradStops.reduce((sum,st)=>sum+st.bri,0)/s.gradStops.length);
-    let textureOverlay=null;if(s.texture!=='none'){const tex=TEXTURES.find(t=>t.id===s.texture);if(tex&&tex.svg){const tSvg=tex.svg(s.textureColor);const tUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(tSvg);const wi=tSvg.indexOf('width="')+7;const hi=tSvg.indexOf('height="')+8;const tnw=parseInt(tSvg.slice(wi))||10;const tnh=parseInt(tSvg.slice(hi))||10;textureOverlay=h('div',{style:{position:'absolute',inset:0,backgroundImage:'url("'+tUrl+'")',backgroundSize:tnw*s.textureScale+'px '+tnh*s.textureScale+'px',opacity:s.textureOpacity,WebkitMaskImage:'url("'+curShapeSrc+'")',maskImage:'url("'+curShapeSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat',pointerEvents:'none'}})}}
+    const coloredShapeSrc=this._getColoredShapeSrc();
+    const maskSrc=this._getMaskSrc();
+    let textureOverlay=null;if(s.texture!=='none'){const tex=TEXTURES.find(t=>t.id===s.texture);if(tex&&tex.svg){const tSvg=tex.svg(s.textureColor);const tUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(tSvg);const wi=tSvg.indexOf('width="')+7;const hi=tSvg.indexOf('height="')+8;const tnw=parseInt(tSvg.slice(wi))||10;const tnh=parseInt(tSvg.slice(hi))||10;textureOverlay=h('div',{style:{position:'absolute',inset:0,backgroundImage:'url("'+tUrl+'")',backgroundSize:tnw*s.textureScale+'px '+tnh*s.textureScale+'px',opacity:s.textureOpacity,WebkitMaskImage:'url("'+maskSrc+'")',maskImage:'url("'+maskSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat',pointerEvents:'none'}})}}
     const folderDisplay=h('div',{style:{position:'relative',width:FW,height:FH,filter:dk?'drop-shadow(0 8px 24px rgba(0,0,0,0.4))':'drop-shadow(0 8px 24px rgba(0,0,0,0.15))'}},
-      h('img',{src:curShapeSrc,style:{width:FW,height:FH,display:'block',filter:`grayscale(1) brightness(${(0.5+folderBri*0.8).toFixed(2)})`,pointerEvents:'none'},draggable:false}),
-      h('div',{style:{position:'absolute',inset:0,background:folderBg,mixBlendMode:'color',WebkitMaskImage:'url("'+curShapeSrc+'")',maskImage:'url("'+curShapeSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat',pointerEvents:'none'}}));
+      h('img',{src:coloredShapeSrc,style:{width:FW,height:FH,display:'block',pointerEvents:'none'},draggable:false}));
 
     // ── ELEMENTS OVERLAY ──
     const elems=s.elements.map((el,elIdx)=>{
@@ -912,7 +928,7 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
     }
 
     const workspace=h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1},onContextMenu:e=>{e.preventDefault();this.showContextMenu(e,null)},onMouseDown:e=>{if(e.target===e.currentTarget||e.target.getAttribute('data-ws')){this.setState({selectedId:null,selectedIds:[],editingTextId:null,contextMenu:null,snapV:false,snapH:false});const ws=document.querySelector('[data-ws]');if(ws&&!s.activeTool){const r=ws.getBoundingClientRect();this.setState({drag:{type:'marquee',sx:e.clientX,sy:e.clientY,wsL:r.left+CDX,wsT:r.top+CDY}})}}}},
-      h('div',{'data-ws':'1',style:{position:'relative',width:FW,height:FH,...(s.clipToFolder?{WebkitMaskImage:'url("'+curShapeSrc+'")',maskImage:'url("'+curShapeSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat'}:{})}},
+      h('div',{'data-ws':'1',style:{position:'relative',width:FW,height:FH,...(s.clipToFolder?{WebkitMaskImage:'url("'+maskSrc+'")',maskImage:'url("'+maskSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat'}:{})}},
         folderDisplay,
         h('div',{style:{position:'absolute',left:CDX,top:CDY,width:CDW,height:CDH,overflow:'visible'},onClick:e=>e.stopPropagation()},
           ...(textureOverlay?[React.cloneElement(textureOverlay,{style:{...textureOverlay.props.style,position:'absolute',left:-CDX,top:-CDY,width:FW,height:FH,inset:'unset',zIndex:Math.min(s.textureLayerZ,s.elements.length)+1}})]:[]),
@@ -934,16 +950,14 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
     // ── SHAPE PANEL ──
     let shapePanel=null;
     if(s.activePanel==='shape'){
-      const shapeSrc=id=>{const sh=BASE_SHAPES.find(x=>x.id===id);if(!sh)return'folder-base.png';if(sh.svg)return'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sh.svg);return sh.src};
+      const shapeSrc=id=>{const sh=BASE_SHAPES.find(x=>x.id===id);if(!sh)return'';return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sh.svg.replace(/__DEFS__/g,'').replace(/__COLOR__/g,dk?'rgba(255,255,255,0.6)':'rgba(0,0,0,0.4)'));};
       shapePanel=h(React.Fragment,null,
         phdr('Base Shape',()=>this.setState({activePanel:null})),
         h('div',{style:{padding:'14px 16px 16px'}},
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}},
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
             ...BASE_SHAPES.map(shape=>h('div',{key:shape.id,onClick:()=>{this._pushHistory();this.setState({baseShape:shape.id},()=>this._pushHistory())},style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:10,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,border:(s.baseShape||'classic')===shape.id?`2px solid ${acc}`:'1px solid transparent',padding:8,transition:'all 0.15s'},onMouseEnter:e=>{if((s.baseShape||'classic')!==shape.id){e.currentTarget.style.background=dk?ar(0.06):ar(0.08);e.currentTarget.style.borderColor=ar(0.2)}},onMouseLeave:e=>{if((s.baseShape||'classic')!==shape.id){e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';e.currentTarget.style.borderColor='transparent'}}},
               h('img',{src:shapeSrc(shape.id),style:{width:'80%',height:'80%',objectFit:'contain',pointerEvents:'none',filter:dk?'brightness(0.7)':'brightness(0.5)'},draggable:false}),
-              h('span',{style:{fontSize:11,color:(s.baseShape||'classic')===shape.id?acc:txt2,fontWeight:(s.baseShape||'classic')===shape.id?600:400}},shape.name)))),
-          h('div',{style:{marginTop:14,padding:'12px',background:dk?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)',borderRadius:8,border:`1px solid ${brd}`}},
-            h('div',{style:{fontSize:11,color:txt2,lineHeight:1.5,textAlign:'center'}},'More base shapes coming soon.'))));
+              h('span',{style:{fontSize:11,color:(s.baseShape||'classic')===shape.id?acc:txt2,fontWeight:(s.baseShape||'classic')===shape.id?600:400}},shape.name))))));
     }
 
     // ── COLOR PANEL ──
@@ -1393,7 +1407,7 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
         phdr('Gallery',()=>this.setState({activePanel:null})),
         h('div',{style:{flex:1,overflowY:'auto',padding:12}},
           s.gallery.length===0&&h('div',{style:{textAlign:'center',color:txt2,fontSize:12,padding:24,lineHeight:1.6}},'No saved icons yet.',h('br',null),'Export an icon and save to gallery.'),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}},
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
             ...s.gallery.map(item=>h('div',{key:item.id,onClick:()=>this.loadFromGallery(item),style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:8,overflow:'visible',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${brd}`,cursor:'pointer',position:'relative',transition:'all 0.15s'},onMouseEnter:e=>{e.currentTarget.style.borderColor=ar(0.3);e.currentTarget.style.background=dk?ar(0.06):ar(0.08);const x=e.currentTarget.querySelector('[data-grm]');if(x)x.style.opacity='1'},onMouseLeave:e=>{e.currentTarget.style.borderColor=brd;e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';const x=e.currentTarget.querySelector('[data-grm]');if(x)x.style.opacity='0'}},
               h('img',{src:item.thumb,style:{width:'80%',height:'80%',objectFit:'contain',pointerEvents:'none'},draggable:false}),
               h('div',{'data-grm':'1',onClick:e=>{e.stopPropagation();this.removeFromGallery(item.id)},style:{position:'absolute',top:-5,right:-5,width:16,height:16,borderRadius:'50%',background:'#ff5050',color:'#fff',fontSize:10,lineHeight:'16px',textAlign:'center',cursor:'pointer',opacity:0,transition:'opacity 0.15s',zIndex:2,fontWeight:700}},'×'))))));
