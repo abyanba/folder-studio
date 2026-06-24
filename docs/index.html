@@ -334,10 +334,90 @@ const CDX=38,CDY=130,CDW=305,CDH=200;
 const DEFAULT_PRESETS=['#f5c542','#4ecdc4','#ff6b6b','#a78bfa','#60a5fa','#34d399','#f97316','#ec4899','#6366f1','#8b5cf6','#ef4444','#22d3ee'];
 const FONTS=['Space Grotesk','Source Serif 4','Playfair Display','DM Sans','JetBrains Mono','Libre Baskerville','Fira Code','Merriweather','IBM Plex Sans','Outfit'];
 const ICONS={
-Documents:[{n:'File',d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6'},{n:'Notepad',d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8'},{n:'Book',d:'M4 19.5A2.5 2.5 0 016.5 17H20V3H6.5A2.5 2.5 0 004 5.5v14z'},{n:'Clipboard',d:'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2 M9 2h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z'}],
-Media:[{n:'Music',d:'M9 18V5l12-2v13 M9 18a3 3 0 11-6 0 3 3 0 016 0z M21 16a3 3 0 11-6 0 3 3 0 016 0z'},{n:'Camera',d:'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M15 13a3 3 0 11-6 0 3 3 0 016 0z'},{n:'Image',d:'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3z M21 15l-5-5L5 21'},{n:'Play',d:'M5 3l14 9-14 9V3z'}],
-Dev:[{n:'Code',d:'M16 18l6-6-6-6 M8 6l-6 6 6 6'},{n:'Terminal',d:'M4 17l6-5-6-5 M12 19h8'},{n:'Gear',d:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z'},{n:'Database',d:'M12 2C6.5 2 2 4 2 6.5v11C2 20 6.5 22 12 22s10-2 10-4.5v-11C22 4 17.5 2 12 2z M2 6.5C2 9 6.5 11 12 11s10-2 10-4.5'}],
-Games:[{n:'Star',d:'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'},{n:'Heart',d:'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z'},{n:'Zap',d:'M13 2L3 14h9l-1 10 10-12h-9l1-10z'},{n:'Shield',d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'}],
+Documents:[
+  {n:'File',d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6'},
+  {n:'Notepad',d:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8'},
+  {n:'Book',d:'M4 19.5A2.5 2.5 0 016.5 17H20V3H6.5A2.5 2.5 0 004 5.5v14z'},
+  {n:'Clipboard',d:'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2 M9 2h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z'},
+  {n:'Archive',d:'M21 8v13H3V8 M1 3h22v5H1z M10 12h4'},
+  {n:'Folder',d:'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z'},
+  {n:'Package',d:'M16.5 9.4l-9-5.19 M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12'},
+  {n:'Trash',d:'M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2'},
+  {n:'Bookmark',d:'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z'},
+  {n:'List',d:'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01'},
+  {n:'Inbox',d:'M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z'},
+  {n:'Copy',d:'M8 4v12a2 2 0 002 2h8 M16 2H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2z'},
+],
+Media:[
+  {n:'Music',d:'M9 18V5l12-2v13 M9 18a3 3 0 11-6 0 3 3 0 016 0z M21 16a3 3 0 11-6 0 3 3 0 016 0z'},
+  {n:'Camera',d:'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M15 13a3 3 0 11-6 0 3 3 0 016 0z'},
+  {n:'Image',d:'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3z M21 15l-5-5L5 21'},
+  {n:'Play',d:'M5 3l14 9-14 9V3z'},
+  {n:'Film',d:'M19.82 2H4.18A2.18 2.18 0 002 4.18v15.64A2.18 2.18 0 004.18 22h15.64A2.18 2.18 0 0022 19.82V4.18A2.18 2.18 0 0019.82 2zM7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5'},
+  {n:'Video',d:'M23 7l-7 5 7 5V7z M1 5h15v14H1z'},
+  {n:'Mic',d:'M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z M19 10v2a7 7 0 01-14 0v-2 M12 19v4 M8 23h8'},
+  {n:'Headphones',d:'M3 18v-6a9 9 0 0118 0v6 M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z'},
+  {n:'Speaker',d:'M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 010 14.14 M15.54 8.46a5 5 0 010 7.07'},
+  {n:'Disc',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 15a3 3 0 100-6 3 3 0 000 6z'},
+  {n:'Radio',d:'M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6 M12 13h.01'},
+  {n:'Pause',d:'M10 9h-2v6h2V9z M16 9h-2v6h2V9z'},
+],
+Dev:[
+  {n:'Code',d:'M16 18l6-6-6-6 M8 6l-6 6 6 6'},
+  {n:'Terminal',d:'M4 17l6-5-6-5 M12 19h8'},
+  {n:'Gear',d:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z'},
+  {n:'Database',d:'M12 2C6.5 2 2 4 2 6.5v11C2 20 6.5 22 12 22s10-2 10-4.5v-11C22 4 17.5 2 12 2z M2 6.5C2 9 6.5 11 12 11s10-2 10-4.5'},
+  {n:'Cpu',d:'M18 6H6v12h12V6z M14 2v4 M10 2v4 M14 18v4 M10 18v4 M2 14h4 M2 10h4 M18 14h4 M18 10h4'},
+  {n:'HardDrive',d:'M22 12H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z M6 16h.01 M10 16h.01'},
+  {n:'Command',d:'M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3'},
+  {n:'Hash',d:'M4 9h16 M4 15h16 M10 3L8 21 M16 3l-2 18'},
+  {n:'Wifi',d:'M5 12.55a11 11 0 0114.08 0 M1.42 9a16 16 0 0121.16 0 M8.53 16.11a6 6 0 016.95 0 M12 20h.01'},
+  {n:'Layers',d:'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5'},
+  {n:'GitBranch',d:'M6 3v12 M18 9a3 3 0 100-6 3 3 0 000 6z M6 21a3 3 0 100-6 3 3 0 000 6z M18 9a9 9 0 01-9 9'},
+  {n:'Monitor',d:'M20 3H4a1 1 0 00-1 1v13a1 1 0 001 1h16a1 1 0 001-1V4a1 1 0 00-1-1z M8 21h8 M12 17v4'},
+],
+Games:[
+  {n:'Star',d:'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'},
+  {n:'Heart',d:'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z'},
+  {n:'Zap',d:'M13 2L3 14h9l-1 10 10-12h-9l1-10z'},
+  {n:'Shield',d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'},
+  {n:'Target',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 18a6 6 0 100-12 6 6 0 000 12z M12 14a2 2 0 100-4 2 2 0 000 4z'},
+  {n:'Compass',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z'},
+  {n:'Award',d:'M12 1a7 7 0 100 14A7 7 0 0012 1z M8.21 13.89L7 23l5-3 5 3-1.21-9.12'},
+  {n:'Gift',d:'M20 12v10H4V12 M2 7h20v5H2z M12 22V7 M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z'},
+  {n:'Crosshair',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M22 12h-4 M6 12H2 M12 6V2 M12 22v-4'},
+  {n:'Flag',d:'M4 15s1-1 4-1 4 2 8 2 4-1 4-1V3s-1 1-4 1-4-2-8-2-4 1-4 1z M4 22v-7'},
+  {n:'Smile',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 14s1.5 2 4 2 4-2 4-2 M9 9h.01 M15 9h.01'},
+  {n:'Frown',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M16 16s-1.5-2-4-2-4 2-4 2 M9 9h.01 M15 9h.01'},
+],
+UI:[
+  {n:'Home',d:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10'},
+  {n:'Search',d:'M11 19a8 8 0 100-16 8 8 0 000 16z M21 21l-4.35-4.35'},
+  {n:'Menu',d:'M3 12h18 M3 6h18 M3 18h18'},
+  {n:'Bell',d:'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0'},
+  {n:'Globe',d:'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M2 12h20 M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z'},
+  {n:'Layout',d:'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z M3 9h18 M9 21V9'},
+  {n:'Sliders',d:'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6'},
+  {n:'Grid',d:'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z'},
+  {n:'Lock',d:'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4'},
+  {n:'Eye',d:'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 110 6 3 3 0 010-6z'},
+  {n:'Filter',d:'M22 3H2l8 9.46V19l4 2v-8.54L22 3z'},
+  {n:'Download',d:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3'},
+],
+Social:[
+  {n:'User',d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z'},
+  {n:'Users',d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75'},
+  {n:'Mail',d:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6'},
+  {n:'Chat',d:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'},
+  {n:'Phone',d:'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.64A2 2 0 012 .93h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z'},
+  {n:'Send',d:'M22 2L11 13 M22 2L15 22 8 13 2 9z'},
+  {n:'Share',d:'M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8 M16 6l-4-4-4 4 M12 2v13'},
+  {n:'Link',d:'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71 M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71'},
+  {n:'MapPin',d:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z'},
+  {n:'Map',d:'M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z M8 2v16 M16 6v16'},
+  {n:'Coffee',d:'M18 8h1a4 4 0 010 8h-1 M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z M6 1v3 M10 1v3 M14 1v3'},
+  {n:'Sun',d:'M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42 M17 12a5 5 0 11-10 0 5 5 0 0110 0z'},
+],
 };
 
 const TEXTURES=[
@@ -412,7 +492,7 @@ class App extends React.Component {
   _history=[];_historyIdx=-1;_maxHist=50;_restoring=false;
 
   state={
-    theme:'dark',colorMode:'solid',
+    theme:'dark',canvasDark:true,colorMode:'solid',
     hue:45,sat:0.85,bri:0.96,colorFormat:'hex',
     gradStops:[{id:0,pos:0,hue:200,sat:0.8,bri:0.9},{id:1,pos:1,hue:160,sat:0.6,bri:0.7}],selectedStopId:0,savedGradients:[],
     gradType:'linear',gradAngle:180,
@@ -421,7 +501,7 @@ class App extends React.Component {
     drag:null,contextMenu:null,activePanel:'color',glowX:-1,glowY:-1,glowOpacity:0,snapV:false,snapH:false,snapVX:null,snapHY:null,
     showExport:false,exportMode:'single',batchSizes:[64,128,256,512],batchFmts:['png'],exportDropdown:false,
     fpOpen:false,fpColor:'#000000',fpH:0,fpS:0,fpV:100,fpId:'',fpFmt:'hex',fpAnchorRect:null,fpMode:'solid',fpGradStops:[{id:0,pos:0,hue:0,sat:100,bri:100},{id:1,pos:1,hue:200,sat:80,bri:90}],fpGradSelStop:0,fpGradType:'linear',hiddenGradPresets:JSON.parse(localStorage.getItem('fs_hidden_grad_presets')||'[]'),
-    iconCat:'Documents',exportSize:256,exportFmt:'ico',iconStroke:1.5,iconColor:'#ffffff',
+    iconCat:'Documents',iconSearch:'',exportSize:256,exportFmt:'ico',iconStroke:1.5,iconColor:'#ffffff',
     gallery:[],editingTextId:null,editingSlider:null,editingSliderVal:'',baseShape:'classic',texture:'none',textureOpacity:0.35,textureScale:1,textureColor:'#ffffff',drawColor:'#ffffff',drawSize:8,drawOpacity:1,currentDraw:null,activeTool:null,drawMode:'pen',drawSubmode:'freehand',shapePoints:[],shapeCursorPos:null,shapeDragPoint:null,editingLayerName:null,clipToFolder:true,
   };
 
@@ -750,7 +830,7 @@ class App extends React.Component {
 if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all.length;i++){const prev=all[i-1],curr=all[i];if(submode==='arc'){const ph=Math.abs((prev.h2x??prev.x)-prev.x)>3||Math.abs((prev.h2y??prev.y)-prev.y)>3;const ch=Math.abs((curr.h1x??curr.x)-curr.x)>3||Math.abs((curr.h1y??curr.y)-curr.y)>3;if(ph||ch){d+=' C '+r(ph?prev.h2x:prev.x)+' '+r(ph?prev.h2y:prev.y)+' '+r(ch?curr.h1x:curr.x)+' '+r(ch?curr.h1y:curr.y)+' '+r(curr.x)+' '+r(curr.y);continue;}}d+=' L '+r(curr.x)+' '+r(curr.y);}return d;}
   commitShapePath(){const{shapePoints,drawSubmode,drawColor,drawSize,drawOpacity}=this.state;if(shapePoints.length<1){this.setState({shapePoints:[],shapeCursorPos:null,shapeDragPoint:null});return;}const xs=shapePoints.map(p=>p.x),ys=shapePoints.map(p=>p.y);const pad=drawSize+4;const mnX=Math.min(...xs)-pad,mnY=Math.min(...ys)-pad,mxX=Math.max(...xs)+pad,mxY=Math.max(...ys)+pad;const w=Math.max(mxX-mnX,2),h=Math.max(mxY-mnY,2);const off=shapePoints.map(p=>({...p,x:p.x-mnX,y:p.y-mnY,h1x:(p.h1x??p.x)-mnX,h1y:(p.h1y??p.y)-mnY,h2x:(p.h2x??p.x)-mnX,h2y:(p.h2y??p.y)-mnY}));const svgPath=this.buildShapeSvgPath(off,null,drawSubmode);if(!svgPath){this.setState({shapePoints:[],shapeCursorPos:null,shapeDragPoint:null});return;}this._pushHistory();this.setState(prev=>{const id=prev.nextId;const dc=prev.elements.filter(e=>e.type==='draw').length;return{elements:[...prev.elements,{id,type:'draw',x:mnX,y:mnY,width:w,height:h,origWidth:w,origHeight:h,rotation:0,opacity:drawOpacity,svgPath,strokeColor:drawColor,strokeSize:drawSize,linecap:'round',name:(drawSubmode==='line'?'Line ':'Arc ')+(dc+1)}],shapePoints:[],shapeCursorPos:null,shapeDragPoint:null,nextId:id+1}},()=>this._pushHistory());}
   render(){
-    const h=React.createElement,s=this.state,dk=s.theme==='dark';
+    const h=React.createElement,s=this.state,dk=s.theme==='dark';const cdk=s.canvasDark;const canvasBg=cdk?'#12151a':'#f0f2f5';
     const vibe=this.props.accentVibe??'Mint';
     const energy=(this.props.workspaceEnergy??50)/100;
     const chrome=this.props.chromeStyle??'Glass';
@@ -796,7 +876,7 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
         h('button',{onClick:()=>this._undo(),title:'Undo (Ctrl+Z)',style:{width:36,height:36,borderRadius:8,background:'transparent',border:'none',color:canUndo?txt2:ar(0.15),cursor:canUndo?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'color 0.2s'}},ic('M1 4v6h6M3.51 15a9 9 0 102.13-9.36L1 10',17,2)),
         h('button',{onClick:()=>this._redo(),title:'Redo (Ctrl+Y)',style:{width:36,height:36,borderRadius:8,background:'transparent',border:'none',color:canRedo?txt2:ar(0.15),cursor:canRedo?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'color 0.2s'}},ic('M23 4v6h-6M20.49 15a9 9 0 11-2.13-9.36L23 10',17,2))),
       h('div',{style:{flex:1}}),
-      h('button',{onClick:()=>this.setState({theme:dk?'light':'dark'}),title:dk?'Switch to light mode':'Switch to dark mode',style:{width:36,height:36,borderRadius:8,background:'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},h('div',{style:{width:30,height:30,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:dk?'rgba(96,165,250,0.18)':'rgba(251,146,60,0.15)',color:dk?'#60a5fa':'#f97316',transition:'all 0.2s'}},dk?ic('M12 3a6 6 0 009 9 9 9 0 01-9-9z',16,2):ic('M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42 M17 12a5 5 0 11-10 0 5 5 0 0110 0z',16))),
+      h('button',{onClick:()=>this.setState({canvasDark:!s.canvasDark}),title:cdk?'Light canvas':'Dark canvas',style:{width:36,height:36,borderRadius:8,background:'transparent',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},h('div',{style:{width:30,height:30,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:cdk?'rgba(96,165,250,0.18)':'rgba(251,146,60,0.15)',color:cdk?'#60a5fa':'#f97316',transition:'all 0.2s'}},cdk?ic('M12 3a6 6 0 009 9 9 9 0 01-9-9z',16,2):ic('M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42 M17 12a5 5 0 11-10 0 5 5 0 0110 0z',16))),
       h('button',{onClick:()=>this.setState(prev=>({clipToFolder:!prev.clipToFolder})),title:s.clipToFolder?'Clip ON — elements clipped to folder shape (click to show overflow)':'Clip OFF — showing elements outside shape (click to clip)',style:{width:36,height:36,borderRadius:8,background:s.clipToFolder?ar(0.1):'transparent',border:'none',color:s.clipToFolder?acc:txt2,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.2s',marginRight:4}},h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('rect',{x:3,y:3,width:18,height:18,rx:2,strokeDasharray:s.clipToFolder?'':'5 3'}),h('path',{d:'M8 8h8v8H8z',fill:s.clipToFolder?'currentColor':'none',fillOpacity:0.3,stroke:s.clipToFolder?'currentColor':'none',strokeWidth:1}))),
       h('div',{style:{display:'flex',position:'relative'}},h('button',{onClick:()=>this.setState({showExport:!s.showExport,exportDropdown:false,exportMode:'single'}),style:{height:36,padding:'0 14px',background:acc,color:'#12151a',border:'none',borderRadius:'8px 0 0 8px',fontFamily:"'Space Grotesk',sans-serif",fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}},ic('M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',15,2.5),'Export'),h('button',{onClick:()=>this.setState({exportDropdown:!s.exportDropdown}),style:{height:36,padding:'0 6px',background:acc,color:'#12151a',border:'none',borderLeft:'1px solid rgba(0,0,0,0.15)',borderRadius:'0 8px 8px 0',cursor:'pointer',display:'flex',alignItems:'center'}},h('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:'M6 9l6 6 6-6'}))),s.exportDropdown&&h('div',{style:{position:'absolute',top:40,right:0,minWidth:180,background:dk?'rgba(30,30,35,0.97)':'rgba(255,255,255,0.97)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',border:'1px solid '+brd,borderRadius:10,padding:'5px 0',boxShadow:'0 8px 32px rgba(0,0,0,0.25)',zIndex:600}},h('button',{onClick:()=>{this.setState({showExport:true,exportMode:'batch',exportDropdown:false})},style:{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'8px 14px',background:'transparent',border:'none',color:txt,cursor:'pointer',fontSize:12,fontFamily:"'Space Grotesk',sans-serif",borderRadius:4,transition:'background 0.1s'},onMouseEnter:e=>e.currentTarget.style.background=dk?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.05)',onMouseLeave:e=>e.currentTarget.style.background='transparent'},ic('M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3',13,1.5),'Batch Export (.zip)')))
     );
@@ -861,8 +941,8 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
     }
 
     // ── GRID + GLOW ──
-    const gridBaseOp=dk?(0.08+energy*0.06):(0.09+energy*0.07);
-    const gridColor=dk?`rgba(255,255,255,${gridBaseOp.toFixed(3)})`:`rgba(0,0,0,${gridBaseOp.toFixed(3)})`;
+    const gridBaseOp=cdk?(0.08+energy*0.06):(0.09+energy*0.07);
+    const gridColor=cdk?`rgba(255,255,255,${gridBaseOp.toFixed(3)})`:`rgba(0,0,0,${gridBaseOp.toFixed(3)})`;
     const glowOp=(0.3+energy*0.5).toFixed(2);
     const glowGridColor=ar(+glowOp);
     const glowRadius=Math.round(200+energy*300);
@@ -887,7 +967,7 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
     const coloredShapeSrc=this._getColoredShapeSrc();
     const maskSrc=this._getMaskSrc();
     let textureOverlay=null;if(s.texture!=='none'){const tex=TEXTURES.find(t=>t.id===s.texture);if(tex&&tex.svg){const tSvg=tex.svg(s.textureColor);const tUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(tSvg);const wi=tSvg.indexOf('width="')+7;const hi=tSvg.indexOf('height="')+8;const tnw=parseInt(tSvg.slice(wi))||10;const tnh=parseInt(tSvg.slice(hi))||10;textureOverlay=h('div',{style:{position:'absolute',inset:0,backgroundImage:'url("'+tUrl+'")',backgroundSize:tnw*s.textureScale+'px '+tnh*s.textureScale+'px',opacity:s.textureOpacity,WebkitMaskImage:'url("'+maskSrc+'")',maskImage:'url("'+maskSrc+'")',WebkitMaskSize:'100% 100%',maskSize:'100% 100%',WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat',pointerEvents:'none'}})}}
-    const folderDisplay=h('div',{style:{position:'relative',width:FW,height:FH,filter:dk?'drop-shadow(0 8px 24px rgba(0,0,0,0.4))':'drop-shadow(0 8px 24px rgba(0,0,0,0.15))'}},
+    const folderDisplay=h('div',{style:{position:'relative',width:FW,height:FH,filter:cdk?'drop-shadow(0 8px 24px rgba(0,0,0,0.4))':'drop-shadow(0 8px 24px rgba(0,0,0,0.15))'}},
       h('img',{src:coloredShapeSrc,style:{width:FW,height:FH,display:'block',pointerEvents:'none'},draggable:false}));
 
     // ── ELEMENTS OVERLAY ──
@@ -1121,9 +1201,9 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
               h('span',{style:{fontSize:11,color:txt2,width:55,flexShrink:0}},'Weight'),
               h('input',{type:'range',min:0.5,max:4,step:0.25,value:s.iconStroke,onChange:e=>{this.setState({iconStroke:+e.target.value},()=>this.updateIconStyle())},style:{flex:1}}),
               ev('i-wt',s.iconStroke,s.iconStroke+'px',32,v=>{this.setState({iconStroke:v},()=>this.updateIconStyle())})),
-            lbl('Library'),
-            h('div',{style:{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}},...cats.map(c=>h('button',{key:c,onClick:()=>this.setState({iconCat:c}),style:{padding:'5px 10px',background:s.iconCat===c?ar(0.1):'transparent',border:'1px solid '+(s.iconCat===c?ar(0.2):'transparent'),borderRadius:6,color:s.iconCat===c?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif"}},c))),
-            h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}},...(ICONS[s.iconCat]||[]).map(icon=>h('div',{key:icon.n,onClick:()=>this.addIconFromLib(icon.d,icon.n),style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:8,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,border:'1px solid transparent',transition:'all 0.15s'},onMouseEnter:e=>{e.currentTarget.style.background=dk?ar(0.08):ar(0.1);e.currentTarget.style.borderColor=ar(0.2)},onMouseLeave:e=>{e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';e.currentTarget.style.borderColor='transparent'}},h('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:txt,strokeWidth:1.5,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:icon.d})),h('span',{style:{fontSize:10,color:txt2}},icon.n))))
+            h('input',{type:'text',placeholder:'Search icons…',value:s.iconSearch,onChange:e=>this.setState({iconSearch:e.target.value}),style:{width:'100%',height:32,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',border:'1px solid '+brd,borderRadius:8,color:txt,padding:'0 10px',fontSize:12,fontFamily:"'Space Grotesk',sans-serif",boxSizing:'border-box',outline:'none',marginBottom:10}}),
+            ...(s.iconSearch?[]:[h('div',{style:{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}},...cats.map(c=>h('button',{key:c,onClick:()=>this.setState({iconCat:c}),style:{padding:'4px 9px',background:s.iconCat===c?ar(0.1):'transparent',border:'1px solid '+(s.iconCat===c?ar(0.2):'transparent'),borderRadius:6,color:s.iconCat===c?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif"}},c)))]),
+            (()=>{const q=s.iconSearch.toLowerCase().trim();const icons=q?Object.values(ICONS).flat().filter(i=>i.n.toLowerCase().includes(q)):ICONS[s.iconCat]||[];return h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}},icons.length===0?h('div',{style:{gridColumn:'1/-1',padding:'16px 0',textAlign:'center',fontSize:12,color:txt2}},'No results'):icons.map(icon=>h('div',{key:icon.n,onClick:()=>this.addIconFromLib(icon.d,icon.n),style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:8,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,border:'1px solid transparent',transition:'all 0.15s'},onMouseEnter:e=>{e.currentTarget.style.background=dk?ar(0.08):ar(0.1);e.currentTarget.style.borderColor=ar(0.2)},onMouseLeave:e=>{e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';e.currentTarget.style.borderColor='transparent'}},h('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:txt,strokeWidth:1.5,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:icon.d})),h('span',{style:{fontSize:10,color:txt2}},icon.n))))})()
           )
         ));
     }
@@ -1515,7 +1595,7 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
       h('div',{style:{flex:1,display:'flex',overflow:'hidden'}},
         iconRail,
         dockedPanel,
-        h('div',{style:{flex:1,position:'relative',overflow:'hidden'},onMouseMove:e=>{const r=e.currentTarget.getBoundingClientRect();this._targetGX=e.clientX-r.left;this._targetGY=e.clientY-r.top;this._glowIn=true},onMouseLeave:()=>{this._glowIn=false}},
+        h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:canvasBg,transition:'background 0.3s'},onMouseMove:e=>{const r=e.currentTarget.getBoundingClientRect();this._targetGX=e.clientX-r.left;this._targetGY=e.clientY-r.top;this._glowIn=true},onMouseLeave:()=>{this._glowIn=false}},
         grid,glowGrid,workspace,alignBar)),
       backdrop,exportPanel,fpPanel,fileInput,ctxMenu);
 
