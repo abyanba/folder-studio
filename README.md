@@ -1,25 +1,45 @@
-# CODING AGENTS: READ THIS FIRST
+# Folder Studio
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+A browser-based folder icon creator. Design custom folder icons with colors, gradients, images, text, shapes, textures, and drawings — then export as PNG, SVG, or ICO.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+**Live app:** `project/index-standalone.html` — open it directly in any browser, no server needed.
 
-## What you should do — IMPORTANT
+## Features
 
-**Read the chat transcripts first.** There are 6 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+- **Color** — solid colors or multi-stop gradients (Figma-style drag handles), 12 built-in presets, save custom gradients
+- **Image** — upload raster images or pick from a built-in SVG icon library (Documents, Media, Dev, Games)
+- **Text** — full typography controls: font family, size, weight, spacing, stroke, shadow, alignment
+- **Draw** — freehand pen, eraser, line, and arc tools with Chaikin smoothing
+- **Shapes** — rectangle, ellipse, triangle, star, hexagon with fill/stroke controls
+- **Texture** — 15 pattern overlays (stripes, dots, grid, chevron, waves, etc.) with opacity/scale
+- **Layers** — drag-to-reorder, visibility toggle, lock, rename
+- **Gallery** — save and restore design snapshots (persists in localStorage)
+- **Export** — PNG/SVG/ICO at 64/128/256/512px, batch ZIP export
 
-**Read `project/Folder Icon Creator.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## Keyboard shortcuts
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+| Key | Action |
+|-----|--------|
+| Ctrl+Z / Ctrl+Y | Undo / Redo |
+| Ctrl+C / Ctrl+V | Copy / Paste selected element |
+| Backspace / Delete | Remove selected element |
+| Escape | Deselect |
 
-## About the design files
+## Files
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+```
+project/
+  index-standalone.html   ← USE THIS — fully self-contained, no dependencies
+  index.html              ← same app but requires folder-base.png alongside it
+  folder-base.png         ← base folder image (used by index.html)
+```
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+## Deployment
 
-## Bundle contents
+### GitHub Pages
+1. Go to repo **Settings → Pages**
+2. Set source to branch `main`, folder `/project`
+3. Your app will be at `https://<user>.github.io/folder-studio/index-standalone.html`
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Interactive Folder Icon Creator` project files (HTML prototypes, assets, components)
+### Anywhere else
+Just upload `project/index-standalone.html` — it's a single file with no dependencies.
