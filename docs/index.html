@@ -650,6 +650,10 @@ class App extends React.Component {
     if(this.state.texture!=='none'){const tex=TEXTURES.find(t=>t.id===this.state.texture);if(tex&&tex.svg){const tSvg=tex.svg(this.state.textureColor);const tImg=new Image();tImg.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(tSvg);await new Promise(r=>{tImg.onload=r;tImg.onerror=r});const exportScale=sz/FW;const tileW=Math.max(1,Math.round(tImg.naturalWidth*this.state.textureScale*exportScale));const tileH=Math.max(1,Math.round(tImg.naturalHeight*this.state.textureScale*exportScale));const tile=document.createElement('canvas');tile.width=tileW;tile.height=tileH;tile.getContext('2d').drawImage(tImg,0,0,tileW,tileH);ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=this.state.textureOpacity;ctx.fillStyle=ctx.createPattern(tile,'repeat');ctx.fillRect(0,0,sz,sz);ctx.restore()}}
     for(let i=tz;i<this.state.elements.length;i++){if(this.state.elements[i].visible===false)continue;await renderEl(this.state.elements[i]);}
     if(this.state.clipToFolder){const si=this._getShapeImg();if(si){ctx.globalCompositeOperation='destination-in';ctx.drawImage(si,0,0,sz,sz);ctx.globalCompositeOperation='source-over'}}
+    // Auto-trim transparent padding so icon fills the export canvas
+    const td=ctx.getImageData(0,0,sz,sz).data;let tx0=sz,ty0=sz,tx1=0,ty1=0;
+    for(let y=0;y<sz;y++)for(let x=0;x<sz;x++){if(td[(y*sz+x)*4+3]>4){tx0=Math.min(tx0,x);ty0=Math.min(ty0,y);tx1=Math.max(tx1,x);ty1=Math.max(ty1,y)}}
+    if(tx0<tx1&&ty0<ty1){const pad=Math.round(sz*0.02);const tw=tx1-tx0+1+pad*2,th=ty1-ty0+1+pad*2;const srcX=Math.max(0,tx0-pad),srcY=Math.max(0,ty0-pad);const scale=Math.min(sz/tw,sz/th);const dw=tw*scale,dh=th*scale,dx=(sz-dw)/2,dy=(sz-dh)/2;const fc=document.createElement('canvas');fc.width=sz;fc.height=sz;fc.getContext('2d').drawImage(c,srcX,srcY,Math.min(tw,sz-srcX),Math.min(th,sz-srcY),dx,dy,dw,dh);return fc;}
     return c;
   }
 
