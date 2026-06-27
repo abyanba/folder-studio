@@ -434,9 +434,69 @@ const GRADIENT_PRESETS=[
   {name:'Candy',stops:[{id:0,pos:0,hue:338,sat:0.75,bri:0.98},{id:1,pos:1,hue:207,sat:0.55,bri:0.98}]},
 ];
 const LOGO_NAMES={
-  'Social':['facebook','x','instagram','youtube','tiktok','linkedin','reddit','discord','telegram','whatsapp','snapchat','pinterest','twitch','mastodon'],
-  'Tech':['google','apple','microsoft','amazon','meta','netflix','spotify','github','openai','anthropic','slack','notion','figma','android','linux','windows11'],
-  'Brands':['airbnb','uber','paypal','visa','mastercard','nike','adidas','starbucks','nintendo','playstation','xbox','steam'],
+  'Social':['facebook','x','instagram','youtube','tiktok','linkedin','reddit','discord','telegram','whatsapp','snapchat','pinterest','twitch','mastodon','threads','bluesky'],
+  'Tech':['google','apple','microsoft','amazon','meta','netflix','spotify','github','openai','anthropic','slack','notion','figma','android','linux','windows11','vercel','supabase','typescript','javascript','python','rust'],
+  'Office':['microsoftword','microsoftexcel','microsoftpowerpoint','microsoftoutlook','microsoftteams','microsoftonenote','microsoftonedrive','microsoftsharepoint','microsoftazure','googledocs','googlesheets','googleslides','googledrive','googlechrome','googlemeet'],
+  'Creative':['blender','adobephotoshop','adobeillustrator','adobeaftereffects','adobepremierepro','adobexd','adobelightroom','adobeindesign','figma','sketch','inkscape','davinciresolve','unity','unrealengine','capcut'],
+  'Brands':['airbnb','uber','paypal','visa','mastercard','nike','adidas','starbucks','nintendo','playstation','xbox','steam','samsung','tesla'],
+};
+const LOGO_DISPLAY={
+  'microsoftword':'Word','microsoftexcel':'Excel','microsoftpowerpoint':'PowerPoint',
+  'microsoftoutlook':'Outlook','microsoftteams':'Teams','microsoftonenote':'OneNote',
+  'microsoftonedrive':'OneDrive','microsoftsharepoint':'SharePoint','microsoftazure':'Azure',
+  'googledocs':'Docs','googlesheets':'Sheets','googleslides':'Slides','googledrive':'Drive',
+  'googlechrome':'Chrome','googlemeet':'Meet',
+  'adobephotoshop':'Photoshop','adobeillustrator':'Illustrator',
+  'adobeaftereffects':'After FX','adobepremierepro':'Premiere','adobexd':'Adobe XD',
+  'adobelightroom':'Lightroom','adobeindesign':'InDesign',
+  'unrealengine':'Unreal','davinciresolve':'DaVinci','windows11':'Windows',
+  'tiktok':'TikTok','openai':'OpenAI','github':'GitHub','youtube':'YouTube',
+  'linkedin':'LinkedIn','whatsapp':'WhatsApp','playstation':'PlayStation',
+  'bluesky':'Bluesky','capcut':'CapCut',
+};
+const BRAND_COLORS={
+  'microsoftword':'#2B579A','microsoftexcel':'#217346','microsoftpowerpoint':'#B7472A',
+  'microsoftoutlook':'#0078D4','microsoftteams':'#6264A4','microsoftonenote':'#7719AA',
+  'microsoftonedrive':'#0078D4','microsoftazure':'#0089D6','microsoftsharepoint':'#038387',
+  'googledocs':'#4285F4','googlesheets':'#34A853','googleslides':'#FBBC04',
+  'googledrive':'#4285F4','googlechrome':'#4285F4','googlemeet':'#00897B',
+  'adobephotoshop':'#31A8FF','adobeillustrator':'#FF9A00','adobeaftereffects':'#9999FF',
+  'adobepremierepro':'#9999FF','adobexd':'#FF61F6','adobelightroom':'#31A8FF','adobeindesign':'#FF3366',
+  'blender':'#F5792A','figma':'#F24E1E','sketch':'#F7B500','unity':'#9B9B9B','unrealengine':'#9B9B9B',
+  'inkscape':'#9B9B9B','davinciresolve':'#FFC107','capcut':'#1D1D1D',
+  'youtube':'#FF0000','instagram':'#E4405F','facebook':'#1877F2','tiktok':'#010101','threads':'#101010',
+  'bluesky':'#0085FF','x':'#000000','linkedin':'#0A66C2','reddit':'#FF4500',
+  'discord':'#5865F2','telegram':'#26A5E4','whatsapp':'#25D366','snapchat':'#FFFC00',
+  'twitch':'#9146FF','pinterest':'#BD081C','mastodon':'#6364FF',
+  'google':'#4285F4','apple':'#555555','microsoft':'#737373','amazon':'#FF9900',
+  'meta':'#0668E1','netflix':'#E50914','spotify':'#1DB954','github':'#181717',
+  'openai':'#412991','anthropic':'#CC785C','slack':'#4A154B','notion':'#000000',
+  'android':'#3DDC84','linux':'#FCC624','windows11':'#0078D4','vercel':'#000000','supabase':'#3ECF8E',
+  'typescript':'#3178C6','javascript':'#F7DF1E','python':'#3776AB','rust':'#CE422B',
+  'airbnb':'#FF5A5F','uber':'#000000','paypal':'#003087','visa':'#1A1F71',
+  'mastercard':'#EB001B','nike':'#111111','adidas':'#000000','starbucks':'#00704A',
+  'nintendo':'#E60012','playstation':'#003791','xbox':'#107C10','steam':'#1B2838',
+  'samsung':'#1428A0','tesla':'#CC0000',
+};
+const LOGO_COLOR_KEYS={
+  'figma':'figma','blender':'blender','sketch':'sketch',
+  'github':'github-icon','slack':'slack-icon','notion':'notion-icon',
+  'discord':'discord-icon','spotify':'spotify-icon','youtube':'youtube-icon',
+  'instagram':'instagram','facebook':'facebook','reddit':'reddit-icon','twitch':'twitch',
+  'netflix':'netflix-icon','android':'android-icon','linux':'linux-tux',
+  'windows11':'microsoft-windows','apple':'apple','amazon':'amazon',
+  'vercel':'vercel-icon','supabase':'supabase-icon','openai':'openai',
+  'microsoft':'microsoft-windows',
+  'microsoftword':'microsoft-word','microsoftexcel':'microsoft-excel',
+  'microsoftpowerpoint':'microsoft-powerpoint','microsoftoutlook':'microsoft-outlook',
+  'microsoftteams':'microsoft-teams','microsoftonenote':'microsoft-onenote',
+  'microsoftonedrive':'microsoft-onedrive','microsoftazure':'microsoft-azure',
+  'googledocs':'google-docs','googlesheets':'google-sheets',
+  'googleslides':'google-slides','googledrive':'google-drive','googlechrome':'google-chrome',
+  'adobephotoshop':'adobe-photoshop','adobeillustrator':'adobe-illustrator',
+  'adobeaftereffects':'adobe-after-effects','adobepremierepro':'adobe-premiere',
+  'adobexd':'adobe-xd','adobelightroom':'adobe-lightroom','adobeindesign':'adobe-indesign',
+  'unity':'unity','unrealengine':'unreal-engine',
 };
 class App extends React.Component {
   sbRef=React.createRef();hueRef=React.createRef();fileRef=React.createRef();fpSbRef=React.createRef();fpHueRef=React.createRef();folderImgRef=React.createRef();
@@ -453,7 +513,7 @@ class App extends React.Component {
     showExport:false,exportMode:'single',batchSizes:[64,128,256,512],batchFmts:['png'],exportDropdown:false,
     fpOpen:false,fpColor:'#000000',fpH:0,fpS:0,fpV:100,fpId:'',fpFmt:'hex',fpAnchorRect:null,fpMode:'solid',fpGradStops:[{id:0,pos:0,hue:0,sat:1,bri:1},{id:1,pos:1,hue:200,sat:0.8,bri:0.9}],fpGradSelStop:0,fpGradType:'linear',fpGradAngle:90,hiddenGradPresets:JSON.parse(localStorage.getItem('fs_hidden_grad_presets')||'[]'),
     iconCat:'General',iconSearch:'',iconVariant:'regular',exportSize:256,exportFmt:'ico',iconStroke:1.5,iconColor:'#ffffff',
-    gallery:[],editingTextId:null,editingSlider:null,editingSliderVal:'',baseShape:'windows',texture:'none',textureOpacity:0.35,textureScale:1,textureRotation:0,textureRandSeed:0,textureColor:'#ffffff',textureBg:'transparent',textureSearch:'',textureAdjust:false,drawColor:'#ffffff',drawSize:8,drawOpacity:1,currentDraw:null,activeTool:null,drawMode:'pen',drawSubmode:'freehand',shapePoints:[],shapeCursorPos:null,shapeDragPoint:null,editingLayerName:null,clipToFolder:true,folderOpacity:1,folderBgImage:null,logoSearch:'',logoCat:'Social',
+    gallery:[],editingTextId:null,editingSlider:null,editingSliderVal:'',baseShape:'windows',texture:'none',textureOpacity:0.35,textureScale:1,textureRotation:0,textureRandSeed:0,textureColor:'#ffffff',textureBg:'transparent',textureSearch:'',textureAdjust:false,drawColor:'#ffffff',drawSize:8,drawOpacity:1,currentDraw:null,activeTool:null,drawMode:'pen',drawSubmode:'freehand',shapePoints:[],shapeCursorPos:null,shapeDragPoint:null,editingLayerName:null,clipToFolder:true,folderOpacity:1,folderBgImage:null,logoSearch:'',logoCat:'Social',logoColor:'#ffffff',logoMode:'mono',
   };
 
   componentDidMount(){
@@ -683,6 +743,7 @@ class App extends React.Component {
     else if(id==='drawStrokeColor'&&this.state.selectedId){this.updateEl(this.state.selectedId,{strokeColor:val})}
     else if(id==='textureColor')this.setState({textureColor:hex});
     else if(id==='textureBg')this.setState({textureBg:hex});
+    else if(id==='logoColor')this.setState({logoColor:hex});
     else if(id==='shapeFill'&&this.state.selectedId){this.updateEl(this.state.selectedId,{fillColor:val})}
     else if(id==='shapeStroke'&&this.state.selectedId){this.updateEl(this.state.selectedId,{strokeColor:hex})}
   }
@@ -736,12 +797,58 @@ class App extends React.Component {
       }).catch(()=>{uncached.forEach(n=>{if(this._iconCache['logo:'+n]==='pending')delete this._iconCache['logo:'+n];});});
   }
   _getLogoBody(name){const v=this._iconCache['logo:'+name];return v&&typeof v==='object'?v:null;}
+  fetchColorLogoBatch(names){
+    const keys=names.filter(n=>LOGO_COLOR_KEYS[n]).map(n=>LOGO_COLOR_KEYS[n]);
+    const uncached=keys.filter(k=>!this._iconCache['logoc:'+k]);
+    if(!uncached.length)return Promise.resolve();
+    uncached.forEach(k=>{this._iconCache['logoc:'+k]='pending';});
+    return fetch(`https://api.iconify.design/logos.json?icons=${uncached.join(',')}`)
+      .then(r=>r.json()).then(data=>{
+        uncached.forEach(k=>{if(this._iconCache['logoc:'+k]==='pending')delete this._iconCache['logoc:'+k];});
+        Object.entries(data.icons||{}).forEach(([k,v])=>{this._iconCache['logoc:'+k]=v});
+        this.forceUpdate();
+      }).catch(()=>{uncached.forEach(k=>{if(this._iconCache['logoc:'+k]==='pending')delete this._iconCache['logoc:'+k];});});
+  }
+  _getColorLogoBody(name){const ck=LOGO_COLOR_KEYS[name];if(!ck)return null;const v=this._iconCache['logoc:'+ck];return v&&typeof v==='object'?v:null;}
   addLogoToCanvas(name){
+    const s=this.state;
+    if(s.logoMode==='color'){
+      const colorBody=this._getColorLogoBody(name);
+      if(colorBody){
+        const vw=colorBody.width||24,vh=colorBody.height||24;
+        const svgStr='<svg xmlns="http://www.w3.org/2000/svg" width="'+vw+'" height="'+vh+'" viewBox="0 0 '+vw+' '+vh+'">'+colorBody.body+'</svg>';
+        const src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr);
+        const id='el'+s.nextId;
+        const el={id,type:'image',src,x:40,y:40,width:80,height:80,rotation:0,opacity:1,scaleX:1,scaleY:1,visible:true,locked:false,name:LOGO_DISPLAY[name]||name};
+        this._pushHistory();
+        this.setState(prev=>({elements:[...prev.elements,el],nextId:prev.nextId+1,selectedId:id,selectedIds:[id]}));
+        return;
+      }
+      // fallback: add as icon with brand color
+      const brandColor=BRAND_COLORS[name]||'#ffffff';
+      const cacheKey='logo:'+name;
+      const doAddBrand=()=>{
+        const cached=this._iconCache[cacheKey];if(!cached||typeof cached!=='object')return;
+        const id='el'+this.state.nextId;
+        const el={id,type:'icon',iconName:name,iconVariant:'logo',iconCacheKey:cacheKey,iconColor:brandColor,x:40,y:40,width:80,height:80,rotation:0,opacity:1,scaleX:1,scaleY:1,visible:true,locked:false};
+        this._pushHistory();
+        this.setState(prev=>({elements:[...prev.elements,el],nextId:prev.nextId+1,selectedId:id,selectedIds:[id]}));
+      };
+      if(this._iconCache[cacheKey]&&typeof this._iconCache[cacheKey]==='object'){doAddBrand();return;}
+      if(this._iconCache[cacheKey]==='pending'){return;}
+      this._iconCache[cacheKey]='pending';
+      fetch(`https://api.iconify.design/simple-icons.json?icons=${name}`).then(r=>r.json()).then(data=>{
+        Object.entries(data.icons||{}).forEach(([k,v])=>{this._iconCache['logo:'+k]=v});
+        doAddBrand();this.forceUpdate();
+      }).catch(()=>{delete this._iconCache[cacheKey];});
+      return;
+    }
+    const logoColor=s.logoColor||'#ffffff';
     const cacheKey='logo:'+name;
     const doAdd=()=>{
       const cached=this._iconCache[cacheKey];if(!cached||typeof cached!=='object')return;
       const id='el'+this.state.nextId;
-      const el={id,type:'icon',iconName:name,iconVariant:'logo',iconCacheKey:cacheKey,iconColor:'#ffffff',x:40,y:40,width:80,height:80,rotation:0,opacity:1,scaleX:1,scaleY:1,visible:true,locked:false};
+      const el={id,type:'icon',iconName:name,iconVariant:'logo',iconCacheKey:cacheKey,iconColor:logoColor,x:40,y:40,width:80,height:80,rotation:0,opacity:1,scaleX:1,scaleY:1,visible:true,locked:false};
       this._pushHistory();
       this.setState(prev=>({elements:[...prev.elements,el],nextId:prev.nextId+1,selectedId:id,selectedIds:[id]}));
     };
@@ -1848,28 +1955,44 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
       const catNames=LOGO_NAMES[s.logoCat]||[];
       if(!this._logoCatFetched)this._logoCatFetched={};
       if(!this._logoCatFetched[s.logoCat]){this._logoCatFetched[s.logoCat]=true;this.fetchLogoBatch(catNames);}
+      if(!this._logoCatFetchedColor)this._logoCatFetchedColor={};
+      if(s.logoMode==='color'&&!this._logoCatFetchedColor[s.logoCat]){this._logoCatFetchedColor[s.logoCat]=true;this.fetchColorLogoBatch(catNames);}
       const q=(s.logoSearch||'').toLowerCase().trim();
       const visNames=q?Object.values(LOGO_NAMES).flat().filter(n=>n.includes(q)):catNames;
+      const isColorMode=s.logoMode==='color';
       logoPanel=h(React.Fragment,null,
         phdr('Brand Logos',()=>this.setState({activePanel:null})),
         h('div',{style:{padding:'12px 12px 0'}},
           h('div',{style:{position:'relative'}},
             h('input',{type:'text',placeholder:'Search logos...',value:s.logoSearch||'',onChange:e=>this.setState({logoSearch:e.target.value}),style:{width:'100%',height:34,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',border:'1px solid '+brd,borderRadius:8,color:txt,padding:'0 32px 0 10px',fontSize:12,fontFamily:"'Space Grotesk',sans-serif",boxSizing:'border-box'}}),
             !(s.logoSearch||'')&&h('span',{style:{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',color:txt2,pointerEvents:'none',fontSize:13}},ic('M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0',14,2))),
-          !q&&h('div',{style:{display:'flex',gap:3,marginTop:8,marginBottom:0,overflowX:'auto',paddingBottom:2}},
-            ...Object.keys(LOGO_NAMES).map(cat=>h('button',{key:cat,onClick:()=>{this.setState({logoCat:cat});if(!this._logoCatFetched)this._logoCatFetched={};if(!this._logoCatFetched[cat]){this._logoCatFetched[cat]=true;this.fetchLogoBatch(LOGO_NAMES[cat]);}},style:{padding:'5px 10px',background:s.logoCat===cat?ar(0.12):'transparent',border:'1px solid '+(s.logoCat===cat?ar(0.25):'transparent'),borderRadius:6,color:s.logoCat===cat?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:'nowrap',flexShrink:0}},cat)))),
+          h('div',{style:{display:'flex',gap:4,marginTop:8,marginBottom:8}},
+            h('button',{onClick:()=>this.setState({logoMode:'mono'}),style:{flex:1,height:28,background:!isColorMode?ar(0.12):'transparent',border:'1px solid '+(!isColorMode?ar(0.25):brd),borderRadius:6,color:!isColorMode?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:4}},ic('M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4c3 0 5.6-2.5 5.6-5.6C23 5.4 18 2 12 2z',12,2),'Mono'),
+            h('button',{onClick:()=>{this.setState({logoMode:'color'});if(!this._logoCatFetchedColor)this._logoCatFetchedColor={};if(!this._logoCatFetchedColor[s.logoCat]){this._logoCatFetchedColor[s.logoCat]=true;this.fetchColorLogoBatch(catNames);}},style:{flex:1,height:28,background:isColorMode?ar(0.12):'transparent',border:'1px solid '+(isColorMode?ar(0.25):brd),borderRadius:6,color:isColorMode?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:4}},ic('M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01',12,2),'Color')),
+          !isColorMode&&h('div',{style:{display:'flex',gap:6,alignItems:'center',marginBottom:8}},
+            colorSwatch(s.logoColor||'#ffffff','logoColor',26),
+            h('span',{style:{fontSize:11,color:txt2,fontFamily:"'JetBrains Mono',monospace"}},s.logoColor||'#ffffff'),
+            h('button',{onClick:()=>this.setState({logoColor:'#ffffff'}),title:'Reset to white',style:{marginLeft:'auto',height:22,padding:'0 8px',background:'transparent',border:'1px solid '+brd,borderRadius:5,color:txt2,cursor:'pointer',fontSize:10,fontFamily:"'Space Grotesk',sans-serif"}},'Reset')),
+          !q&&h('div',{style:{display:'flex',gap:3,marginBottom:0,overflowX:'auto',paddingBottom:2}},
+            ...Object.keys(LOGO_NAMES).map(cat=>h('button',{key:cat,onClick:()=>{this.setState({logoCat:cat});if(!this._logoCatFetched)this._logoCatFetched={};if(!this._logoCatFetched[cat]){this._logoCatFetched[cat]=true;this.fetchLogoBatch(LOGO_NAMES[cat]);}if(isColorMode){if(!this._logoCatFetchedColor)this._logoCatFetchedColor={};if(!this._logoCatFetchedColor[cat]){this._logoCatFetchedColor[cat]=true;this.fetchColorLogoBatch(LOGO_NAMES[cat]);}}},style:{padding:'5px 10px',background:s.logoCat===cat?ar(0.12):'transparent',border:'1px solid '+(s.logoCat===cat?ar(0.25):'transparent'),borderRadius:6,color:s.logoCat===cat?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:'nowrap',flexShrink:0}},cat)))),
         h('div',{style:{padding:'10px 12px 16px'}},
           visNames.length===0&&emptyState('M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0','No logos found.'),
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
             ...visNames.map(name=>{
-              const body=this._getLogoBody(name);
-              const displayName=name.charAt(0).toUpperCase()+name.slice(1).replace(/-/g,' ');
+              const monoBody=this._getLogoBody(name);
+              const colorBody=isColorMode?this._getColorLogoBody(name):null;
+              const brandColor=BRAND_COLORS[name]||'#ffffff';
+              const displayName=LOGO_DISPLAY[name]||(name.charAt(0).toUpperCase()+name.slice(1));
               return h('div',{key:name,onClick:()=>this.addLogoToCanvas(name),title:displayName,style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:10,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,border:'1px solid transparent',padding:'8px 4px',transition:'all 0.15s',overflow:'hidden'},
                 onMouseEnter:e=>{e.currentTarget.style.background=dk?ar(0.08):ar(0.07);e.currentTarget.style.borderColor=ar(0.2)},
                 onMouseLeave:e=>{e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';e.currentTarget.style.borderColor='transparent'}},
-                body
-                  ?h('svg',{viewBox:`0 0 ${body.width||24} ${body.height||24}`,style:{width:32,height:32,display:'block',fill:dk?'rgba(255,255,255,0.85)':'rgba(0,0,0,0.75)'},dangerouslySetInnerHTML:{__html:body.body||''}})
-                  :h('div',{style:{width:32,height:32,borderRadius:6,background:ar(0.1),display:'flex',alignItems:'center',justifyContent:'center'}},ic('M4 12a8 8 0 1116 0 8 8 0 01-16 0z',16,1.5)),
+                isColorMode&&colorBody
+                  ?h('svg',{viewBox:'0 0 '+(colorBody.width||24)+' '+(colorBody.height||24),style:{width:32,height:32,display:'block'},dangerouslySetInnerHTML:{__html:colorBody.body||''}})
+                  :isColorMode&&monoBody
+                    ?h('svg',{viewBox:'0 0 '+(monoBody.width||24)+' '+(monoBody.height||24),style:{width:32,height:32,display:'block',color:brandColor,fill:brandColor},dangerouslySetInnerHTML:{__html:monoBody.body||''}})
+                    :monoBody
+                      ?h('svg',{viewBox:'0 0 '+(monoBody.width||24)+' '+(monoBody.height||24),style:{width:32,height:32,display:'block',fill:isColorMode?brandColor:(s.logoColor||'#ffffff')},dangerouslySetInnerHTML:{__html:monoBody.body||''}})
+                      :h('div',{style:{width:32,height:32,borderRadius:6,background:ar(0.1),display:'flex',alignItems:'center',justifyContent:'center'}},ic('M4 12a8 8 0 1116 0 8 8 0 01-16 0z',16,1.5)),
                 h('span',{style:{fontSize:9,color:txt2,textAlign:'center',lineHeight:1.2,wordBreak:'break-word',maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',width:'100%',padding:'0 4px'}},displayName));
             }))));
     }
