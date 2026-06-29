@@ -1449,19 +1449,19 @@ if(!all.length)return'';let d='M '+r(all[0].x)+' '+r(all[0].y);for(let i=1;i<all
             lbl('Style'),
             h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:10}},
               ...['regular','bold','thin','light','fill','duotone'].map(v=>variantBtn(v,v.charAt(0).toUpperCase()+v.slice(1)))),
-            h('input',{type:'text',placeholder:'Search icons…',value:s.iconSearch,onChange:e=>this.setState({iconSearch:e.target.value}),style:{width:'100%',height:32,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',border:'1px solid '+brd,borderRadius:8,color:txt,padding:'0 10px',fontSize:12,fontFamily:"'Space Grotesk',sans-serif",boxSizing:'border-box',outline:'none',marginBottom:10}}),
+            h('div',{style:{position:'relative',marginBottom:10}},h('input',{type:'text',placeholder:'Search icons…',value:s.iconSearch,onChange:e=>this.setState({iconSearch:e.target.value}),style:{width:'100%',height:32,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)',border:'1px solid '+brd,borderRadius:8,color:txt,padding:s.iconSearch?'0 28px 0 10px':'0 10px',fontSize:12,fontFamily:"'Space Grotesk',sans-serif",boxSizing:'border-box',outline:'none'}}),s.iconSearch&&h('button',{onClick:()=>this.setState({iconSearch:''}),style:{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:txt2,cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 2px'}},'×')),
             ...(s.iconSearch?[]:[h('div',{style:{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}},...cats.map(c=>h('button',{key:c,onClick:()=>this.setState({iconCat:c}),style:{padding:'4px 9px',background:s.iconCat===c?ar(0.1):'transparent',border:'1px solid '+(s.iconCat===c?ar(0.2):'transparent'),borderRadius:6,color:s.iconCat===c?acc:txt2,cursor:'pointer',fontSize:11,fontWeight:500,fontFamily:"'Space Grotesk',sans-serif"}},c)))]),
             (()=>{
               const q=s.iconSearch.toLowerCase().trim();
               const names=q?Object.values(ICON_NAMES).flat().filter(n=>n.toLowerCase().includes(q)):ICON_NAMES[s.iconCat]||[];
               const uncached=names.filter(n=>!this._getIconBody(n,s.iconVariant));
               if(uncached.length)this.fetchIconBatch(uncached,s.iconVariant);
-              return h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}},
+              return h('div',{key:q?'search':'browse',style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,width:'100%'}},
                 names.length===0?h('div',{style:{gridColumn:'1/-1',padding:'16px 0',textAlign:'center',fontSize:12,color:txt2}},'No results'):
                 names.map(name=>{
                   const iconData=this._getIconBody(name,s.iconVariant);
                   return h('div',{key:name+s.iconVariant,title:name,onClick:()=>this.addIconToCanvas(name,s.iconVariant),style:{aspectRatio:'1',background:dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)',borderRadius:8,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,border:'1px solid transparent',transition:'all 0.15s'},onMouseEnter:e=>{e.currentTarget.style.background=dk?ar(0.08):ar(0.1);e.currentTarget.style.borderColor=ar(0.2)},onMouseLeave:e=>{e.currentTarget.style.background=dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)';e.currentTarget.style.borderColor='transparent'}},
-                    iconData?h('svg',{viewBox:`0 0 ${iconData.width||256} ${iconData.height||256}`,style:{width:22,height:22,display:'block',color:txt},dangerouslySetInnerHTML:{__html:iconData.body||''}}):h('div',{style:{width:22,height:22,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)',borderRadius:3,animation:'pulse 1.5s ease-in-out infinite'}}),
+                    iconData?h('svg',{viewBox:`0 0 ${iconData.width||256} ${iconData.height||256}`,style:{width:26,height:26,display:'block',color:txt},dangerouslySetInnerHTML:{__html:iconData.body||''}}):h('div',{style:{width:26,height:26,background:dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)',borderRadius:3,animation:'pulse 1.5s ease-in-out infinite'}}),
                     h('span',{style:{fontSize:9,color:txt2,textAlign:'center',lineHeight:1.2,overflow:'hidden',maxWidth:'100%',textOverflow:'ellipsis',whiteSpace:'nowrap',padding:'0 2px'}},name)
                   );
                 })
