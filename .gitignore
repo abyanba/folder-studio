@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# AI / agent tooling — kept local, never pushed.
+# This is a static site (visitors just open the GitHub Pages URL), so no
+# collaborator needs these dev-only files in the repo.
+.mcp.json
+.agents/
+skills-lock.json
+CLAUDE.md
+.claude/
