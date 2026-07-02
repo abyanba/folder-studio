@@ -1,0 +1,82 @@
+/**
+ * Pure color conversions, ported from the legacy class methods
+ * (docs/index.html L570-573, L608). No React, no `this` — directly testable.
+ */
+
+import type { Gradient } from "@/types/gradient";
+
+export type Rgb = [r: number, g: number, b: number];
+export type Hsv = [h: number, s: number, v: number];
+
+/** HSV (h:0..360, s:0..1, v:0..1) → RGB (0..255 ints). */
+export function hsvToRgb(h: number, s: number, v: number): Rgb {
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) {
+    r = c;
+    g = x;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+  } else if (h < 180) {
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255),
+  ];
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+/** HSV → hex string. */
+export function getHex(h: number, s: number, v: number): string {
+  const [r, g, b] = hsvToRgb(h, s, v);
+  return rgbToHex(r, g, b);
+}
+
+/** Hex string (`#rrggbb`) → HSV. Returns `[0,0,0]` for malformed input. */
+export function hexToHsv(hex: string): Hsv {
+  if (!hex || hex.length < 7) return [0, 0, 0];
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const d = mx - mn;
+  let h = 0;
+  if (d > 0) {
+    if (mx === r) h = ((((g - b) / d + 6) % 6) * 60);
+    else if (mx === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
+  }
+  return [h, mx > 0 ? d / mx : 0, mx];
+}
+
+/** Build a CSS `linear-gradient()`/`radial-gradient()` from a {@link Gradient}. */
+export function gradientToCss(gradient: Gradient): string {
+  const sorted = [...gradient.stops].sort((a, b) => a.pos - b.pos);
+  const cs = sorted
+    .map((s) => `${getHex(s.hue, s.sat, s.bri)} ${Math.round(s.pos * 100)}%`)
+    .join(",");
+  return gradient.kind === "linear"
+    ? `linear-gradient(${gradient.angle}deg,${cs})`
+    : `radial-gradient(circle,${cs})`;
+}
