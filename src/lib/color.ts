@@ -70,6 +70,19 @@ export function hexToHsv(hex: string): Hsv {
   return [h, mx > 0 ? d / mx : 0, mx];
 }
 
+/**
+ * Hex (`#rrggbb`) + alpha → `rgba(...)` string. Pass-through if already `rgb(...)`.
+ * Ported from the legacy `hexA` (docs/index.html L896).
+ */
+export function hexA(hex: string, alpha = 1): string {
+  const c = hex || "#000000";
+  if (c.startsWith("rgb")) return c;
+  const r = parseInt(c.slice(1, 3), 16);
+  const g = parseInt(c.slice(3, 5), 16);
+  const b = parseInt(c.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 /** Build a CSS `linear-gradient()`/`radial-gradient()` from a {@link Gradient}. */
 export function gradientToCss(gradient: Gradient): string {
   const sorted = [...gradient.stops].sort((a, b) => a.pos - b.pos);
