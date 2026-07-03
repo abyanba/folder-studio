@@ -300,3 +300,34 @@ export const useDocumentStore = create<DocumentStore>()(
     },
   ),
 );
+
+/**
+ * Preview transaction for continuous controls (sliders, nudge pads, gradient
+ * stop drags): the store updates live on every input so the workspace tracks,
+ * but the gesture lands as a single undo entry whose "before" state is the
+ * document at gesture start.
+ *
+ * zundo's pause()/resume() alone records the wrong "before" (the last preview
+ * value), so on commit we silently restore the pre-gesture doc while paused,
+ * resume, then re-apply the final doc — recording exactly one entry.
+ */
+let previewStartDoc: FolderDocument | null = null;
+
+export function beginDocPreview(): void {
+  if (previewStartDoc) return;
+  previewStartDoc = useDocumentStore.getState().doc;
+  useDocumentStore.temporal.getState().pause();
+}
+
+export function endDocPreview(commit = true): void {
+  if (!previewStartDoc) return;
+  const finalDoc = useDocumentStore.getState().doc;
+  useDocumentStore.setState({ doc: previewStartDoc });
+  previewStartDoc = null;
+  useDocumentStore.temporal.getState().resume();
+  if (commit) useDocumentStore.setState({ doc: finalDoc });
+}
+
+export function isDocPreviewActive(): boolean {
+  return previewStartDoc !== null;
+}

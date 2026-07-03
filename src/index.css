@@ -128,3 +128,22 @@
     @apply font-sans;
     }
 }
+/* react-colorful (HSV picker) sizing/skin — scoped so defaults stay intact elsewhere */
+.fs-colorful .react-colorful {
+  width: 100%;
+  height: 160px;
+  gap: 10px;
+}
+.fs-colorful .react-colorful__saturation {
+  border-radius: calc(var(--radius) - 2px);
+  border-bottom: none;
+}
+.fs-colorful .react-colorful__hue {
+  height: 12px;
+  border-radius: 999px;
+}
+.fs-colorful .react-colorful__pointer {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
