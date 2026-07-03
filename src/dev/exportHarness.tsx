@@ -10,19 +10,11 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { createEmptyDocument } from "@/types/document";
 import type { FolderDocument } from "@/types/document";
-import type { Gradient } from "@/types/gradient";
-import {
-  createDrawElement,
-  createIconElement,
-  createImageElement,
-  createShapeElement,
-  createTextElement,
-} from "@/lib/elementFactories";
 import { buildExportCanvas } from "@/lib/export/renderCanvas";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
-import type { IconBody } from "@/lib/export/elementSvg";
+import { getIconBodyStub } from "@/lib/iconBodyStub";
+import { buildSampleDocument } from "@/dev/sampleDocument";
 import {
   batchExportZip,
   downloadBlob,
@@ -31,96 +23,9 @@ import {
   exportSvg,
 } from "@/lib/export/exporters";
 
-/** A five-point star that honors `currentColor`, standing in for an Iconify body. */
-const STUB_ICON_BODY: IconBody = {
-  width: 256,
-  height: 256,
-  body: '<path fill="currentColor" d="M128 24l30 62 68 10-49 48 12 68-61-32-61 32 12-68-49-48 68-10z"/>',
-};
-
 const stubDeps: RenderDeps = {
-  getIconBody: () => STUB_ICON_BODY,
+  getIconBody: getIconBodyStub,
 };
-
-const fillGradient: Gradient = {
-  kind: "linear",
-  angle: 45,
-  stops: [
-    { id: "a", pos: 0, hue: 190, sat: 0.9, bri: 0.95 },
-    { id: "b", pos: 1, hue: 320, sat: 0.85, bri: 0.9 },
-  ],
-};
-
-const baseGradient: Gradient = {
-  kind: "linear",
-  angle: 180,
-  stops: [
-    { id: "a", pos: 0, hue: 45, sat: 0.9, bri: 0.98 },
-    { id: "b", pos: 1, hue: 25, sat: 0.95, bri: 0.85 },
-  ],
-};
-
-/** A tiny inline image (data URL) so the image element needs no network. */
-const SAMPLE_IMAGE_SRC =
-  "data:image/svg+xml;charset=utf-8," +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" rx="12" fill="#4ecdc4"/><circle cx="60" cy="40" r="24" fill="#12151a"/></svg>',
-  );
-
-function buildSampleDocument(): FolderDocument {
-  const doc = createEmptyDocument();
-  doc.baseShape = "windows";
-  doc.folderColor = baseGradient;
-  doc.clipToFolder = true;
-  doc.texture = { ...doc.texture, id: "dots", color: "#ffffff", opacity: 0.4, scale: 1, seed: 7 };
-
-  const shape = createShapeElement("star", "Star");
-  shape.x = 10;
-  shape.y = 10;
-  shape.width = 90;
-  shape.height = 90;
-  shape.fill = { color: fillGradient, enabled: true };
-  shape.stroke = { color: "#12151a", enabled: true, width: 3, position: "outside" };
-
-  const icon = createIconElement({
-    iconName: "star",
-    iconVariant: "regular",
-    iconCacheKey: "stub:star",
-    color: "#ffd166",
-  });
-  icon.x = 150;
-  icon.y = 20;
-
-  const text = createTextElement("Label");
-  text.text = "Folder";
-  text.x = 60;
-  text.y = 130;
-  text.width = 180;
-  text.fontSize = 28;
-  text.color = "#12151a";
-  text.underline = true;
-
-  const draw = createDrawElement({
-    x: 30,
-    y: 90,
-    width: 120,
-    height: 60,
-    origWidth: 120,
-    origHeight: 60,
-    svgPath: "M0 50 Q30 0 60 30 T120 10",
-    strokeColor: "#ff6b6b",
-    strokeSize: 6,
-    linecap: "round",
-  });
-
-  const image = createImageElement(SAMPLE_IMAGE_SRC, 120, 80, "Image");
-  image.x = 160;
-  image.y = 120;
-
-  doc.elements = [shape, image, draw, text, icon];
-  doc.textureLayerZ = 2; // texture sits above shape+image, below draw/text/icon
-  return doc;
-}
 
 const SIZES = [64, 128, 256, 512] as const;
 

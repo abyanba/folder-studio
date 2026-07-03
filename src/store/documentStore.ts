@@ -41,6 +41,11 @@ export interface DocumentStore {
   // Element CRUD
   addElement: (element: FolderElement) => void;
   updateElement: (id: string, patch: Partial<FolderElement>) => void;
+  /**
+   * Apply several element patches in a single set → a single undo entry.
+   * Used to commit a multi-select drag as one gesture.
+   */
+  updateElements: (patches: Record<string, Partial<FolderElement>>) => void;
   removeElements: (ids: string[]) => void;
   duplicateElement: (id: string) => string | null;
 
@@ -107,6 +112,16 @@ export const useDocumentStore = create<DocumentStore>()(
       updateElement: (id, patch) =>
         set((s) => ({
           doc: { ...s.doc, elements: patchElement(s.doc.elements, id, patch) },
+        })),
+
+      updateElements: (patches) =>
+        set((s) => ({
+          doc: {
+            ...s.doc,
+            elements: s.doc.elements.map((e) =>
+              patches[e.id] ? ({ ...e, ...patches[e.id] } as FolderElement) : e,
+            ),
+          },
         })),
 
       removeElements: (ids) =>
