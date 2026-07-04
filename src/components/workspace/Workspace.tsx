@@ -56,10 +56,12 @@ export function Workspace() {
     .filter((e) => selectedIds.includes(e.id))
     .map((e) => effective(e, overrides[e.id]));
 
-  const wsStyle: CSSProperties = {
-    position: "relative",
-    width: FW,
-    height: FH,
+  // The clip mask applies to the content layer only, so selection handles,
+  // marquee, and snap guides are never clipped near the folder edge (fixes a
+  // legacy quirk flagged in Phase 4).
+  const contentLayerStyle: CSSProperties = {
+    position: "absolute",
+    inset: 0,
     ...(doc.clipToFolder
       ? {
           WebkitMaskImage: `url("${maskUrl}")`,
@@ -72,23 +74,36 @@ export function Workspace() {
       : {}),
   };
 
+  const contentRect: CSSProperties = {
+    position: "absolute",
+    left: CDX,
+    top: CDY,
+    width: CDW,
+    height: CDH,
+    overflow: "visible",
+  };
+
   return (
     <ElementContextMenu>
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
         <div
           ref={wsRef}
           data-ws
-          style={wsStyle}
+          style={{ position: "relative", width: FW, height: FH }}
         onMouseDown={(e) => {
           if (useUiStore.getState().editingTextId) return;
           beginMarquee(e);
         }}
       >
-        <FolderBase doc={doc} />
-        <div style={{ position: "absolute", left: CDX, top: CDY, width: CDW, height: CDH, overflow: "visible" }}>
-          {doc.elements.slice(0, tz).map(renderEl)}
-          {doc.texture.id !== "none" && <TextureOverlay texture={doc.texture} maskUrl={maskUrl} />}
-          {doc.elements.slice(tz).map(renderEl)}
+        <div style={contentLayerStyle}>
+          <FolderBase doc={doc} />
+          <div style={contentRect}>
+            {doc.elements.slice(0, tz).map(renderEl)}
+            {doc.texture.id !== "none" && <TextureOverlay texture={doc.texture} maskUrl={maskUrl} />}
+            {doc.elements.slice(tz).map(renderEl)}
+          </div>
+        </div>
+        <div style={{ ...contentRect, pointerEvents: "none" }}>
           <SelectionOverlay
             selected={selectedEls}
             primaryId={selectedId}

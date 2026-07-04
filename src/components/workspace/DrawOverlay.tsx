@@ -51,6 +51,8 @@ export function DrawOverlay() {
         zIndex: 150,
         cursor: drawMode === "eraser" ? "cell" : "crosshair",
         touchAction: "none",
+        // The chrome layer hosting this overlay is pointerEvents:none.
+        pointerEvents: "auto",
       }}
       {...handlers}
     >

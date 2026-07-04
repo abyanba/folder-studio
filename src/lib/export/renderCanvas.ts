@@ -272,7 +272,18 @@ async function renderTexture(
   ctx.globalCompositeOperation = "source-atop";
   ctx.globalAlpha = doc.texture.opacity;
   ctx.fillStyle = pattern;
-  ctx.fillRect(0, 0, size, size);
+  const rot = doc.texture.rotation || 0;
+  if (rot) {
+    // Match the editor's TextureOverlay: the tiled pattern rotates about the
+    // folder center, with enough overdraw (its 220% layer) to keep the rotated
+    // tiling covering every corner of the canvas.
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate((rot * Math.PI) / 180);
+    const over = size * 1.2;
+    ctx.fillRect(-over, -over, over * 2, over * 2);
+  } else {
+    ctx.fillRect(0, 0, size, size);
+  }
   ctx.restore();
 }
 
