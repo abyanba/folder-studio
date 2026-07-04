@@ -140,31 +140,13 @@ export const BRAND_COLORS: Record<string, string> = {
   tesla: "#CC0000",
 };
 
-/** simple-icons slug → `logos` icon-set slug for full-color logo artwork. */
-export const LOGO_COLOR_KEYS: Record<string, string> = {
-  figma: "figma",
-  blender: "blender",
-  sketch: "sketch",
-  github: "github-icon",
-  slack: "slack-icon",
-  notion: "notion-icon",
-  discord: "discord-icon",
-  spotify: "spotify-icon",
-  youtube: "youtube-icon",
-  instagram: "instagram",
-  facebook: "facebook",
-  reddit: "reddit-icon",
-  twitch: "twitch",
-  netflix: "netflix-icon",
-  android: "android-icon",
-  linux: "linux-tux",
-  windows11: "microsoft-windows",
-  apple: "apple",
-  amazon: "amazon",
-  vercel: "vercel-icon",
-  supabase: "supabase-icon",
-  openai: "openai",
-  microsoft: "microsoft-windows",
+/**
+ * Catalog name → thesvg.org slug, for names whose slug differs. Full-color
+ * logo artwork is baked at generation time from thesvg's jsDelivr CDN
+ * (`npm run generate:icons`); this map is only read by the generator.
+ */
+export const THESVG_SLUGS: Record<string, string> = {
+  windows11: "windows",
   microsoftword: "microsoft-word",
   microsoftexcel: "microsoft-excel",
   microsoftpowerpoint: "microsoft-powerpoint",
@@ -172,19 +154,25 @@ export const LOGO_COLOR_KEYS: Record<string, string> = {
   microsoftteams: "microsoft-teams",
   microsoftonenote: "microsoft-onenote",
   microsoftonedrive: "microsoft-onedrive",
+  microsoftsharepoint: "microsoft-sharepoint",
   microsoftazure: "microsoft-azure",
   googledocs: "google-docs",
   googlesheets: "google-sheets",
   googleslides: "google-slides",
   googledrive: "google-drive",
   googlechrome: "google-chrome",
-  adobephotoshop: "adobe-photoshop",
-  adobeillustrator: "adobe-illustrator",
-  adobeaftereffects: "adobe-after-effects",
-  adobepremierepro: "adobe-premiere",
-  adobexd: "adobe-xd",
-  adobelightroom: "adobe-lightroom",
-  adobeindesign: "adobe-indesign",
-  unity: "unity",
+  googlemeet: "google-meet",
+  adobephotoshop: "photoshop",
+  adobeillustrator: "illustrator",
+  adobeaftereffects: "after-effects",
+  adobepremierepro: "premiere",
+  adobexd: "xd",
+  adobelightroom: "lightroom",
+  adobeindesign: "indesign",
+  davinciresolve: "davinci-resolve",
   unrealengine: "unreal-engine",
 };
+
+export function thesvgSlug(name: string): string {
+  return THESVG_SLUGS[name] ?? name;
+}

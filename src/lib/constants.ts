@@ -13,7 +13,11 @@ export const CDY = 130;
 export const CDW = 305;
 export const CDH = 200;
 
-/** Fonts offered in the text panel (loaded via Google Fonts). */
+/**
+ * Fonts offered in the text panel — self-hosted via @fontsource (see
+ * src/fonts.ts, keep both lists in sync). The first ten match the legacy app;
+ * the rest are display faces added for folder-icon design.
+ */
 export const FONTS = [
   "Space Grotesk",
   "Source Serif 4",
@@ -25,6 +29,16 @@ export const FONTS = [
   "Merriweather",
   "IBM Plex Sans",
   "Outfit",
+  "Bebas Neue",
+  "Abril Fatface",
+  "Lobster",
+  "Pacifico",
+  "Caveat",
+  "Permanent Marker",
+  "Orbitron",
+  "Bungee",
+  "Press Start 2P",
+  "Righteous",
 ] as const;
 
 /** Default color-preset swatches. */

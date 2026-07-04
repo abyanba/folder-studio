@@ -18,6 +18,7 @@ import {
   LOGO_NAMES,
   logoDisplayName,
 } from "@/data/logos";
+import { MONO_LOGO_NAMES } from "@/data/generated/monoLogoNames";
 import {
   getColorLogoBody,
   getIconBody,
@@ -30,6 +31,8 @@ import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
+
+const monoSet = new Set(MONO_LOGO_NAMES);
 
 function logoSvgHtml(body: { body: string; width?: number; height?: number }, tint?: string): string {
   const vw = body.width ?? 24;
@@ -52,12 +55,15 @@ export function LogosPanel() {
 
   const q = search.trim().toLowerCase();
   const names = useMemo(() => {
-    if (q) {
-      const all = [...new Set(Object.values(LOGO_NAMES).flat())];
-      return all.filter((n) => n.includes(q) || logoDisplayName(n).toLowerCase().includes(q));
-    }
-    return LOGO_NAMES[category] ?? [];
-  }, [q, category]);
+    const base = q
+      ? [...new Set(Object.values(LOGO_NAMES).flat())].filter(
+          (n) => n.includes(q) || logoDisplayName(n).toLowerCase().includes(q),
+        )
+      : (LOGO_NAMES[category] ?? []);
+    // Mono bodies come exclusively from simple-icons; brands it no longer
+    // carries (trademark removals) are color-only.
+    return logoMode === "mono" ? base.filter((n) => monoSet.has(n)) : base;
+  }, [q, category, logoMode]);
 
   useEffect(() => {
     if (!names.length) return;

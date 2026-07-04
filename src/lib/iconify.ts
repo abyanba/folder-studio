@@ -1,22 +1,27 @@
 /**
- * Iconify body cache + batch fetchers, replacing the legacy `_iconCache` /
- * `fetchIconBatch` / `fetchLogoBatch` / `fetchColorLogoBatch`. Unlike the
- * legacy app — which kicked off fetches during render and `forceUpdate()`d —
- * fetches here are requested from effects, and components subscribe to the
- * cache via `useIconCacheVersion()` (useSyncExternalStore).
+ * Icon-body cache with LOCAL-FIRST resolution (Phase 6): bodies come from the
+ * baked asset modules in `src/data/generated/` (Phosphor via @iconify-json/ph,
+ * mono logos via the simple-icons npm package, color logos via thesvg.org),
+ * loaded through lazy `import()` so they ship as split chunks off the main
+ * bundle. The app therefore works fully offline.
  *
- * Cache keys mirror the legacy scheme so `_getIconBody` semantics carry over:
- * - Phosphor:   `<name><-variant?>`      (ph.json)
- * - Mono logo:  `logo:<simple-icons slug>` (simple-icons.json)
- * - Color logo: `logoc:<logos slug>`     (logos.json)
+ * The Iconify REST fetch survives only as a defensive fallback for Phosphor
+ * names outside the baked subset (shouldn't happen — the catalogs are closed).
+ * Mono/color logos have no network path at all: simple-icons and thesvg are
+ * the only sources.
  *
- * Phase 6 owns hardening (retry policy, persistent cache, alternatives).
+ * Cache keys keep the legacy scheme so `_getIconBody` semantics carry over:
+ * - Phosphor:   `<name><-variant?>`
+ * - Mono logo:  `logo:<catalog name>`
+ * - Color logo: `logoc:<catalog name>`
+ *
+ * Components subscribe via `useIconCacheVersion()` (useSyncExternalStore);
+ * fetching/loading is requested from effects, never during render.
  */
 
 import { useSyncExternalStore } from "react";
 import type { IconBody } from "@/lib/export/elementSvg";
 import type { IconVariant } from "@/types/element";
-import { LOGO_COLOR_KEYS } from "@/data/logos";
 
 type CacheEntry = IconBody | "pending";
 
@@ -55,9 +60,7 @@ export function getIconBody(name: string, variant: IconVariant | string): IconBo
 }
 
 export function getColorLogoBody(name: string): IconBody | null {
-  const slug = LOGO_COLOR_KEYS[name];
-  if (!slug) return null;
-  const v = cache.get(`logoc:${slug}`);
+  const v = cache.get(`logoc:${name}`);
   return v && v !== "pending" ? v : null;
 }
 
@@ -65,30 +68,39 @@ export function isIconPending(cacheKey: string): boolean {
   return cache.get(cacheKey) === "pending";
 }
 
-async function fetchBatch(
-  setUrl: string,
-  entries: Array<{ cacheKey: string; apiName: string }>,
-): Promise<void> {
-  const uncached = entries.filter((e) => !cache.has(e.cacheKey));
-  if (!uncached.length) return;
-  uncached.forEach((e) => cache.set(e.cacheKey, "pending"));
-  notify();
-  const byApiName = new Map(uncached.map((e) => [e.apiName, e.cacheKey]));
+// ---------------------------------------------------------- baked assets
+
+/** Memoized lazy loaders — each generated module is a separate build chunk. */
+let phAssets: Promise<Record<string, IconBody>> | null = null;
+let monoAssets: Promise<Record<string, IconBody>> | null = null;
+let colorAssets: Promise<Record<string, IconBody>> | null = null;
+
+const loadPhAssets = () =>
+  (phAssets ??= import("@/data/generated/phBodies").then((m) => m.PH_BODIES));
+const loadMonoAssets = () =>
+  (monoAssets ??= import("@/data/generated/logoBodies").then((m) => m.LOGO_BODIES));
+const loadColorAssets = () =>
+  (colorAssets ??= import("@/data/generated/colorLogoBodies").then((m) => m.COLOR_LOGO_BODIES));
+
+// ------------------------------------------------------- fetch fallback
+
+const API = "https://api.iconify.design";
+
+/** REST fallback for Phosphor keys outside the baked subset. */
+async function fetchPhosphorFallback(keys: string[]): Promise<void> {
   try {
-    const res = await fetch(`${setUrl}?icons=${uncached.map((e) => e.apiName).join(",")}`);
+    const res = await fetch(`${API}/ph.json?icons=${keys.join(",")}`);
     const data = (await res.json()) as {
       icons?: Record<string, IconBody>;
       width?: number;
       height?: number;
     };
-    // Evict pendings first so failed names retry on the next request.
-    uncached.forEach((e) => {
-      if (cache.get(e.cacheKey) === "pending") cache.delete(e.cacheKey);
+    keys.forEach((k) => {
+      if (cache.get(k) === "pending") cache.delete(k);
     });
     Object.entries(data.icons ?? {}).forEach(([apiName, body]) => {
-      const key = byApiName.get(apiName);
-      if (key) {
-        cache.set(key, {
+      if (keys.includes(apiName)) {
+        cache.set(apiName, {
           width: body.width ?? data.width,
           height: body.height ?? data.height,
           body: body.body,
@@ -96,6 +108,36 @@ async function fetchBatch(
       }
     });
   } catch {
+    keys.forEach((k) => {
+      if (cache.get(k) === "pending") cache.delete(k);
+    });
+  }
+}
+
+// ------------------------------------------------------------- requests
+
+async function resolve(
+  entries: Array<{ cacheKey: string; assetKey: string }>,
+  loadAssets: () => Promise<Record<string, IconBody>>,
+  fallback?: (missingAssetKeys: string[]) => Promise<void>,
+): Promise<void> {
+  const uncached = entries.filter((e) => !cache.has(e.cacheKey));
+  if (!uncached.length) return;
+  uncached.forEach((e) => cache.set(e.cacheKey, "pending"));
+  notify();
+
+  const assets = await loadAssets();
+  const missing: string[] = [];
+  uncached.forEach((e) => {
+    const body = assets[e.assetKey];
+    if (body) cache.set(e.cacheKey, body);
+    else missing.push(e.assetKey);
+  });
+
+  if (missing.length && fallback) {
+    await fallback(missing);
+  } else {
+    // No fallback source — evict so a later request may retry.
     uncached.forEach((e) => {
       if (cache.get(e.cacheKey) === "pending") cache.delete(e.cacheKey);
     });
@@ -103,33 +145,35 @@ async function fetchBatch(
   notify();
 }
 
-const API = "https://api.iconify.design";
-
-/** Fetch Phosphor icon bodies for `names` in `variant` (batch, deduped). */
+/** Resolve Phosphor bodies for `names` in `variant` (baked subset + REST fallback). */
 export function requestPhosphorIcons(
   names: string[],
   variant: IconVariant | string,
 ): Promise<void> {
-  return fetchBatch(
-    `${API}/ph.json`,
-    names.map((n) => ({ cacheKey: phCacheKey(n, variant), apiName: phCacheKey(n, variant) })),
+  return resolve(
+    names.map((n) => {
+      const key = phCacheKey(n, variant);
+      return { cacheKey: key, assetKey: key };
+    }),
+    loadPhAssets,
+    fetchPhosphorFallback,
   );
 }
 
-/** Fetch mono (simple-icons) logo bodies. */
+/** Resolve mono (simple-icons) logo bodies — baked only, no network. */
 export function requestMonoLogos(names: string[]): Promise<void> {
-  return fetchBatch(
-    `${API}/simple-icons.json`,
-    names.map((n) => ({ cacheKey: `logo:${n}`, apiName: n })),
+  return resolve(
+    names.map((n) => ({ cacheKey: `logo:${n}`, assetKey: n })),
+    loadMonoAssets,
   );
 }
 
-/** Fetch full-color (`logos` set) logo bodies for names with a color mapping. */
+/** Resolve full-color (thesvg) logo bodies — baked only, no network. */
 export function requestColorLogos(names: string[]): Promise<void> {
-  const entries = names
-    .filter((n) => LOGO_COLOR_KEYS[n])
-    .map((n) => ({ cacheKey: `logoc:${LOGO_COLOR_KEYS[n]}`, apiName: LOGO_COLOR_KEYS[n] }));
-  return fetchBatch(`${API}/logos.json`, entries);
+  return resolve(
+    names.map((n) => ({ cacheKey: `logoc:${n}`, assetKey: n })),
+    loadColorAssets,
+  );
 }
 
 /** Test-only: reset the module cache between cases. */
