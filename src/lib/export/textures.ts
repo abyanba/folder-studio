@@ -50,7 +50,8 @@ export const TEXTURES: TextureDef[] = [
   { id: "confetti", name: "Confetti", svg: (c, b = "transparent") => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="${b}"/><rect x="3" y="2" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(30 4.5 2.75)"/><rect x="13" y="11" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(-20 14.5 11.75)"/><rect x="8" y="16" width="3" height="1.5" rx="0.5" fill="${c}" transform="rotate(60 9.5 16.75)"/></svg>` },
 ];
 
-const SEEDED_IDS = ["dots", "dots-sm", "polka-lg", "rain", "confetti", "stars", "circles"];
+/** Scatter patterns that support the seeded randomizer. */
+export const SEEDED_IDS = ["dots", "dots-sm", "polka-lg", "rain", "confetti", "stars", "circles"];
 
 /**
  * Build the tile SVG for the given texture settings. Returns null for "none" or

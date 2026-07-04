@@ -71,7 +71,7 @@ async function recolorCanvas(
   if (!ctx) return;
   ctx.clearRect(0, 0, size, size);
   ctx.globalAlpha = doc.folderOpacity ?? 1;
-  if (doc.folderBgImage) {
+  if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const bi = await loadImage(doc.folderBgImage);
     const zm = doc.folderBgZoom || 1;
     const bpx = (doc.folderBgX ?? 50) / 100;

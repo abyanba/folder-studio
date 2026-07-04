@@ -35,11 +35,11 @@ describe("App shell", () => {
       </TooltipProvider>,
     );
     // default active panel is "shape"
-    expect(screen.getByRole("heading", { name: "Shape" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Base Shape" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Color" }));
-    expect(screen.getByRole("heading", { name: "Color" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Folder Color" })).toBeInTheDocument();
     // clicking the active tool again closes the panel
     fireEvent.click(screen.getByRole("button", { name: "Color" }));
-    expect(screen.queryByRole("heading", { name: "Color" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Folder Color" })).not.toBeInTheDocument();
   });
 });

@@ -35,6 +35,12 @@ export interface FolderDocument {
   baseShape: BaseShapeId;
   /** Base folder fill — solid hex or gradient. */
   folderColor: ColorValue;
+  /**
+   * Whether the base is painted with `folderColor` or `folderBgImage`.
+   * Explicit (not inferred from `folderBgImage != null`) so an uploaded image
+   * survives switching back to a color fill, matching the legacy `colorMode`.
+   */
+  folderFillMode: "color" | "image";
   folderOpacity: number;
   /** Background image data URL, or null when unset. */
   folderBgImage: string | null;
@@ -56,6 +62,7 @@ export function createEmptyDocument(): FolderDocument {
   return {
     baseShape: "windows",
     folderColor: "#f5c542",
+    folderFillMode: "color",
     folderOpacity: 1,
     folderBgImage: null,
     folderBgZoom: 1,

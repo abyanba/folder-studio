@@ -67,6 +67,18 @@ export interface DocumentStore {
   // Folder / texture setters
   setFolderColor: (color: ColorValue) => void;
   setBaseShape: (baseShape: string) => void;
+  /**
+   * Pick a base shape and apply its per-shape defaults (solid color, clip) as
+   * ONE set → one undo entry (legacy wrapped this in a history push pair).
+   */
+  applyBaseShape: (
+    baseShape: string,
+    defaults?: { folderColor?: ColorValue; clipToFolder?: boolean },
+  ) => void;
+  /** Patch the folder fill (color and/or fill mode) in one undo entry. */
+  setFolderFill: (
+    patch: Partial<Pick<FolderDocument, "folderColor" | "folderFillMode" | "folderBgImage">>,
+  ) => void;
   setFolderOpacity: (opacity: number) => void;
   setFolderBgImage: (src: string | null) => void;
   setFolderBg: (patch: Partial<Pick<FolderDocument, "folderBgZoom" | "folderBgX" | "folderBgY">>) => void;
@@ -282,6 +294,20 @@ export const useDocumentStore = create<DocumentStore>()(
 
       setFolderColor: (color) => set((s) => ({ doc: { ...s.doc, folderColor: color } })),
       setBaseShape: (baseShape) => set((s) => ({ doc: { ...s.doc, baseShape } })),
+      applyBaseShape: (baseShape, defaults) =>
+        set((s) => ({
+          doc: {
+            ...s.doc,
+            baseShape,
+            ...(defaults?.folderColor !== undefined
+              ? { folderColor: defaults.folderColor, folderFillMode: "color" as const }
+              : {}),
+            ...(defaults?.clipToFolder !== undefined
+              ? { clipToFolder: defaults.clipToFolder }
+              : {}),
+          },
+        })),
+      setFolderFill: (patch) => set((s) => ({ doc: { ...s.doc, ...patch } })),
       setFolderOpacity: (opacity) => set((s) => ({ doc: { ...s.doc, folderOpacity: opacity } })),
       setFolderBgImage: (src) => set((s) => ({ doc: { ...s.doc, folderBgImage: src } })),
       setFolderBg: (patch) => set((s) => ({ doc: { ...s.doc, ...patch } })),

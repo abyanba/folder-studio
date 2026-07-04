@@ -11,7 +11,7 @@ import { buildBaseShapeSvg, getBaseShapeMask } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 
 export function FolderBase({ doc }: { doc: FolderDocument }) {
-  if (doc.folderBgImage) {
+  if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const maskUrl = toSvgDataUrl(getBaseShapeMask(doc.baseShape));
     const style: CSSProperties = {
       position: "absolute",
