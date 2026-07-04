@@ -21,6 +21,7 @@ import { TextureOverlay } from "./TextureOverlay";
 import { ElementView } from "./ElementView";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
+import { ElementContextMenu } from "./ElementContextMenu";
 import type { EffectiveRect } from "./SelectionOverlay";
 
 function effective(el: FolderElement, o: LiveOverride | undefined): EffectiveRect {
@@ -72,11 +73,12 @@ export function Workspace() {
   };
 
   return (
-    <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-      <div
-        ref={wsRef}
-        data-ws
-        style={wsStyle}
+    <ElementContextMenu>
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+        <div
+          ref={wsRef}
+          data-ws
+          style={wsStyle}
         onMouseDown={(e) => {
           if (useUiStore.getState().editingTextId) return;
           beginMarquee(e);
@@ -141,7 +143,8 @@ export function Workspace() {
             />
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </ElementContextMenu>
   );
 }

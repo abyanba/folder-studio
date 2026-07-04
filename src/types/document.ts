@@ -85,16 +85,5 @@ export function createEmptyDocument(): FolderDocument {
   };
 }
 
-/**
- * Migrate a legacy gallery snapshot (flat `gradStops`/`gradType`/`gradAngle`,
- * numeric element IDs, `gH1`/`gS1` fallbacks, …) into a {@link FolderDocument}.
- *
- * NOTE: full migration — including per-element ID normalization and the flat →
- * {@link Gradient} folder-color conversion — is wired up in a later phase
- * (gallery/persistence). For now this is a typed stub that returns defaults so
- * the rest of the model can be built and tested against a stable shape.
- */
-export function normalizeLegacySnapshot(_legacy: unknown): FolderDocument {
-  // TODO(phase 3/9): map baseShape, texture*, elements, and flat gradient fields.
-  return createEmptyDocument();
-}
+// Legacy gallery-snapshot migration lives in `src/lib/legacySnapshot.ts`
+// (it needs color/id helpers that would be circular from this types module).

@@ -78,6 +78,12 @@ export interface DocumentStore {
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
   reorder: (fromId: string, toId: string) => void;
+  /**
+   * Apply a full layer order from the layers panel, given TOP-FIRST keys
+   * (element ids plus the `"__texture__"` pseudo-row). Derives both the new
+   * element order and `textureLayerZ` in one undo entry.
+   */
+  applyLayerOrder: (keysTopFirst: string[]) => void;
 
   // Multi-element ops (ids supplied by the selection store / caller)
   align: (ids: string[], dir: AlignDirection) => void;
@@ -290,6 +296,24 @@ export const useDocumentStore = create<DocumentStore>()(
           const to = s.doc.elements.findIndex((e) => e.id === toId);
           if (from < 0 || to < 0) return s;
           return { doc: { ...s.doc, elements: moveItem(s.doc.elements, from, to) } };
+        }),
+
+      applyLayerOrder: (keysTopFirst) =>
+        set((s) => {
+          const texIdx = keysTopFirst.indexOf("__texture__");
+          const elKeys = keysTopFirst.filter((k) => k !== "__texture__");
+          const byId = new Map(s.doc.elements.map((e) => [e.id, e]));
+          const bottomFirst = [...elKeys]
+            .reverse()
+            .map((k) => byId.get(k))
+            .filter((e): e is FolderElement => Boolean(e));
+          if (bottomFirst.length !== s.doc.elements.length) return s;
+          // texIdx keys sit above the texture → tz = N - texIdx elements below.
+          const tz =
+            texIdx === -1
+              ? Math.min(s.doc.textureLayerZ, bottomFirst.length)
+              : bottomFirst.length - texIdx;
+          return { doc: { ...s.doc, elements: bottomFirst, textureLayerZ: tz } };
         }),
 
       align: (ids, dir) =>

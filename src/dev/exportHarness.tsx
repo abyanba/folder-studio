@@ -13,7 +13,6 @@ import { useEffect, useRef, useState } from "react";
 import type { FolderDocument } from "@/types/document";
 import { buildExportCanvas } from "@/lib/export/renderCanvas";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
-import { getIconBodyStub } from "@/lib/iconBodyStub";
 import { buildSampleDocument } from "@/dev/sampleDocument";
 import {
   batchExportZip,
@@ -23,8 +22,13 @@ import {
   exportSvg,
 } from "@/lib/export/exporters";
 
+// Inline star body so the harness renders icons without any network fetch.
 const stubDeps: RenderDeps = {
-  getIconBody: getIconBodyStub,
+  getIconBody: () => ({
+    width: 256,
+    height: 256,
+    body: '<path fill="currentColor" d="M128 24l30 62 68 10-49 48 12 68-61-32-61 32 12-68-49-48 68-10z"/>',
+  }),
 };
 
 const SIZES = [64, 128, 256, 512] as const;
