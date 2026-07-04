@@ -22,11 +22,24 @@ function isFormTarget(target: EventTarget | null): boolean {
   return el.isContentEditable || /^(input|textarea|select)$/i.test(el.tagName);
 }
 
+/**
+ * Interactive controls that handle arrow keys themselves (sortable drag
+ * handles, sliders, tabs, menus) — arrow-nudge must not also fire on them.
+ */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || typeof el.closest !== "function") return false;
+  return !!el.closest("button, a, [role='button'], [role='slider'], [role='tab'], [role='menuitem'], [role='option']");
+}
+
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (useUiStore.getState().editingTextId) return;
       if (isFormTarget(e.target)) return;
+      // Another handler (Radix slider, dnd-kit keyboard drag, …) already
+      // consumed this key — don't double-handle it.
+      if (e.defaultPrevented) return;
 
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
@@ -106,7 +119,8 @@ export function useKeyboardShortcuts(): void {
       }
       if (
         (k === "arrowup" || k === "arrowdown" || k === "arrowleft" || k === "arrowright") &&
-        sel.selectedIds.length
+        sel.selectedIds.length &&
+        !isInteractiveTarget(e.target)
       ) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;

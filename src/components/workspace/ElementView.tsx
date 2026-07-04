@@ -6,6 +6,7 @@
  * (contentEditable + CSS), since the canvas draws it with `fillText` instead.
  */
 
+import { useEffect, useRef } from "react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { hexA, gradientToCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
@@ -35,6 +36,21 @@ function svgHtml(el: FolderElement, w: number, h: number): string | null {
 
 function TextContent({ el }: { el: TextElement }) {
   const editing = useUiStore((s) => s.editingTextId === el.id);
+  const divRef = useRef<HTMLDivElement>(null);
+
+  // contentEditable alone doesn't take focus — without this, entering edit
+  // mode leaves keystrokes going nowhere. Select-all so typing replaces the
+  // text (legacy behavior).
+  useEffect(() => {
+    const div = divRef.current;
+    if (!editing || !div) return;
+    div.focus();
+    const range = document.createRange();
+    range.selectNodeContents(div);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, [editing]);
   const grad = isGradient(el.color) ? el.color : null;
   const style: CSSProperties = {
     width: "100%",
@@ -74,6 +90,7 @@ function TextContent({ el }: { el: TextElement }) {
   };
   return (
     <div
+      ref={divRef}
       contentEditable={editing}
       suppressContentEditableWarning
       style={style}

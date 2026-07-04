@@ -108,6 +108,17 @@ type SortableProps<T> = DndContextProps &
     flatCursor?: boolean;
   };
 
+// The `defaultPrevented` opt-out must not apply to keyboard drags: dnd-kit's
+// KeyboardSensor always calls preventDefault() on the activating Space/Enter
+// keydown (to stop page scroll), so checking the activator event would
+// silently swallow every keyboard reorder (upstream diceui bug).
+function isConsumerPrevented(event: { activatorEvent: Event }): boolean {
+  return (
+    !(event.activatorEvent instanceof KeyboardEvent) &&
+    event.activatorEvent.defaultPrevented
+  );
+}
+
 function Sortable<T>(props: SortableProps<T>) {
   const {
     value,
@@ -160,7 +171,7 @@ function Sortable<T>(props: SortableProps<T>) {
     (event: DragStartEvent) => {
       sortableProps.onDragStart?.(event);
 
-      if (event.activatorEvent.defaultPrevented) return;
+      if (isConsumerPrevented(event)) return;
 
       setActiveId(event.active.id);
     },
@@ -171,7 +182,7 @@ function Sortable<T>(props: SortableProps<T>) {
     (event: DragEndEvent) => {
       sortableProps.onDragEnd?.(event);
 
-      if (event.activatorEvent.defaultPrevented) return;
+      if (isConsumerPrevented(event)) return;
 
       const { active, over } = event;
       if (over && active.id !== over?.id) {
@@ -197,7 +208,7 @@ function Sortable<T>(props: SortableProps<T>) {
     (event: DragEndEvent) => {
       sortableProps.onDragCancel?.(event);
 
-      if (event.activatorEvent.defaultPrevented) return;
+      if (isConsumerPrevented(event)) return;
 
       setActiveId(null);
     },

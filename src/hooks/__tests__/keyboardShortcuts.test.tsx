@@ -52,6 +52,36 @@ describe("undo/redo keys", () => {
   });
 });
 
+describe("handler-conflict guards (Phase-8 QA)", () => {
+  it("ignores keys another handler already consumed (defaultPrevented)", () => {
+    const id = useDocumentStore.getState().addShape("rect");
+    useSelectionStore.getState().select(id);
+    const x0 = useDocumentStore.getState().doc.elements[0].x;
+
+    const ev = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    ev.preventDefault(); // e.g. a dnd-kit keyboard drag or Radix slider handled it
+    window.dispatchEvent(ev);
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0);
+  });
+
+  it("does not arrow-nudge while focus is on an interactive control", () => {
+    const id = useDocumentStore.getState().addShape("rect");
+    useSelectionStore.getState().select(id);
+    const x0 = useDocumentStore.getState().doc.elements[0].x;
+
+    const btn = document.createElement("button"); // e.g. a layers drag handle
+    document.body.appendChild(btn);
+    btn.focus();
+    btn.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    btn.remove();
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0);
+
+    // …but nudge still works with body focus.
+    key({ key: "ArrowRight" });
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0 + 1);
+  });
+});
+
 describe("duplicate and clipboard", () => {
   it("Ctrl+D duplicates with +10/+10 offset and selects the copy", () => {
     const id = useDocumentStore.getState().addShape("star");

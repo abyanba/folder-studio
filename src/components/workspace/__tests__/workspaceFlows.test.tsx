@@ -30,12 +30,17 @@ function renderTextElement() {
 }
 
 describe("text editing lifecycle", () => {
-  it("double-click enters editing mode", () => {
+  it("double-click enters editing mode and focuses the contentEditable", () => {
     const { container } = renderTextElement();
     fireEvent.doubleClick(container.querySelector("[data-element-id]")!);
     expect(useUiStore.getState().editingTextId).toBe(
       useDocumentStore.getState().doc.elements[0].id,
     );
+    // Without an explicit focus, keystrokes after entering edit mode go
+    // nowhere (Phase-8 QA regression).
+    const editable = container.querySelector("[contenteditable=true]") as HTMLElement;
+    expect(editable).toBeTruthy();
+    expect(document.activeElement).toBe(editable);
   });
 
   it("blur commits the edited text as one patch", () => {
