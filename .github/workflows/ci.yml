@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main, migrate-vite-react]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx oxlint src scripts
+      - run: npm run test:coverage
+      - run: npm run build

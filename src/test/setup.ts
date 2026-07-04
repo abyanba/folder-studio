@@ -8,10 +8,16 @@ afterEach(() => {
 });
 
 // jsdom lacks pointer capture; the draw/gradient drag handlers call it.
-if (!HTMLElement.prototype.setPointerCapture) {
+// (Guarded: pure lib tests run in the node environment with no HTMLElement.)
+if (typeof HTMLElement !== "undefined" && !HTMLElement.prototype.setPointerCapture) {
   HTMLElement.prototype.setPointerCapture = () => {};
   HTMLElement.prototype.releasePointerCapture = () => {};
   HTMLElement.prototype.hasPointerCapture = () => false;
+}
+
+// jsdom lacks scrollIntoView; Radix Select calls it when opening.
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
 }
 
 // jsdom lacks ResizeObserver; Radix Slider (and friends) require it.

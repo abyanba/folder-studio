@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { getHex, gradientToCss, hexToHsv } from "@/lib/color";
 import type { Gradient } from "@/types/gradient";

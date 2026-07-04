@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
 import { __resetIdCounterForTests } from "@/lib/id";
 import { CDH, CDW } from "@/lib/constants";

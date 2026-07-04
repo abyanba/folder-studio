@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Local-first icon resolution (Phase 6): Phosphor / mono-logo / color-logo
  * bodies resolve from the baked asset modules with NO network — fetch is

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { buildTextureSvg } from "@/lib/export/textures";
 import type { TextureSettings } from "@/types/document";

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Draw commit math and eraser hit-testing (5d), ported from the legacy
  * commitDraw/commitShapePath/erasing behaviors.

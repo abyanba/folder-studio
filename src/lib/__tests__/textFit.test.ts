@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Auto-fit math with an injected measurer (jsdom canvas can't measure text).
  * The fake measurer makes each character `size * 0.5` px wide.

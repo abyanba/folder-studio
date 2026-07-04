@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
 import type { IconBody } from "@/lib/export/elementSvg";

@@ -1,0 +1,136 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/data/iconNames.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/data</a> iconNames.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>2/2</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>2/2</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Phosphor icon catalog shown in the Icons panel, ported verbatim from the
+ * legacy `ICON_NAMES` (docs/index.html L340-348). Keys are category tabs;
+ * values are Iconify names in the `ph` icon set.
+ */
+&nbsp;
+export const ICON_NAMES: Record&lt;string, string[]&gt; = {
+  General: ["house", "magnifying-glass", "bell", "bell-ringing", "gear", "gear-six", "user", "users", "user-circle", "user-plus", "heart", "star", "bookmark", "bookmarks", "archive", "trash", "folder", "folder-open", "file", "file-text", "link", "lock", "lock-open", "eye", "eye-slash", "check-circle", "x-circle", "plus-circle", "question", "key", "info", "warning-circle", "shield", "share-network", "arrow-right", "arrow-left", "arrow-up", "arrow-down", "arrows-clockwise"],
+  Media: ["image", "images", "camera", "camera-rotate", "video-camera", "microphone", "microphone-slash", "speaker-high", "speaker-slash", "headphones", "music-note", "music-notes", "disc", "film-strip", "play-circle", "pause-circle", "stop-circle", "skip-forward", "skip-back", "shuffle", "repeat", "broadcast", "record", "playlist", "television", "radio", "rewind", "fast-forward"],
+  Communication: ["chat", "chat-text", "chat-dots", "chats", "envelope", "envelope-open", "phone", "phone-call", "phone-slash", "paper-plane", "megaphone", "share", "at", "address-book", "user-circle", "chat-circle", "chat-centered", "chat-teardrop", "chats-circle", "paper-plane-tilt", "megaphone-simple", "bell-ringing"],
+  "Dev &amp; Files": ["code", "terminal", "brackets-curly", "brackets-round", "brackets-square", "git-branch", "git-commit", "git-merge", "git-pull-request", "database", "cloud", "cloud-arrow-up", "cloud-arrow-down", "cloud-check", "hard-drive", "cpu", "wifi-high", "globe", "monitor", "laptop", "device-mobile", "keyboard", "bug", "hash", "plug", "file-code", "file-zip", "package", "stack", "stack-simple"],
+  UI: ["squares-four", "circle", "triangle", "diamonds-four", "hexagon", "octagon", "shield", "sliders", "sliders-horizontal", "list", "list-bullets", "list-checks", "list-numbers", "table", "layout", "sidebar", "columns", "rows", "grid-four", "dots-nine", "app-window", "browsers", "faders", "funnel", "tag", "frame-corners", "selection", "star", "check-square", "minus-square"],
+  Commerce: ["shopping-cart", "shopping-bag", "tag", "tag-simple", "credit-card", "wallet", "bank", "currency-dollar", "currency-eur", "currency-btc", "coin", "coins", "chart-bar", "chart-line", "chart-pie", "chart-donut", "trend-up", "trend-down", "receipt", "gift", "handshake", "percent", "seal-check", "buildings", "briefcase", "barcode", "qr-code"],
+  Nature: ["sun", "sun-dim", "moon", "moon-stars", "cloud", "cloud-rain", "cloud-snow", "cloud-sun", "cloud-lightning", "snowflake", "leaf", "flower", "flower-tulip", "tree", "tree-evergreen", "drop", "fire", "lightning", "mountains", "planet", "compass", "map-trifold", "map-pin", "anchor", "waves", "paw-print", "sparkle", "thermometer", "wind", "umbrella", "feather"],
+};
+&nbsp;
+export const ICON_CATEGORIES = Object.keys(ICON_NAMES);
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-07-04T13:28:26.359Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

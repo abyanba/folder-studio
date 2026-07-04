@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { formatColor, hslToRgb, parseColorInput, rgbToHsl } from "@/lib/colorFormat";
 

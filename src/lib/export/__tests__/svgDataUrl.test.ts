@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 
