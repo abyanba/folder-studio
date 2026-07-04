@@ -11,6 +11,7 @@ import type { FolderElement } from "@/types/element";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
+import { commitShapePoints } from "@/hooks/useDrawTool";
 
 /** Ephemeral copy/paste buffer (module-scoped; not persisted). */
 let clipboard: FolderElement[] = [];
@@ -52,8 +53,26 @@ export function useKeyboardShortcuts(): void {
         return;
       }
       if (k === "escape") {
+        const ui = useUiStore.getState();
+        if (ui.activeTool === "draw") {
+          // First Escape discards in-progress strokes/anchors; a second exits.
+          if (ui.currentDraw || ui.shapePoints.length || ui.shapeDragPoint) {
+            ui.resetDrawProgress();
+          } else {
+            ui.setActiveTool(null);
+          }
+          return;
+        }
         sel.clear();
-        useUiStore.getState().setEditingTextId(null);
+        ui.setEditingTextId(null);
+        return;
+      }
+      if (k === "enter" && useUiStore.getState().activeTool === "draw") {
+        const ui = useUiStore.getState();
+        if (ui.shapePoints.length >= 2) {
+          e.preventDefault();
+          commitShapePoints();
+        }
         return;
       }
       if (mod && k === "d") {

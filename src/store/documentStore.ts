@@ -15,10 +15,12 @@ import isEqual from "fast-deep-equal";
 import { CDW, CDH } from "@/lib/constants";
 import { createId } from "@/lib/id";
 import {
+  createDrawElement,
   createIconElement,
   createImageElement,
   createShapeElement,
   createTextElement,
+  type CreateDrawInput,
   type CreateIconInput,
 } from "@/lib/elementFactories";
 import type { ShapeType } from "@/types/element";
@@ -57,6 +59,10 @@ export interface DocumentStore {
   addText: () => string;
   addShape: (shapeType: ShapeType) => string;
   addIcon: (input: CreateIconInput) => string;
+  /** `label` is "Drawing" | "Line" | "Arc"; numbering counts existing draws. */
+  addDrawElement: (input: CreateDrawInput, label?: string) => string;
+  /** Remove every draw element and clamp textureLayerZ (legacy Clear All). */
+  clearDrawings: () => void;
   updateElement: (id: string, patch: Partial<FolderElement>) => void;
   /**
    * Apply several element patches in a single set → a single undo entry.
@@ -175,6 +181,33 @@ export const useDocumentStore = create<DocumentStore>()(
         set((s) => ({ doc: { ...s.doc, elements: [...s.doc.elements, el] } }));
         return el.id;
       },
+
+      addDrawElement: (input, label = "Drawing") => {
+        let id = "";
+        set((s) => {
+          const count = s.doc.elements.filter((e) => e.type === "draw").length;
+          const el = createDrawElement({ ...input, name: input.name ?? `${label} ${count + 1}` });
+          id = el.id;
+          return { doc: { ...s.doc, elements: [...s.doc.elements, el] } };
+        });
+        return id;
+      },
+
+      clearDrawings: () =>
+        set((s) => {
+          let tz = s.doc.textureLayerZ;
+          s.doc.elements.forEach((e, idx) => {
+            if (e.type === "draw" && idx < tz) tz -= 1;
+          });
+          const elements = s.doc.elements.filter((e) => e.type !== "draw");
+          return {
+            doc: {
+              ...s.doc,
+              elements,
+              textureLayerZ: Math.max(0, Math.min(elements.length, tz)),
+            },
+          };
+        }),
 
       updateElement: (id, patch) =>
         set((s) => ({

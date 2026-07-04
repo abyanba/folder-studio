@@ -20,6 +20,7 @@ import { FolderBase } from "./FolderBase";
 import { TextureOverlay } from "./TextureOverlay";
 import { ElementView } from "./ElementView";
 import { SelectionOverlay } from "./SelectionOverlay";
+import { DrawOverlay } from "./DrawOverlay";
 import type { EffectiveRect } from "./SelectionOverlay";
 
 function effective(el: FolderElement, o: LiveOverride | undefined): EffectiveRect {
@@ -37,6 +38,7 @@ export function Workspace() {
   const doc = useDocumentStore((s) => s.doc);
   const selectedIds = useSelectionStore((s) => s.selectedIds);
   const selectedId = useSelectionStore((s) => s.selectedId);
+  const drawToolActive = useUiStore((s) => s.activeTool === "draw");
   const wsRef = useRef<HTMLDivElement>(null);
   const { state, beginMove, beginResize, beginRotate, beginMarquee } = useInteraction(wsRef);
   const { overrides, marquee, snap } = state;
@@ -91,6 +93,7 @@ export function Workspace() {
             onResizeDown={beginResize}
             onRotateDown={beginRotate}
           />
+          {drawToolActive && <DrawOverlay />}
           {marquee && (
             <div
               style={{

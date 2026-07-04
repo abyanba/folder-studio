@@ -16,6 +16,7 @@ import { TextPanel } from "@/components/panels/TextPanel";
 import { ShapesPanel } from "@/components/panels/ShapesPanel";
 import { IconPanel } from "@/components/panels/IconPanel";
 import { LogosPanel } from "@/components/panels/LogosPanel";
+import { DrawPanel } from "@/components/panels/DrawPanel";
 
 const PANELS: Record<string, ComponentType> = {
   shape: ShapePanel,
@@ -26,6 +27,7 @@ const PANELS: Record<string, ComponentType> = {
   shapes: ShapesPanel,
   icon: IconPanel,
   logos: LogosPanel,
+  draw: DrawPanel,
 };
 
 export function PanelDock() {
