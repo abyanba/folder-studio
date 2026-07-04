@@ -14,6 +14,14 @@ import { temporal } from "zundo";
 import isEqual from "fast-deep-equal";
 import { CDW, CDH } from "@/lib/constants";
 import { createId } from "@/lib/id";
+import {
+  createIconElement,
+  createImageElement,
+  createShapeElement,
+  createTextElement,
+  type CreateIconInput,
+} from "@/lib/elementFactories";
+import type { ShapeType } from "@/types/element";
 import type { ColorValue } from "@/types/gradient";
 import type { FolderElement } from "@/types/element";
 import type {
@@ -40,6 +48,15 @@ export interface DocumentStore {
 
   // Element CRUD
   addElement: (element: FolderElement) => void;
+  /**
+   * Typed element creators (one undo entry each; return the new id so the
+   * caller can select it). Numbering/naming mirrors the legacy `addImage`:
+   * SVG data-URLs count as "Icon N", other sources as "Image N".
+   */
+  addImage: (src: string, srcWidth: number, srcHeight: number, name?: string) => string;
+  addText: () => string;
+  addShape: (shapeType: ShapeType) => string;
+  addIcon: (input: CreateIconInput) => string;
   updateElement: (id: string, patch: Partial<FolderElement>) => void;
   /**
    * Apply several element patches in a single set → a single undo entry.
@@ -120,6 +137,44 @@ export const useDocumentStore = create<DocumentStore>()(
 
       addElement: (element) =>
         set((s) => ({ doc: { ...s.doc, elements: [...s.doc.elements, element] } })),
+
+      addImage: (src, srcWidth, srcHeight, name) => {
+        let id = "";
+        set((s) => {
+          const isSvg = src.startsWith("data:image/svg+xml");
+          const label = isSvg ? "Icon" : "Image";
+          const count = s.doc.elements.filter(
+            (e) => e.type === "image" && e.src.startsWith("data:image/svg+xml") === isSvg,
+          ).length;
+          const el = createImageElement(src, srcWidth, srcHeight, name ?? `${label} ${count + 1}`);
+          id = el.id;
+          return { doc: { ...s.doc, elements: [...s.doc.elements, el] } };
+        });
+        return id;
+      },
+
+      addText: () => {
+        const el = createTextElement();
+        set((s) => ({ doc: { ...s.doc, elements: [...s.doc.elements, el] } }));
+        return el.id;
+      },
+
+      addShape: (shapeType) => {
+        let id = "";
+        set((s) => {
+          const count = s.doc.elements.filter((e) => e.type === "shape").length;
+          const el = createShapeElement(shapeType, `Shape ${count + 1}`);
+          id = el.id;
+          return { doc: { ...s.doc, elements: [...s.doc.elements, el] } };
+        });
+        return id;
+      },
+
+      addIcon: (input) => {
+        const el = createIconElement(input);
+        set((s) => ({ doc: { ...s.doc, elements: [...s.doc.elements, el] } }));
+        return el.id;
+      },
 
       updateElement: (id, patch) =>
         set((s) => ({

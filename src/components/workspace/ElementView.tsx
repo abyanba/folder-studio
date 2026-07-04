@@ -11,8 +11,9 @@ import { hexA, gradientToCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderElement, TextElement } from "@/types/element";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
-import { getIconBodyStub } from "@/lib/iconBodyStub";
+import { getIconBody, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
+import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
 import type { LiveOverride } from "@/hooks/useInteraction";
 
@@ -26,7 +27,7 @@ function svgHtml(el: FolderElement, w: number, h: number): string | null {
   if (el.type === "shape") return buildShapeSvg(el, w, h);
   if (el.type === "draw") return buildDrawSvg(el, w, h);
   if (el.type === "icon") {
-    const body = getIconBodyStub(el.iconName, el.iconVariant);
+    const body = getIconBody(el.iconName, el.iconVariant);
     return body ? buildIconSvg(el, body, w, h) : null;
   }
   return null;
@@ -97,7 +98,17 @@ export function ElementView({ el, override, onMouseDown }: Props) {
   const width = override?.width ?? el.width;
   const height = override?.height ?? el.height;
   const rotation = override?.rotation ?? el.rotation;
-  const hasShadow = (el.type === "shape" || el.type === "icon") && el.dropShadow;
+  const hasShadow =
+    (el.type === "shape" || el.type === "icon" || el.type === "image") && el.dropShadow;
+  // Re-render when a fetched icon body lands in the cache.
+  useIconCacheVersion();
+  // Live-preview of a hovered blend mode (image panel) on the selected image.
+  const blendPreview = useUiStore((s) =>
+    el.type === "image" ? s.blendPreview : null,
+  );
+  const isSelected = useSelectionStore((s) => s.selectedId === el.id);
+  const effectiveBlend =
+    el.type === "image" ? (isSelected && blendPreview ? blendPreview : el.blendMode) : undefined;
 
   const style: CSSProperties = {
     position: "absolute",
@@ -112,8 +123,7 @@ export function ElementView({ el, override, onMouseDown }: Props) {
     filter: hasShadow
       ? `drop-shadow(${el.dropShadow!.x}px ${el.dropShadow!.y}px ${el.dropShadow!.blur}px ${hexA(el.dropShadow!.color, el.dropShadow!.opacity)})`
       : undefined,
-    mixBlendMode:
-      el.type === "image" && el.blendMode && el.blendMode !== "normal" ? el.blendMode : undefined,
+    mixBlendMode: effectiveBlend && effectiveBlend !== "normal" ? effectiveBlend : undefined,
     outline:
       el.type === "image" && el.stroke?.enabled
         ? `${el.stroke.width}px solid ${el.stroke.color}`

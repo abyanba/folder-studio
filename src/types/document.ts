@@ -28,7 +28,8 @@ export interface TextureSettings {
 
 export interface IconDefaults {
   stroke: number;
-  color: string;
+  /** Default color applied to newly added icons (gradient-capable). */
+  color: ColorValue;
 }
 
 export interface FolderDocument {

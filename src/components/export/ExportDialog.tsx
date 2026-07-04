@@ -1,8 +1,7 @@
 /**
  * Export dialog: pick a size + format and download, or export a batch ZIP.
- * Wires the Phase-3 `exporters` + `downloadBlob` to the toolbar. The full
- * batch/format UI is refined in Phase 5; icon bodies use the Phase-4 stub until
- * the real Iconify cache lands in Phase 6.
+ * Wires the Phase-3 `exporters` + `downloadBlob` to the toolbar; icon bodies
+ * come from the live Iconify cache. Full batch UI parity lands in 5e.
  */
 
 import { useState } from "react";
@@ -25,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDocumentStore } from "@/store/documentStore";
-import { getIconBodyStub } from "@/lib/iconBodyStub";
+import { getIconBody } from "@/lib/iconify";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
 import {
   batchExportZip,
@@ -40,7 +39,7 @@ const SIZES = ["64", "128", "256", "512", "1024"];
 const FORMATS: ExportFormat[] = ["png", "svg", "ico"];
 const BATCH_SIZES = [64, 128, 256, 512];
 
-const deps: RenderDeps = { getIconBody: getIconBodyStub };
+const deps: RenderDeps = { getIconBody };
 
 export function ExportDialog() {
   const [size, setSize] = useState("256");

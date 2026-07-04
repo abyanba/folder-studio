@@ -99,6 +99,7 @@ export interface ImageElement extends BaseElement {
   src: string;
   blendMode?: BlendMode;
   stroke?: { color: string; enabled: boolean; width: number };
+  dropShadow?: DropShadow;
 }
 
 export type IconVariant =

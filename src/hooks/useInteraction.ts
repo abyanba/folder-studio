@@ -186,6 +186,19 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
       }
       useUiStore.getState().setEditingTextId(null);
 
+      // Legacy startMove: grabbing an element opens its type's panel (SVG
+      // data-URL images count as icons/logos → the icon panel doesn't apply;
+      // they edit in the image panel here, see ImagePanel).
+      const panelByType: Record<string, string> = {
+        image: "image",
+        icon: "icon",
+        text: "text",
+        draw: "draw",
+        shape: "shapes",
+      };
+      const panel = panelByType[el.type];
+      if (panel) useUiStore.getState().setActivePanel(panel);
+
       const movingEls = ids
         .map((i) => doc.elements.find((x) => x.id === i))
         .filter((x): x is NonNullable<typeof x> => Boolean(x) && !x!.locked)

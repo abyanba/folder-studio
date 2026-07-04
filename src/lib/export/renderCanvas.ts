@@ -203,7 +203,7 @@ async function renderElement(
 
   ctx.save();
   ctx.globalAlpha = el.opacity ?? 1;
-  if ((el.type === "icon" || el.type === "shape") && el.dropShadow) {
+  if ((el.type === "icon" || el.type === "shape" || el.type === "image") && el.dropShadow) {
     const ds = el.dropShadow;
     ctx.shadowOffsetX = ds.x * (size / FW);
     ctx.shadowOffsetY = ds.y * (size / FH);

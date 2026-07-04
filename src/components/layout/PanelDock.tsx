@@ -11,11 +11,21 @@ import { PanelStub } from "@/components/panels/PanelStub";
 import { ShapePanel } from "@/components/panels/ShapePanel";
 import { ColorPanel } from "@/components/panels/ColorPanel";
 import { TexturePanel } from "@/components/panels/TexturePanel";
+import { ImagePanel } from "@/components/panels/ImagePanel";
+import { TextPanel } from "@/components/panels/TextPanel";
+import { ShapesPanel } from "@/components/panels/ShapesPanel";
+import { IconPanel } from "@/components/panels/IconPanel";
+import { LogosPanel } from "@/components/panels/LogosPanel";
 
 const PANELS: Record<string, ComponentType> = {
   shape: ShapePanel,
   color: ColorPanel,
   texture: TexturePanel,
+  image: ImagePanel,
+  text: TextPanel,
+  shapes: ShapesPanel,
+  icon: IconPanel,
+  logos: LogosPanel,
 };
 
 export function PanelDock() {
