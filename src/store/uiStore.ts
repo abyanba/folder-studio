@@ -31,6 +31,8 @@ export interface UiStore {
   logoMode: "mono" | "color";
   /** Tint for mono logos (legacy `logoColor`). */
   logoColor: string;
+  /** Light workspace backdrop to preview the icon on a bright background. */
+  canvasLight: boolean;
 
   // Draw tool
   activeTool: "draw" | null;
@@ -56,6 +58,7 @@ export interface UiStore {
   setBlendPreview: (mode: BlendMode | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
+  setCanvasLight: (light: boolean) => void;
   setActiveTool: (tool: "draw" | null) => void;
   setDrawMode: (mode: DrawMode) => void;
   /** Switching submode discards any in-progress line/arc points (legacy). */
@@ -80,6 +83,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   blendPreview: null,
   logoMode: "mono",
   logoColor: "#ffffff",
+  canvasLight: false,
   activeTool: null,
   drawMode: "pen",
   drawSubmode: "freehand",
@@ -99,6 +103,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setBlendPreview: (mode) => set({ blendPreview: mode }),
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
+  setCanvasLight: (light) => set({ canvasLight: light }),
   setActiveTool: (tool) =>
     set({
       activeTool: tool,

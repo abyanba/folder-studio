@@ -1,21 +1,37 @@
 /**
- * Top toolbar: brand, undo/redo (backed by zundo via `useHistory`), a dev-only
- * "seed sample" button (to exercise the workspace before element-creation panels
- * exist), and the export dialog trigger. Shadcn redesign — functional parity
- * with the legacy toolbar, not a pixel port.
+ * Top toolbar: brand, undo/redo (backed by zundo via `useHistory`), canvas
+ * light/dark preview toggle, clip-to-folder toggle, save-to-gallery, a
+ * dev-only "seed sample" button, and the export dialog trigger. Shadcn
+ * redesign — functional parity with the legacy toolbar, not a pixel port.
  */
 
-import { Redo2, Sparkles, Undo2 } from "lucide-react";
+import { useState } from "react";
+import { Crop, Loader2, Moon, Redo2, Save, Sparkles, Sun, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHistory } from "@/store";
 import { useDocumentStore } from "@/store/documentStore";
+import { useUiStore } from "@/store/uiStore";
+import { saveCurrentToGallery } from "@/lib/saveToGallery";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { buildSampleDocument } from "@/dev/sampleDocument";
 
 export function Toolbar() {
   const { undo, redo, canUndo, canRedo } = useHistory();
+  const clipToFolder = useDocumentStore((s) => s.doc.clipToFolder);
+  const canvasLight = useUiStore((s) => s.canvasLight);
+  const setCanvasLight = useUiStore((s) => s.setCanvasLight);
+  const [saving, setSaving] = useState(false);
+
+  const saveToGallery = async () => {
+    setSaving(true);
+    try {
+      await saveCurrentToGallery();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-1 border-b px-4">
@@ -51,6 +67,53 @@ export function Toolbar() {
           Seed sample
         </Button>
       )}
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={canvasLight ? "Dark canvas" : "Light canvas"}
+            aria-pressed={canvasLight}
+            onClick={() => setCanvasLight(!canvasLight)}
+          >
+            {canvasLight ? <Moon className="size-4" /> : <Sun className="size-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{canvasLight ? "Dark canvas" : "Light canvas"}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={clipToFolder ? "secondary" : "ghost"}
+            size="icon"
+            aria-label="Clip to folder"
+            aria-pressed={clipToFolder}
+            onClick={() => useDocumentStore.getState().setClipToFolder(!clipToFolder)}
+          >
+            <Crop className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{clipToFolder ? "Clipping: on" : "Clipping: off"}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Save to gallery"
+            disabled={saving}
+            onClick={saveToGallery}
+          >
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Save to gallery</TooltipContent>
+      </Tooltip>
+
+      <Separator orientation="vertical" className="mx-1 !h-6" />
       <ExportDialog />
     </header>
   );

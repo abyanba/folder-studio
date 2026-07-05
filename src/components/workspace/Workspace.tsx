@@ -40,6 +40,7 @@ export function Workspace() {
   const selectedIds = useSelectionStore((s) => s.selectedIds);
   const selectedId = useSelectionStore((s) => s.selectedId);
   const drawToolActive = useUiStore((s) => s.activeTool === "draw");
+  const canvasLight = useUiStore((s) => s.canvasLight);
   const wsRef = useRef<HTMLDivElement>(null);
   const { state, beginMove, beginResize, beginRotate, beginMarquee } = useInteraction(wsRef);
   const { overrides, marquee, snap } = state;
@@ -85,7 +86,11 @@ export function Workspace() {
 
   return (
     <ElementContextMenu>
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+      <div
+        className={`relative flex flex-1 items-center justify-center overflow-hidden transition-colors ${
+          canvasLight ? "bg-neutral-200" : ""
+        }`}
+      >
         <div
           ref={wsRef}
           data-ws
