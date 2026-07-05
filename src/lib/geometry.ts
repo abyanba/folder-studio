@@ -1,6 +1,6 @@
 /**
  * Pure geometry math for canvas interactions, ported from the legacy `onMove`
- * handler (docs/index.html L665-693). No DOM access — callers pass in the raw
+ * handler (public/legacy.html L665-693). No DOM access — callers pass in the raw
  * pointer deltas and the element/others rects; the event wiring lands in Phase 4.
  */
 

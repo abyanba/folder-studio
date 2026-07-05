@@ -1,7 +1,7 @@
 /**
  * Auto-trim: find the opaque bounding box of a rendered canvas and compute the
  * transform that recenters/scales it to fill the export canvas with a small pad.
- * Ported from docs/index.html L941-943.
+ * Ported from public/legacy.html L941-943.
  */
 
 export interface TrimBounds {

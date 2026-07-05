@@ -1,6 +1,6 @@
 /**
  * Fixed workspace/content geometry and design defaults, ported verbatim from the
- * legacy app (docs/index.html L336-339).
+ * legacy app (public/legacy.html L336-339).
  */
 
 /** Overall workspace/folder canvas size. */

@@ -1,6 +1,6 @@
 /**
  * Phosphor icon catalog shown in the Icons panel, ported verbatim from the
- * legacy `ICON_NAMES` (docs/index.html L340-348). Keys are category tabs;
+ * legacy `ICON_NAMES` (public/legacy.html L340-348). Keys are category tabs;
  * values are Iconify names in the `ph` icon set.
  */
 

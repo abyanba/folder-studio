@@ -1,6 +1,6 @@
 /**
  * Color text-format helpers for the picker's hex/rgb/hsl/hsv input, ported
- * from the legacy `getColorStr`/`setFromInput`/`rgb2hsl` (docs/index.html
+ * from the legacy `getColorStr`/`setFromInput`/`rgb2hsl` (public/legacy.html
  * L899-917). Pure and unit-testable.
  */
 

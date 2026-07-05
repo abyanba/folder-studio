@@ -1,6 +1,6 @@
 /**
  * Blob exporters built on {@link buildExportCanvas}. Ported from
- * docs/index.html `doExport` (L967-978) and `doBatchExport` (L947-966), with
+ * public/legacy.html `doExport` (L967-978) and `doBatchExport` (L947-966), with
  * JSZip now a bundled npm dependency instead of a CDN `import()`.
  *
  * Each function returns a Blob so callers (dev harness now, toolbar in Phase 5)

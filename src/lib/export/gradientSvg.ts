@@ -1,6 +1,6 @@
 /**
  * SVG gradient `<defs>` builders shared by the base-shape, element, and draw
- * renderers. Ported from docs/index.html L919 (gradSVGCoords) and the inline
+ * renderers. Ported from public/legacy.html L919 (gradSVGCoords) and the inline
  * gradient defs in L929/L931/L932/L582-584.
  *
  * Note: the legacy base-folder convention `(angle-90)` with cos/sin is

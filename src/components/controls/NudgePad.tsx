@@ -1,6 +1,6 @@
 /**
  * 2D offset pad for shadow x/y (port of the legacy `nudgePad`,
- * docs/index.html L1037): a 64px square with crosshair guides; dragging maps
+ * public/legacy.html L1037): a 64px square with crosshair guides; dragging maps
  * the pointer to integer offsets in ±range. The whole drag is one undo entry
  * via the document-preview transaction.
  */

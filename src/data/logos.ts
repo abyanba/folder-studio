@@ -1,7 +1,7 @@
 /**
  * Brand-logo catalog for the Logos panel, ported verbatim from the legacy
  * `LOGO_NAMES` / `LOGO_DISPLAY` / `BRAND_COLORS` / `LOGO_COLOR_KEYS`
- * (docs/index.html L437-501). Names are Iconify `simple-icons` slugs; color
+ * (public/legacy.html L437-501). Names are Iconify `simple-icons` slugs; color
  * variants map through LOGO_COLOR_KEYS into the `logos` icon set.
  */
 

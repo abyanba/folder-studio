@@ -2,7 +2,7 @@
  * Browser-only canvas orchestrator. Rasterizes the SVG-string builders
  * (base shape, elements, texture, clip mask) onto a real 2D canvas and applies
  * the auto-trim transform, then hands the finished canvas to {@link exportPng}
- * etc. Ported from docs/index.html `buildExportCanvas` (L921-945) and
+ * etc. Ported from public/legacy.html `buildExportCanvas` (L921-945) and
  * `_recolorCanvas` (L590-605).
  *
  * This module is NOT unit-tested in jsdom — jsdom cannot rasterize SVG data

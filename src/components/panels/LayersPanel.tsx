@@ -4,7 +4,7 @@
  * order (elements + textureLayerZ) as one undo entry through
  * `applyLayerOrder`. Rows support click/ctrl/shift selection, double-click
  * rename, visibility/lock toggles, and delete — ported from the legacy layers
- * panel (docs/index.html L1710-1813).
+ * panel (public/legacy.html L1710-1813).
  */
 
 import { useState, type MouseEvent } from "react";

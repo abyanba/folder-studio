@@ -1,6 +1,6 @@
 /**
  * Text auto-fit helpers, ported verbatim from the legacy `autoFitSize` /
- * `autoFitSpacing` / `autoFitLineHeight` (docs/index.html L655-657) — including
+ * `autoFitSpacing` / `autoFitLineHeight` (public/legacy.html L655-657) — including
  * their quirks (size fit measures the whole text as one line). The canvas
  * `measureText` is injectable so the math is unit-testable in jsdom.
  */

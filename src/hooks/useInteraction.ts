@@ -1,7 +1,7 @@
 /**
  * Pointer-driven interaction state machine for the workspace: move, resize,
  * rotate, and marquee-select. Ported from the legacy `startMove`/`startResize`/
- * `startRotate` + `onMove`/`onUp` (docs/index.html L659-700), reusing the pure
+ * `startRotate` + `onMove`/`onUp` (public/legacy.html L659-700), reusing the pure
  * math in `geometry.ts` / `workspaceGeometry.ts`.
  *
  * Undo model — commit-once: during a drag the in-progress transform lives in

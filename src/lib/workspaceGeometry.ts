@@ -1,7 +1,7 @@
 /**
  * Workspace coordinate mapping + multi-select snap, complementing the pure
  * single-element helpers in `geometry.ts`. Ported from the multi-select and
- * rotate/marquee branches of the legacy `onMove`/`onUp` (docs/index.html
+ * rotate/marquee branches of the legacy `onMove`/`onUp` (public/legacy.html
  * L665, L692, L700).
  *
  * "Content" coordinates are relative to the content-rect origin (CDX, CDY)

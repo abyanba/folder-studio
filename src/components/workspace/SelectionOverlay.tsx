@@ -1,7 +1,7 @@
 /**
  * Selection chrome: a bounding box around each selected element plus 8 resize
  * handles and a rotate handle on the primary selection. Rendered above the
- * elements in the content-rect stack. Ported from docs/index.html L1216-1235.
+ * elements in the content-rect stack. Ported from public/legacy.html L1216-1235.
  */
 
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";

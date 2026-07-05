@@ -1,6 +1,6 @@
 /**
  * Draw-tool commit math and eraser hit-testing, ported from the legacy
- * `commitDraw` / `commitShapePath` / erasing branch (docs/index.html
+ * `commitDraw` / `commitShapePath` / erasing branch (public/legacy.html
  * L698/L999/L1003). Pure — the pointer wiring lives in `useDrawTool`.
  */
 

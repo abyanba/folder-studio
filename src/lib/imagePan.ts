@@ -1,5 +1,5 @@
 /**
- * Background-image crop panning (legacy `imgCrop`, docs/index.html L698):
+ * Background-image crop panning (legacy `imgCrop`, public/legacy.html L698):
  * pointer deltas over the square preview pan `folderBgX/Y` (0..100 %) with a
  * zoom-scaled sensitivity; at zoom 1 there is nothing to pan.
  */

@@ -1,6 +1,6 @@
 /**
  * Pure color conversions, ported from the legacy class methods
- * (docs/index.html L570-573, L608). No React, no `this` — directly testable.
+ * (public/legacy.html L570-573, L608). No React, no `this` — directly testable.
  */
 
 import type { Gradient } from "@/types/gradient";
@@ -72,7 +72,7 @@ export function hexToHsv(hex: string): Hsv {
 
 /**
  * Hex (`#rrggbb`) + alpha → `rgba(...)` string. Pass-through if already `rgb(...)`.
- * Ported from the legacy `hexA` (docs/index.html L896).
+ * Ported from the legacy `hexA` (public/legacy.html L896).
  */
 export function hexA(hex: string, alpha = 1): string {
   const c = hex || "#000000";

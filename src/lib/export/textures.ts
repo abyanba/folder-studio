@@ -1,5 +1,5 @@
 /**
- * Texture pattern generators, ported verbatim from docs/index.html L350-383,
+ * Texture pattern generators, ported verbatim from public/legacy.html L350-383,
  * plus the seeded randomizer for the scatter patterns (L868-884).
  *
  * Each generator returns a small tileable SVG string that the canvas

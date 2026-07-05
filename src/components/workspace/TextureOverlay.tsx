@@ -1,7 +1,7 @@
 /**
  * The texture pattern layer, masked to the folder silhouette. Sits within the
  * content-rect stack at the texture's z-position (interleaved by DOM order in
- * `Workspace`). Reuses the Phase-3 `buildTextureSvg`. Ported from docs/index.html
+ * `Workspace`). Reuses the Phase-3 `buildTextureSvg`. Ported from public/legacy.html
  * L1144/L1241.
  */
 

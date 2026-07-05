@@ -1,5 +1,5 @@
 /**
- * Base folder shapes, ported from docs/index.html L385-421.
+ * Base folder shapes, ported from public/legacy.html L385-421.
  *
  * Simple shapes carry an `svg` template with `__DEFS__`/`__COLOR__` placeholders
  * plus a `mask`. The four "solid-treatment" shapes (windows/macos/glass/

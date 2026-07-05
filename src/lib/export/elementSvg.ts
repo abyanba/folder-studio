@@ -3,7 +3,7 @@
  * rasterized by the canvas orchestrator via `new Image()`. Text has no SVG form
  * (drawn directly on the canvas), so it lives in the orchestrator + textLayout.
  *
- * Ported from docs/index.html L929 (icon), L932 (shape), L931 (draw).
+ * Ported from public/legacy.html L929 (icon), L932 (shape), L931 (draw).
  */
 
 import { isGradient } from "@/types/gradient";

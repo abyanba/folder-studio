@@ -1,7 +1,7 @@
 /**
  * Element factories. These centralize the per-type default fields that the
  * legacy app scattered across `addShape`/`addText`/`addImage`/`addIconToCanvas`/
- * `commitDraw` (docs/index.html L618/624/613/780/999), and guarantee every
+ * `commitDraw` (public/legacy.html L618/624/613/780/999), and guarantee every
  * element is created with the full BaseElement shape (string ID, visible, locked,
  * scaleX/scaleY, name).
  */

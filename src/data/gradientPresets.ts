@@ -1,6 +1,6 @@
 /**
  * Built-in gradient presets, ported from the legacy `GRADIENT_PRESETS`
- * (docs/index.html L423-436). Stop ids are strings to match the typed
+ * (public/legacy.html L423-436). Stop ids are strings to match the typed
  * {@link GradientStop} model; preset identity for hide/show persistence is the
  * array index (legacy `fs_hidden_grad_presets` stores indices).
  */

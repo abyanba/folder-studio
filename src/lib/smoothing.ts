@@ -1,6 +1,6 @@
 /**
  * Freehand/line/arc path helpers, ported from the legacy drawing code
- * (docs/index.html L996, L997, L1001-1002).
+ * (public/legacy.html L996, L997, L1001-1002).
  */
 
 export interface Point {

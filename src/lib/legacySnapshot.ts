@@ -1,5 +1,5 @@
 /**
- * Migration from legacy gallery snapshots (docs/index.html `saveToGallery`
+ * Migration from legacy gallery snapshots (public/legacy.html `saveToGallery`
  * L982 / `loadFromGallery` L986-989) into a typed {@link FolderDocument}:
  * numeric element ids → `el<N>` strings (id counter reseeded), missing base
  * fields filled, flat `hue/sat/bri` + `gradStops/gradType/gradAngle` →

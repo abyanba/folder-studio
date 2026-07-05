@@ -1,7 +1,7 @@
 /**
  * Pointer state machine for the draw tool (freehand / line / arc / eraser),
  * ported from the legacy `startDrawEvent` + the `drawing`/`erasing`/`shaping`
- * branches of `onMove`/`onUp` (docs/index.html L698-712, L998).
+ * branches of `onMove`/`onUp` (public/legacy.html L698-712, L998).
  *
  * The returned handlers go on the draw overlay covering the content rect, so
  * pointer coordinates are already content-space. Freehand strokes and line/arc

@@ -1,6 +1,6 @@
 /**
  * Minimal single-image ICO encoder: a 32bpp BGRA BMP wrapped in an ICONDIR.
- * Ported from the legacy hand-rolled encoder (docs/index.html L970-975).
+ * Ported from the legacy hand-rolled encoder (public/legacy.html L970-975).
  *
  * `pixels` is RGBA canvas image data (top-to-bottom); ICO stores BGRA rows
  * bottom-to-top, which this handles.

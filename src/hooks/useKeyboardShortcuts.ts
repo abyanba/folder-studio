@@ -1,6 +1,6 @@
 /**
  * Global editor keyboard shortcuts: undo/redo, delete, escape, duplicate,
- * copy/paste, and arrow-nudge. Ported from the legacy `onKey` (docs/index.html
+ * copy/paste, and arrow-nudge. Ported from the legacy `onKey` (public/legacy.html
  * L701+). Ignores events while a text element is being edited or focus is in a
  * form field, so typing is never hijacked.
  */
