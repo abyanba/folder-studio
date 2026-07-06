@@ -27,18 +27,10 @@ import {
 } from "@/store/documentStore";
 import { isGradient, type GradientStop } from "@/types/gradient";
 import { notify } from "@/store/toastStore";
+import { importImageFile } from "@/lib/importImage";
 import { PanelHeader } from "./PanelHeader";
 
 type FillMode = "solid" | "gradient" | "image";
-
-function readFileAsDataUrl(file: File, onLoad: (dataUrl: string) => void): void {
-  const reader = new FileReader();
-  reader.onerror = () => notify.error(`Couldn't read ${file.name}`);
-  reader.onload = (e) => {
-    if (typeof e.target?.result === "string") onLoad(e.target.result);
-  };
-  reader.readAsDataURL(file);
-}
 
 function ImageCropPreview() {
   const doc = useDocumentStore((s) => s.doc);
@@ -134,9 +126,14 @@ export function ColorPanel() {
   const onUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      readFileAsDataUrl(file, (dataUrl) =>
-        setFolderFill({ folderBgImage: dataUrl, folderFillMode: "image" }),
-      );
+      importImageFile(file)
+        .then(({ dataUrl, scaled }) => {
+          setFolderFill({ folderBgImage: dataUrl, folderFillMode: "image" });
+          if (scaled) notify.info("Image resized to 1024px for performance");
+        })
+        .catch((err) =>
+          notify.error(`Couldn't read ${file.name}`, err instanceof Error ? err.message : undefined),
+        );
     }
     e.target.value = "";
   };

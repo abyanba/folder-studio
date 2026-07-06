@@ -20,6 +20,8 @@ export interface GalleryItem {
 
 const KEY = "fs_gallery";
 const MAX_ITEMS = 20;
+/** Refuse a save that would push the gallery past ~4.5 MB (ST-07 prevention). */
+const BUDGET_BYTES = 4.5 * 1024 * 1024;
 
 function load(): GalleryItem[] {
   try {
@@ -64,6 +66,9 @@ export const useGalleryStore = create<GalleryStore>()((set, get) => ({
       },
       ...get().items,
     ].slice(0, MAX_ITEMS);
+    // Refuse before mutating state if the projected payload is too big, so the
+    // caller can report it rather than silently losing the save on reload.
+    if (JSON.stringify(items).length > BUDGET_BYTES) return false;
     set({ items });
     return save(items);
   },

@@ -6,6 +6,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { usePersistence } from "@/hooks/usePersistence";
 import { Toolbar } from "./Toolbar";
 import { IconRail } from "./IconRail";
 import { PanelDock } from "./PanelDock";
@@ -14,6 +15,7 @@ import { Workspace } from "@/components/workspace/Workspace";
 
 export function AppShell() {
   useKeyboardShortcuts();
+  usePersistence();
   return (
     <TooltipProvider delayDuration={300}>
       <IconHydrator />

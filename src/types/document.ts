@@ -33,6 +33,8 @@ export interface IconDefaults {
 }
 
 export interface FolderDocument {
+  /** Schema version for migrations (AR-07). Absent on legacy/pre-v2 snapshots. */
+  v?: number;
   baseShape: BaseShapeId;
   /** Base folder fill — solid hex or gradient. */
   folderColor: ColorValue;
@@ -59,8 +61,11 @@ export interface FolderDocument {
   textureLayerZ: number;
 }
 
+export const DOCUMENT_VERSION = 2;
+
 export function createEmptyDocument(): FolderDocument {
   return {
+    v: DOCUMENT_VERSION,
     baseShape: "windows",
     folderColor: "#f5c542",
     folderFillMode: "color",

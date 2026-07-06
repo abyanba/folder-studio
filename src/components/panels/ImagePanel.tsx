@@ -21,6 +21,7 @@ import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
 import { notify } from "@/store/toastStore";
+import { importImageFile } from "@/lib/importImage";
 import type { BlendMode, ImageElement } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
 
@@ -54,20 +55,16 @@ export function UploadButton({ label = "Upload images" }: { label?: string }) {
   const onFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onerror = () => notify.error(`Couldn't read ${file.name}`);
-      reader.onload = (evt) => {
-        const src = evt.target?.result;
-        if (typeof src !== "string") return;
-        const img = new Image();
-        img.onload = () => {
-          const id = addImage(src, img.width, img.height);
+      // Downscale oversized uploads before they enter the document (PF-08).
+      importImageFile(file)
+        .then(({ dataUrl, width, height, scaled }) => {
+          const id = addImage(dataUrl, width, height);
           select(id);
-        };
-        img.onerror = () => notify.error(`Couldn't load ${file.name}`, "The file may be corrupt or an unsupported format");
-        img.src = src;
-      };
-      reader.readAsDataURL(file);
+          if (scaled) notify.info("Image resized to 1024px for performance");
+        })
+        .catch((err) =>
+          notify.error(`Couldn't load ${file.name}`, err instanceof Error ? err.message : undefined),
+        );
     });
     e.target.value = "";
   };

@@ -194,7 +194,16 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
   const sn = legacy as Legacy;
 
   if (isNewFormat(sn)) {
-    const merged: FolderDocument = { ...doc, ...(sn as Partial<FolderDocument>) };
+    const snap = sn as Partial<FolderDocument>;
+    // Deep-merge nested objects so a future field added to `texture`/`iconDefaults`
+    // loads its default instead of `undefined` on an older snapshot (ST-08).
+    const merged: FolderDocument = {
+      ...doc,
+      ...snap,
+      texture: { ...doc.texture, ...snap.texture },
+      iconDefaults: { ...doc.iconDefaults, ...snap.iconDefaults },
+      v: doc.v,
+    };
     reseedIds(maxIdSuffix(merged.elements.map((e) => e.id)));
     return merged;
   }

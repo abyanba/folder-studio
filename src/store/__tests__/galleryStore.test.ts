@@ -32,4 +32,12 @@ describe("galleryStore.addItem", () => {
     const ok = useGalleryStore.getState().addItem("data:image/png;base64,x", doc);
     expect(ok).toBe(false);
   });
+
+  it("refuses a save projected past the storage budget without mutating state (ST-07)", () => {
+    const doc = useDocumentStore.getState().doc;
+    const huge = "d".repeat(5 * 1024 * 1024); // > 4.5 MB thumbnail
+    const ok = useGalleryStore.getState().addItem(huge, doc);
+    expect(ok).toBe(false);
+    expect(useGalleryStore.getState().items).toHaveLength(0);
+  });
 });
