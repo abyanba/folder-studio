@@ -4,6 +4,7 @@
  */
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Toolbar } from "./Toolbar";
 import { IconRail } from "./IconRail";
@@ -22,6 +23,7 @@ export function AppShell() {
           <Workspace />
         </div>
       </div>
+      <Toaster />
     </TooltipProvider>
   );
 }

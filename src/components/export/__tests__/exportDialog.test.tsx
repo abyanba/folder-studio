@@ -12,11 +12,14 @@ import { ExportDialog } from "@/components/export/ExportDialog";
 import { useDocumentStore } from "@/store/documentStore";
 
 const mocks = vi.hoisted(() => ({
-  exportPng: vi.fn(async (_doc: unknown, _size: number) => new Blob(["png"])),
-  exportSvg: vi.fn(async (_doc: unknown, _size: number) => new Blob(["svg"])),
-  exportIco: vi.fn(async (_doc: unknown, _size: number) => new Blob(["ico"])),
+  exportPng: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["png"]), skipped: [] })),
+  exportSvg: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["svg"]), skipped: [] })),
+  exportIco: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["ico"]), skipped: [] })),
   batchExportZip: vi.fn(
-    async (_doc: unknown, _sizes: number[], _formats: string[]) => new Blob(["zip"]),
+    async (_doc: unknown, _sizes: number[], _formats: string[]) => ({
+      blob: new Blob(["zip"]),
+      skipped: [],
+    }),
   ),
   downloadBlob: vi.fn(),
 }));

@@ -15,6 +15,12 @@ import { encodeIco } from "./ico";
 
 export type ExportFormat = "png" | "svg" | "ico";
 
+/** A finished export plus the labels of any layers that couldn't be rendered (EXP-12/13). */
+export interface ExportBlob {
+  blob: Blob;
+  skipped: string[];
+}
+
 function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -40,44 +46,48 @@ export async function exportPng(
   doc: FolderDocument,
   size: number,
   deps: RenderDeps,
-): Promise<Blob> {
-  const canvas = await buildExportCanvas(doc, size, deps);
-  return canvasToBlob(canvas, "image/png");
+): Promise<ExportBlob> {
+  const { canvas, skipped } = await buildExportCanvas(doc, size, deps);
+  return { blob: await canvasToBlob(canvas, "image/png"), skipped };
 }
 
 export async function exportSvg(
   doc: FolderDocument,
   size: number,
   deps: RenderDeps,
-): Promise<Blob> {
-  const canvas = await buildExportCanvas(doc, size, deps);
+): Promise<ExportBlob> {
+  const { canvas, skipped } = await buildExportCanvas(doc, size, deps);
   const svg = svgWrapper(canvas.toDataURL("image/png"), size);
-  return new Blob([svg], { type: "image/svg+xml" });
+  return { blob: new Blob([svg], { type: "image/svg+xml" }), skipped };
 }
 
 export async function exportIco(
   doc: FolderDocument,
   size: number,
   deps: RenderDeps,
-): Promise<Blob> {
-  const canvas = await buildExportCanvas(doc, size, deps);
-  return new Blob([icoBytes(canvas, size)], { type: "image/x-icon" });
+): Promise<ExportBlob> {
+  const { canvas, skipped } = await buildExportCanvas(doc, size, deps);
+  return { blob: new Blob([icoBytes(canvas, size)], { type: "image/x-icon" }), skipped };
 }
 
 /**
  * Render every `size` once and emit each requested `format`, zipped. Mirrors the
- * legacy batch export (one canvas per size, reused across formats).
+ * legacy batch export (one canvas per size, reused across formats). `skipped`
+ * layers are the same across sizes (same doc), so they're deduped.
  */
 export async function batchExportZip(
   doc: FolderDocument,
   sizes: number[],
   formats: ExportFormat[],
   deps: RenderDeps,
-): Promise<Blob> {
+): Promise<ExportBlob> {
   const zip = new JSZip();
   const sorted = [...sizes].sort((a, b) => a - b);
+  const skipped = new Set<string>();
   for (const size of sorted) {
-    const canvas = await buildExportCanvas(doc, size, deps);
+    const result = await buildExportCanvas(doc, size, deps);
+    result.skipped.forEach((s) => skipped.add(s));
+    const canvas = result.canvas;
     for (const fmt of formats) {
       const name = `folder-icon-${size}x${size}.${fmt}`;
       if (fmt === "png") {
@@ -89,7 +99,7 @@ export async function batchExportZip(
       }
     }
   }
-  return zip.generateAsync({ type: "blob" });
+  return { blob: await zip.generateAsync({ type: "blob" }), skipped: [...skipped] };
 }
 
 /** Trigger a browser download of `blob` as `filename`. */

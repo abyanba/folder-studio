@@ -27,6 +27,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useDocumentStore } from "@/store/documentStore";
+import { notify } from "@/store/toastStore";
 import { getIconBody } from "@/lib/iconify";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
 import {
@@ -36,7 +37,7 @@ import {
   exportPng,
   exportSvg,
 } from "@/lib/export/exporters";
-import type { ExportFormat } from "@/lib/export/exporters";
+import type { ExportBlob, ExportFormat } from "@/lib/export/exporters";
 
 const SIZES = ["64", "128", "256", "512", "1024"];
 const FORMATS: ExportFormat[] = ["png", "svg", "ico"];
@@ -56,8 +57,24 @@ export function ExportDialog() {
     setBusy(true);
     try {
       await task();
+    } catch (err) {
+      notify.error("Export failed", err instanceof Error ? err.message : undefined);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** Download the blob and report success — or which layers were dropped (EXP-13). */
+  function deliver(result: ExportBlob, filename: string) {
+    downloadBlob(result.blob, filename);
+    const n = result.skipped.length;
+    if (n > 0) {
+      notify.info(
+        `Exported with ${n} missing layer${n > 1 ? "s" : ""}`,
+        result.skipped.join(", "),
+      );
+    } else {
+      notify.success(`Exported ${filename}`);
     }
   }
 
@@ -65,26 +82,26 @@ export function ExportDialog() {
     return run(async () => {
       const doc = useDocumentStore.getState().doc;
       const sz = Number(size);
-      const blob =
+      const result =
         format === "png"
           ? await exportPng(doc, sz, deps)
           : format === "svg"
             ? await exportSvg(doc, sz, deps)
             : await exportIco(doc, sz, deps);
-      downloadBlob(blob, `folder-icon-${sz}.${format}`);
+      deliver(result, `folder-icon-${sz}.${format}`);
     });
   }
 
   function exportBatch() {
     return run(async () => {
       const doc = useDocumentStore.getState().doc;
-      const blob = await batchExportZip(
+      const result = await batchExportZip(
         doc,
         batchSizes.map(Number),
         batchFormats as ExportFormat[],
         deps,
       );
-      downloadBlob(blob, "folder-icons.zip");
+      deliver(result, "folder-icons.zip");
     });
   }
 

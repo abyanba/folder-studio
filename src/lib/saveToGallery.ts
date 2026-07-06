@@ -10,8 +10,9 @@ import { getIconBody } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
 import { useGalleryStore } from "@/store/galleryStore";
 
-export async function saveCurrentToGallery(): Promise<void> {
+/** Returns whether the snapshot persisted (false on localStorage quota failure). */
+export async function saveCurrentToGallery(): Promise<boolean> {
   const doc = useDocumentStore.getState().doc;
-  const canvas = await buildExportCanvas(doc, 128, { getIconBody });
-  useGalleryStore.getState().addItem(canvas.toDataURL("image/png"), doc);
+  const { canvas } = await buildExportCanvas(doc, 128, { getIconBody });
+  return useGalleryStore.getState().addItem(canvas.toDataURL("image/png"), doc);
 }

@@ -26,12 +26,14 @@ import {
   useDocumentStore,
 } from "@/store/documentStore";
 import { isGradient, type GradientStop } from "@/types/gradient";
+import { notify } from "@/store/toastStore";
 import { PanelHeader } from "./PanelHeader";
 
 type FillMode = "solid" | "gradient" | "image";
 
 function readFileAsDataUrl(file: File, onLoad: (dataUrl: string) => void): void {
   const reader = new FileReader();
+  reader.onerror = () => notify.error(`Couldn't read ${file.name}`);
   reader.onload = (e) => {
     if (typeof e.target?.result === "string") onLoad(e.target.result);
   };

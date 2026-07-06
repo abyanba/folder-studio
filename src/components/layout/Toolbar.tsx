@@ -14,6 +14,7 @@ import { useHistory } from "@/store";
 import { useDocumentStore } from "@/store/documentStore";
 import { useUiStore } from "@/store/uiStore";
 import { saveCurrentToGallery } from "@/lib/saveToGallery";
+import { notify } from "@/store/toastStore";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { buildSampleDocument } from "@/dev/sampleDocument";
 
@@ -27,7 +28,17 @@ export function Toolbar() {
   const saveToGallery = async () => {
     setSaving(true);
     try {
-      await saveCurrentToGallery();
+      const persisted = await saveCurrentToGallery();
+      if (persisted) {
+        notify.success("Saved to gallery");
+      } else {
+        notify.error(
+          "Couldn't save — storage full",
+          "Delete old gallery items or use smaller images",
+        );
+      }
+    } catch (err) {
+      notify.error("Couldn't save to gallery", err instanceof Error ? err.message : undefined);
     } finally {
       setSaving(false);
     }

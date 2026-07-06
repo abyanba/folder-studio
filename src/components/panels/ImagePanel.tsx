@@ -20,6 +20,7 @@ import { TransformFields } from "@/components/controls/TransformFields";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
+import { notify } from "@/store/toastStore";
 import type { BlendMode, ImageElement } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
 
@@ -54,6 +55,7 @@ export function UploadButton({ label = "Upload images" }: { label?: string }) {
     const files = Array.from(e.target.files ?? []);
     files.forEach((file) => {
       const reader = new FileReader();
+      reader.onerror = () => notify.error(`Couldn't read ${file.name}`);
       reader.onload = (evt) => {
         const src = evt.target?.result;
         if (typeof src !== "string") return;
@@ -62,6 +64,7 @@ export function UploadButton({ label = "Upload images" }: { label?: string }) {
           const id = addImage(src, img.width, img.height);
           select(id);
         };
+        img.onerror = () => notify.error(`Couldn't load ${file.name}`, "The file may be corrupt or an unsupported format");
         img.src = src;
       };
       reader.readAsDataURL(file);

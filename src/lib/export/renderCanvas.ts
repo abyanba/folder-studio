@@ -32,7 +32,8 @@ import { computeTrimBounds, computeTrimTransform } from "./trim";
 export type LoadedImage = CanvasImageSource &
   Partial<{ naturalWidth: number; naturalHeight: number }>;
 
-export type ImageLoader = (src: string) => Promise<LoadedImage>;
+/** Resolves `null` on decode failure so callers skip the source, not crash (EXP-12). */
+export type ImageLoader = (src: string) => Promise<LoadedImage | null>;
 export type CanvasFactory = (width: number, height: number) => HTMLCanvasElement;
 
 export interface RenderDeps {
@@ -44,11 +45,23 @@ export interface RenderDeps {
   createCanvas?: CanvasFactory;
 }
 
-function defaultLoadImage(src: string): Promise<LoadedImage> {
-  return new Promise<LoadedImage>((resolve) => {
+/** A rendered canvas plus the human-readable labels of any layers that failed to load. */
+export interface ExportResult {
+  canvas: HTMLCanvasElement;
+  /** Element names (or ids) skipped because their image/body couldn't be loaded. */
+  skipped: string[];
+}
+
+/** Human-readable label for a skipped layer (element name, falling back to id). */
+function elementLabel(el: FolderElement): string {
+  return el.name?.trim() || el.id;
+}
+
+function defaultLoadImage(src: string): Promise<LoadedImage | null> {
+  return new Promise<LoadedImage | null>((resolve) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(img);
+    img.onerror = () => resolve(null);
     img.src = src;
   });
 }
@@ -66,6 +79,7 @@ async function recolorCanvas(
   doc: FolderDocument,
   size: number,
   loadImage: ImageLoader,
+  skipped: string[],
 ): Promise<void> {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -73,17 +87,21 @@ async function recolorCanvas(
   ctx.globalAlpha = doc.folderOpacity ?? 1;
   if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const bi = await loadImage(doc.folderBgImage);
-    const zm = doc.folderBgZoom || 1;
-    const bpx = (doc.folderBgX ?? 50) / 100;
-    const bpy = (doc.folderBgY ?? 50) / 100;
-    const dw = size * zm;
-    const dh = size * zm;
-    const dx = -(dw - size) * bpx;
-    const dy = -(dh - size) * bpy;
-    ctx.drawImage(bi, dx, dy, dw, dh);
+    if (bi) {
+      const zm = doc.folderBgZoom || 1;
+      const bpx = (doc.folderBgX ?? 50) / 100;
+      const bpy = (doc.folderBgY ?? 50) / 100;
+      const dw = size * zm;
+      const dh = size * zm;
+      const dx = -(dw - size) * bpx;
+      const dy = -(dh - size) * bpy;
+      ctx.drawImage(bi, dx, dy, dw, dh);
+    } else {
+      skipped.push("Folder background");
+    }
   } else {
     const img = await loadImage(toSvgDataUrl(buildBaseShapeSvg(doc)));
-    ctx.drawImage(img, 0, 0, size, size);
+    if (img) ctx.drawImage(img, 0, 0, size, size);
   }
   ctx.globalAlpha = 1;
 }
@@ -193,6 +211,7 @@ async function renderElement(
   size: number,
   deps: RenderDeps,
   loadImage: ImageLoader,
+  skipped: string[],
 ): Promise<void> {
   const sx = size / FW;
   const sy = size / FH;
@@ -215,29 +234,34 @@ async function renderElement(
 
   if (el.type === "icon") {
     const body = deps.getIconBody(el.iconName, el.iconVariant || "regular");
-    if (body) {
-      const img = await loadImage(toSvgDataUrl(buildIconSvg(el, body, ew, eh)));
-      ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
-    }
+    const img = body ? await loadImage(toSvgDataUrl(buildIconSvg(el, body, ew, eh))) : null;
+    if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    else skipped.push(elementLabel(el));
   } else if (el.type === "image") {
     const img = await loadImage(el.src);
-    if (el.blendMode && el.blendMode !== "normal") {
-      ctx.globalCompositeOperation = el.blendMode;
-    }
-    ctx.scale(el.scaleX ?? 1, el.scaleY ?? 1);
-    ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
-    if (el.stroke?.enabled && (el.stroke.width || 0) > 0) {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = el.stroke.color || "#000000";
-      ctx.lineWidth = (el.stroke.width || 2) * (size / FW);
-      ctx.strokeRect(-ew / 2, -eh / 2, ew, eh);
+    if (img) {
+      if (el.blendMode && el.blendMode !== "normal") {
+        ctx.globalCompositeOperation = el.blendMode;
+      }
+      ctx.scale(el.scaleX ?? 1, el.scaleY ?? 1);
+      ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+      if (el.stroke?.enabled && (el.stroke.width || 0) > 0) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = el.stroke.color || "#000000";
+        ctx.lineWidth = (el.stroke.width || 2) * (size / FW);
+        ctx.strokeRect(-ew / 2, -eh / 2, ew, eh);
+      }
+    } else {
+      skipped.push(elementLabel(el));
     }
   } else if (el.type === "draw") {
     const img = await loadImage(toSvgDataUrl(buildDrawSvg(el, ew, eh)));
-    ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    else skipped.push(elementLabel(el));
   } else if (el.type === "shape") {
     const img = await loadImage(toSvgDataUrl(buildShapeSvg(el, ew, eh)));
-    ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    else skipped.push(elementLabel(el));
   } else {
     renderText(ctx, el, size, ew, eh);
   }
@@ -256,6 +280,7 @@ async function renderTexture(
   const texSvg = buildTextureSvg(doc.texture);
   if (!texSvg) return;
   const tImg = await loadImage(toSvgDataUrl(texSvg));
+  if (!tImg) return;
   const exportScale = size / FW;
   const nW = tImg.naturalWidth || 10;
   const nH = tImg.naturalHeight || 10;
@@ -291,26 +316,28 @@ async function renderTexture(
  * Render `doc` to a `size`×`size` canvas: base recolor, elements below the
  * texture layer, texture, elements above it, optional clip-to-folder mask, and
  * the auto-trim pass. Returns the finished canvas (a fresh trimmed one when the
- * content needed recentering).
+ * content needed recentering) plus the labels of any layers whose image/body
+ * couldn't be loaded (EXP-12/13 surfacing plumbing).
  */
 export async function buildExportCanvas(
   doc: FolderDocument,
   size: number,
   deps: RenderDeps,
-): Promise<HTMLCanvasElement> {
+): Promise<ExportResult> {
   const loadImage = deps.loadImage ?? defaultLoadImage;
   const createCanvas = deps.createCanvas ?? defaultCreateCanvas;
+  const skipped: string[] = [];
 
   const canvas = createCanvas(size, size);
-  await recolorCanvas(canvas, doc, size, loadImage);
+  await recolorCanvas(canvas, doc, size, loadImage, skipped);
   const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
+  if (!ctx) return { canvas, skipped };
 
   const tz = Math.min(doc.textureLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage);
+    await renderElement(ctx, el, size, deps, loadImage, skipped);
   }
 
   await renderTexture(ctx, doc, size, loadImage, createCanvas);
@@ -318,16 +345,18 @@ export async function buildExportCanvas(
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage);
+    await renderElement(ctx, el, size, deps, loadImage, skipped);
   }
 
   if (doc.clipToFolder) {
     const maskSvg = getBaseShapeMask(doc.baseShape);
     if (maskSvg) {
       const mi = await loadImage(toSvgDataUrl(maskSvg));
-      ctx.globalCompositeOperation = "destination-in";
-      ctx.drawImage(mi, 0, 0, size, size);
-      ctx.globalCompositeOperation = "source-over";
+      if (mi) {
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.drawImage(mi, 0, 0, size, size);
+        ctx.globalCompositeOperation = "source-over";
+      }
     }
   }
 
@@ -350,8 +379,8 @@ export async function buildExportCanvas(
         t.dw,
         t.dh,
       );
-      return fc;
+      return { canvas: fc, skipped };
     }
   }
-  return canvas;
+  return { canvas, skipped };
 }

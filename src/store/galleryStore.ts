@@ -31,17 +31,20 @@ function load(): GalleryItem[] {
   }
 }
 
-function save(items: GalleryItem[]): void {
+/** Persist and report success; quota failures (large data-URL thumbs) return false. */
+function save(items: GalleryItem[]): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(items));
+    return true;
   } catch {
-    // Quota failures (data-URL thumbs are large) are non-fatal.
+    return false;
   }
 }
 
 export interface GalleryStore {
   items: GalleryItem[];
-  addItem: (thumb: string, doc: FolderDocument) => void;
+  /** Returns whether the item persisted to localStorage (false on quota failure). */
+  addItem: (thumb: string, doc: FolderDocument) => boolean;
   removeItem: (id: number) => void;
 }
 
@@ -62,7 +65,7 @@ export const useGalleryStore = create<GalleryStore>()((set, get) => ({
       ...get().items,
     ].slice(0, MAX_ITEMS);
     set({ items });
-    save(items);
+    return save(items);
   },
 
   removeItem: (id) => {

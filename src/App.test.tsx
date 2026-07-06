@@ -13,7 +13,8 @@ import { useUiStore } from "@/store/uiStore";
 // the toolbar save button goes through it to build the gallery thumbnail.
 vi.mock("@/lib/export/renderCanvas", () => ({
   buildExportCanvas: vi.fn(async () => ({
-    toDataURL: () => "data:image/png;base64,stub",
+    canvas: { toDataURL: () => "data:image/png;base64,stub" },
+    skipped: [],
   })),
 }));
 

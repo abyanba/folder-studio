@@ -43,7 +43,7 @@ export function ExportHarness() {
     let cancelled = false;
     void (async () => {
       setStatus("Rendering…");
-      const canvas = await buildExportCanvas(docRef.current, size, stubDeps);
+      const { canvas } = await buildExportCanvas(docRef.current, size, stubDeps);
       if (cancelled) return;
       canvas.style.width = "256px";
       canvas.style.height = "256px";
@@ -105,20 +105,20 @@ export function ExportHarness() {
       <div ref={containerRef} style={{ marginBottom: 16 }} />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button onClick={() => void run("PNG", async () => downloadBlob(await exportPng(doc, size, stubDeps), `harness-${size}.png`))}>
+        <button onClick={() => void run("PNG", async () => downloadBlob((await exportPng(doc, size, stubDeps)).blob, `harness-${size}.png`))}>
           Download PNG
         </button>
-        <button onClick={() => void run("SVG", async () => downloadBlob(await exportSvg(doc, size, stubDeps), `harness-${size}.svg`))}>
+        <button onClick={() => void run("SVG", async () => downloadBlob((await exportSvg(doc, size, stubDeps)).blob, `harness-${size}.svg`))}>
           Download SVG
         </button>
-        <button onClick={() => void run("ICO", async () => downloadBlob(await exportIco(doc, size, stubDeps), `harness-${size}.ico`))}>
+        <button onClick={() => void run("ICO", async () => downloadBlob((await exportIco(doc, size, stubDeps)).blob, `harness-${size}.ico`))}>
           Download ICO
         </button>
         <button
           onClick={() =>
             void run("ZIP", async () =>
               downloadBlob(
-                await batchExportZip(doc, [64, 128, 256, 512], ["png", "svg", "ico"], stubDeps),
+                (await batchExportZip(doc, [64, 128, 256, 512], ["png", "svg", "ico"], stubDeps)).blob,
                 "harness-batch.zip",
               ),
             )
