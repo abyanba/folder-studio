@@ -30,6 +30,43 @@ describe("computeTextLayout", () => {
   it("treats empty text as a single empty line", () => {
     expect(computeTextLayout("", 10, 1, "center", 100).lines).toEqual([""]);
   });
+
+  it("only splits on \\n when no measurer is given (legacy behavior)", () => {
+    expect(computeTextLayout("hello world foo", 10, 1, "left", 30).lines).toEqual([
+      "hello world foo",
+    ]);
+  });
+});
+
+// 10px per character measurer for deterministic wrap math.
+const measure10 = (s: string) => s.length * 10;
+
+describe("computeTextLayout — word wrap (EXP-04)", () => {
+  it("greedily wraps at word boundaries", () => {
+    const { lines } = computeTextLayout("hello world", 10, 1, "left", 60, measure10);
+    expect(lines).toEqual(["hello", "world"]);
+  });
+
+  it("keeps words that fit together on one line", () => {
+    const { lines } = computeTextLayout("a b c", 10, 1, "left", 100, measure10);
+    expect(lines).toEqual(["a b c"]);
+  });
+
+  it("character-breaks a single word wider than the box", () => {
+    const { lines } = computeTextLayout("abcdefgh", 10, 1, "left", 50, measure10);
+    expect(lines).toEqual(["abcde", "fgh"]);
+  });
+
+  it("widens the wrap measurement by letter-spacing", () => {
+    // ls 5 → "abcd" = 40 + 3×5 = 55 > 50, so it breaks where spacing pushes it.
+    const { lines } = computeTextLayout("abcd", 10, 1, "left", 50, measure10, 5);
+    expect(lines).toEqual(["abc", "d"]);
+  });
+
+  it("preserves explicit newlines while wrapping each segment", () => {
+    const { lines } = computeTextLayout("hello world\nfoo", 10, 1, "left", 60, measure10);
+    expect(lines).toEqual(["hello", "world", "foo"]);
+  });
 });
 
 describe("lineY", () => {

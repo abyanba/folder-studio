@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
-import { hexA, gradientToCss } from "@/lib/color";
+import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderElement, TextElement } from "@/types/element";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
@@ -64,7 +64,9 @@ function TextContent({ el }: { el: TextElement }) {
     letterSpacing: `${el.letterSpacing}px`,
     lineHeight: el.lineHeight,
     display: "flex",
-    alignItems: el.align === "center" ? "center" : "flex-start",
+    // Vertical anchor is ALWAYS center — the export centers text in the box, so
+    // keying this off horizontal align top-anchored left/right text (EXP-03).
+    alignItems: "center",
     justifyContent:
       el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
     whiteSpace: "pre-wrap",
@@ -74,7 +76,7 @@ function TextContent({ el }: { el: TextElement }) {
     cursor: editing ? "text" : "grab",
     userSelect: editing ? "text" : "none",
     pointerEvents: editing ? "auto" : "none",
-    background: grad ? gradientToCss(grad) : "none",
+    background: grad ? textGradientCss(grad, el.width, el.height) : "none",
     WebkitBackgroundClip: grad ? "text" : "unset",
     backgroundClip: grad ? "text" : "unset",
     WebkitTextFillColor: grad ? "transparent" : "unset",

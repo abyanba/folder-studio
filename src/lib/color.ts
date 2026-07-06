@@ -83,13 +83,37 @@ export function hexA(hex: string, alpha = 1): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/** Build a CSS `linear-gradient()`/`radial-gradient()` from a {@link Gradient}. */
-export function gradientToCss(gradient: Gradient): string {
-  const sorted = [...gradient.stops].sort((a, b) => a.pos - b.pos);
-  const cs = sorted
+function stopList(gradient: Gradient): string {
+  return [...gradient.stops]
+    .sort((a, b) => a.pos - b.pos)
     .map((s) => `${getHex(s.hue, s.sat, s.bri)} ${Math.round(s.pos * 100)}%`)
     .join(",");
+}
+
+/** Build a CSS `linear-gradient()`/`radial-gradient()` from a {@link Gradient}. */
+export function gradientToCss(gradient: Gradient): string {
+  const cs = stopList(gradient);
   return gradient.kind === "linear"
     ? `linear-gradient(${gradient.angle}deg,${cs})`
     : `radial-gradient(circle,${cs})`;
+}
+
+/**
+ * Text-gradient CSS matched to the canvas/SVG userSpace convention for a `w`×`h`
+ * box (EXP-05). For non-square boxes the CSS angle is aspect-corrected so the
+ * gradient runs in the same direction the export draws it, and radial uses an
+ * explicit `max(w,h)/2` radius to match `createRadialGradient`. Square boxes
+ * collapse to the plain angle, so common text is unaffected.
+ */
+export function textGradientCss(gradient: Gradient, w: number, h: number): string {
+  const cs = stopList(gradient);
+  if (gradient.kind === "radial") {
+    return `radial-gradient(circle ${Math.max(w, h) / 2}px at center,${cs})`;
+  }
+  const a = (gradient.angle * Math.PI) / 180;
+  // Direction of the userSpace endpoint vector, expressed as a CSS angle
+  // (0deg = up, clockwise). atan2(dx, -dy) with dx = sin·w, dy = -cos·h.
+  let deg = (Math.atan2(Math.sin(a) * w, Math.cos(a) * h) * 180) / Math.PI;
+  if (deg < 0) deg += 360;
+  return `linear-gradient(${deg.toFixed(2)}deg,${cs})`;
 }

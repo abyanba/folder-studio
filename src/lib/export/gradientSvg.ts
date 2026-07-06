@@ -29,6 +29,29 @@ export function gradSVGCoords(angle: number): GradCoords {
   };
 }
 
+export interface GradientLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/**
+ * The single userSpace linear-gradient endpoint formula (AR-01), for a `w`×`h`
+ * box with origin at its top-left. This is the aspect-distorted convention every
+ * SVG/canvas path uses — the same one `gradSVGCoords` expresses in percentages.
+ * Shapes, icons, freehand draws, and canvas text gradients all derive from here.
+ */
+export function gradientLine(angleDeg: number, w: number, h: number): GradientLine {
+  const a = (angleDeg * Math.PI) / 180;
+  return {
+    x1: w / 2 - Math.sin(a) * (w / 2),
+    y1: h / 2 + Math.cos(a) * (h / 2),
+    x2: w / 2 + Math.sin(a) * (w / 2),
+    y2: h / 2 - Math.cos(a) * (h / 2),
+  };
+}
+
 /** `<stop>` tags for a gradient's stops, sorted by position. */
 export function gradientStops(gradient: Gradient): string {
   return [...gradient.stops]
@@ -69,12 +92,8 @@ export function gradientElementUserSpace(
   if (gradient.kind === "radial") {
     return `<radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${w / 2}" cy="${h / 2}" r="${Math.max(w, h) / 2}">${stops}</radialGradient>`;
   }
-  const a = (gradient.angle * Math.PI) / 180;
-  const x1 = (w / 2 - Math.sin(a) * (w / 2)).toFixed(1);
-  const y1 = (h / 2 + Math.cos(a) * (h / 2)).toFixed(1);
-  const x2 = (w / 2 + Math.sin(a) * (w / 2)).toFixed(1);
-  const y2 = (h / 2 - Math.cos(a) * (h / 2)).toFixed(1);
-  return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${stops}</linearGradient>`;
+  const { x1, y1, x2, y2 } = gradientLine(gradient.angle, w, h);
+  return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}">${stops}</linearGradient>`;
 }
 
 export function gradientDefsUserSpace(

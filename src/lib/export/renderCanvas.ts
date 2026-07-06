@@ -24,6 +24,7 @@ import { buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
+import { gradientLine } from "./gradientSvg";
 import { buildTextureSvg } from "./textures";
 import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLayout";
 import { toSvgDataUrl } from "./svgDataUrl";
@@ -125,6 +126,12 @@ function renderText(
   const fontSizePx = el.fontSize * sx;
   ctx.font = `${el.fontStyle === "italic" ? "italic " : ""}${el.fontWeight} ${fontSizePx}px "${el.fontFamily}"`;
 
+  // Clip to the text box so overflow is hidden, matching the editor (EXP-04).
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-ew / 2, -eh / 2, ew, eh);
+  ctx.clip();
+
   const sortedStops = isGradient(el.color)
     ? [...el.color.stops].sort((a, b) => a.pos - b.pos)
     : [];
@@ -138,13 +145,9 @@ function renderText(
     if (el.color.kind === "radial") {
       tg = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(ew, eh) / 2);
     } else {
-      const ang = (el.color.angle || 90) * (Math.PI / 180);
-      tg = ctx.createLinearGradient(
-        -Math.sin(ang) * (ew / 2),
-        Math.cos(ang) * (eh / 2),
-        Math.sin(ang) * (ew / 2),
-        -Math.cos(ang) * (eh / 2),
-      );
+      // One shared endpoint formula for every gradient (AR-01); box-centered.
+      const gl = gradientLine(el.color.angle || 90, ew, eh);
+      tg = ctx.createLinearGradient(gl.x1 - ew / 2, gl.y1 - eh / 2, gl.x2 - ew / 2, gl.y2 - eh / 2);
     }
     sortedStops.forEach((st) => tg.addColorStop(st.pos, getHex(st.hue, st.sat, st.bri)));
     ctx.fillStyle = tg;
@@ -154,10 +157,48 @@ function renderText(
 
   ctx.textAlign = el.align;
   ctx.textBaseline = "middle";
-  if (el.letterSpacing) ctx.letterSpacing = el.letterSpacing + "px";
 
-  const layout = computeTextLayout(el.text, fontSizePx, el.lineHeight, el.align, ew);
+  // Letter-spacing scales with the export like the font does. Prefer native
+  // ctx.letterSpacing; fall back to manual per-char placement where it's
+  // unsupported (older Safari — EXP-06).
+  const ls = (el.letterSpacing || 0) * sx;
+  const lsNative = ls !== 0 && "letterSpacing" in ctx;
+  if (lsNative) ctx.letterSpacing = `${ls}px`;
+  const lsManual = ls !== 0 && !lsNative;
+
+  const measure = (s: string): number => ctx.measureText(s).width;
+  // When ctx applies spacing itself, measureText already includes it.
+  const wrapLs = lsNative ? 0 : ls;
+  const lineWidth = (s: string): number => measure(s) + wrapLs * Math.max(0, s.length - 1);
+
+  const layout = computeTextLayout(
+    el.text,
+    fontSizePx,
+    el.lineHeight,
+    el.align,
+    ew,
+    measure,
+    wrapLs,
+  );
   const { lines, tx } = layout;
+
+  /** Draw one line's fill, honoring the manual letter-spacing fallback. */
+  const fillLine = (line: string, y: number): void => {
+    if (!lsManual) {
+      ctx.fillText(line, tx, y);
+      return;
+    }
+    const total = lineWidth(line);
+    const startX = el.align === "left" ? tx : el.align === "right" ? tx - total : tx - total / 2;
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = "left";
+    let cx = startX;
+    for (const ch of line) {
+      ctx.fillText(ch, cx, y);
+      cx += measure(ch) + ls;
+    }
+    ctx.textAlign = prevAlign;
+  };
 
   const drawUnderline = (): void => {
     if (!el.underline) return;
@@ -165,7 +206,7 @@ function renderText(
     ctx.strokeStyle = solidColor;
     ctx.lineWidth = Math.max(1, fontSizePx * 0.06);
     lines.forEach((line, li) => {
-      const w2 = ctx.measureText(line).width;
+      const w2 = lineWidth(line);
       const ux = underlineX(el.align, tx, w2);
       const uy = lineY(layout, li) + underlineYOffset(fontSizePx);
       ctx.beginPath();
@@ -182,7 +223,7 @@ function renderText(
     ctx.shadowOffsetY = el.shadow.y * sx;
     ctx.shadowBlur = el.shadow.blur * sx;
     ctx.shadowColor = hexA(el.shadow.color, el.shadow.opacity ?? 1);
-    lines.forEach((line, li) => ctx.fillText(line, tx, lineY(layout, li)));
+    lines.forEach((line, li) => fillLine(line, lineY(layout, li)));
     ctx.restore();
   }
 
@@ -194,21 +235,22 @@ function renderText(
     lines.forEach((line, li) => {
       const y = lineY(layout, li);
       if (pf === "inside") {
-        ctx.fillText(line, tx, y);
+        fillLine(line, y);
         ctx.save();
         ctx.strokeText(line, tx, y);
         ctx.restore();
       } else {
         // "outside" and "center" both stroke-then-fill in the legacy renderer.
         ctx.strokeText(line, tx, y);
-        ctx.fillText(line, tx, y);
+        fillLine(line, y);
       }
     });
   } else {
-    lines.forEach((line, li) => ctx.fillText(line, tx, lineY(layout, li)));
+    lines.forEach((line, li) => fillLine(line, lineY(layout, li)));
   }
 
   drawUnderline();
+  ctx.restore();
 }
 
 /** Draw a single non-text element (icon/image/draw/shape). */

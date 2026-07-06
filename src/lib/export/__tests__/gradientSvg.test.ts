@@ -6,6 +6,7 @@ import {
   gradientDefsUserSpace,
   gradientElement,
   gradientElementUserSpace,
+  gradientLine,
   gradientStops,
 } from "@/lib/export/gradientSvg";
 import type { Gradient } from "@/types/gradient";
@@ -28,6 +29,22 @@ describe("gradSVGCoords", () => {
   });
   it("maps 180deg top→bottom", () => {
     expect(gradSVGCoords(180)).toEqual({ x1: "50.0%", y1: "0.0%", x2: "50.0%", y2: "100.0%" });
+  });
+});
+
+describe("gradientLine", () => {
+  it("gives box-scaled userSpace endpoints (90deg → left→right)", () => {
+    const l = gradientLine(90, 100, 40);
+    expect(l.x1).toBeCloseTo(0);
+    expect(l.x2).toBeCloseTo(100);
+    expect(l.y1).toBeCloseTo(20);
+    expect(l.y2).toBeCloseTo(20);
+  });
+  it("scales endpoints to the box aspect (45deg, wide box)", () => {
+    const l = gradientLine(45, 200, 100);
+    // dx = sin·w = 0.707·200 ≈ 141.4, dy = -cos·h = -0.707·100 ≈ -70.7
+    expect(l.x2 - l.x1).toBeCloseTo(Math.sin(Math.PI / 4) * 200);
+    expect(l.y2 - l.y1).toBeCloseTo(-Math.cos(Math.PI / 4) * 100);
   });
 });
 
