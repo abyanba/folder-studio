@@ -90,16 +90,45 @@ describe("doc preview transaction", () => {
     expect(temporal().pastStates.length).toBe(baseline);
   });
 
-  it("nested begin calls don't restart the transaction", () => {
+  it("nested begin/end records one entry with the OUTERMOST before (ST-01)", () => {
     const id = addTestShape();
+    const baseline = temporal().pastStates.length;
+
     beginDocPreview();
     useDocumentStore.getState().updateElement(id, { opacity: 0.3 });
-    beginDocPreview(); // should be a no-op, not re-snapshot at 0.3
+    beginDocPreview(); // inner gesture: no re-snapshot at 0.3
     useDocumentStore.getState().updateElement(id, { opacity: 0.6 });
-    endDocPreview();
+    endDocPreview(); // inner end: keeps the transaction open
+    expect(isDocPreviewActive()).toBe(true);
+    useDocumentStore.getState().updateElement(id, { opacity: 0.8 });
+    endDocPreview(); // outermost end: commit
 
-    useDocumentStore.temporal.getState().undo();
-    const el = useDocumentStore.getState().doc.elements.find((e) => e.id === id)!;
-    expect(el.opacity).toBe(1);
+    expect(isDocPreviewActive()).toBe(false);
+    expect(temporal().pastStates.length).toBe(baseline + 1);
+    expect(useDocumentStore.getState().doc.elements.find((e) => e.id === id)!.opacity).toBeCloseTo(
+      0.8,
+    );
+    temporal().undo();
+    expect(useDocumentStore.getState().doc.elements.find((e) => e.id === id)!.opacity).toBe(1);
+  });
+
+  it("an unbalanced extra end is a no-op (ST-01)", () => {
+    const id = addTestShape();
+    const baseline = temporal().pastStates.length;
+
+    beginDocPreview();
+    useDocumentStore.getState().updateElement(id, { opacity: 0.4 });
+    endDocPreview(); // commits
+    expect(temporal().pastStates.length).toBe(baseline + 1);
+
+    // Extra end must not throw, re-commit, or desync the transaction depth.
+    endDocPreview();
+    expect(isDocPreviewActive()).toBe(false);
+    expect(temporal().pastStates.length).toBe(baseline + 1);
+    // A fresh transaction still works after the stray end.
+    beginDocPreview();
+    expect(isDocPreviewActive()).toBe(true);
+    endDocPreview(false);
+    expect(isDocPreviewActive()).toBe(false);
   });
 });

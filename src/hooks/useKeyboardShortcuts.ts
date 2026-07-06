@@ -8,10 +8,20 @@
 import { useEffect } from "react";
 import { createId } from "@/lib/id";
 import type { FolderElement } from "@/types/element";
-import { useDocumentStore } from "@/store/documentStore";
+import {
+  beginDocPreview,
+  endDocPreview,
+  isDocPreviewActive,
+  useDocumentStore,
+} from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
+import { isInteractionActive } from "@/hooks/useInteraction";
 import { commitShapePoints } from "@/hooks/useDrawTool";
+
+const ARROW_KEYS = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright"]);
+/** A run of arrow nudges commits after this idle gap (or on key release). */
+const NUDGE_IDLE_MS = 400;
 
 /** Ephemeral copy/paste buffer (module-scoped; not persisted). */
 let clipboard: FolderElement[] = [];
@@ -34,6 +44,20 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
+    // Arrow-nudge coalescing (ST-03): a held/hammered run of arrow keys is one
+    // preview transaction → one undo entry, committed on idle or key release.
+    let nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+    let nudging = false;
+    const commitNudge = () => {
+      if (!nudging) return;
+      nudging = false;
+      if (nudgeTimer != null) {
+        clearTimeout(nudgeTimer);
+        nudgeTimer = null;
+      }
+      endDocPreview(true);
+    };
+
     const onKey = (e: KeyboardEvent) => {
       if (useUiStore.getState().editingTextId) return;
       if (isFormTarget(e.target)) return;
@@ -49,11 +73,15 @@ export function useKeyboardShortcuts(): void {
 
       if (mod && k === "z" && !e.shiftKey) {
         e.preventDefault();
+        // Never restore history mid-gesture/preview — it would corrupt the
+        // "before" snapshot the transaction is holding (ST-02).
+        if (isDocPreviewActive() || isInteractionActive()) return;
         temporal.undo();
         return;
       }
       if (mod && (k === "y" || (k === "z" && e.shiftKey))) {
         e.preventDefault();
+        if (isDocPreviewActive() || isInteractionActive()) return;
         temporal.redo();
         return;
       }
@@ -117,12 +145,15 @@ export function useKeyboardShortcuts(): void {
         }
         return;
       }
-      if (
-        (k === "arrowup" || k === "arrowdown" || k === "arrowleft" || k === "arrowright") &&
-        sel.selectedIds.length &&
-        !isInteractiveTarget(e.target)
-      ) {
+      if (ARROW_KEYS.has(k) && sel.selectedIds.length && !isInteractiveTarget(e.target)) {
         e.preventDefault();
+        if (!nudging) {
+          nudging = true;
+          beginDocPreview();
+        }
+        if (nudgeTimer != null) clearTimeout(nudgeTimer);
+        nudgeTimer = setTimeout(commitNudge, NUDGE_IDLE_MS);
+
         const step = e.shiftKey ? 10 : 1;
         const dx = k === "arrowleft" ? -step : k === "arrowright" ? step : 0;
         const dy = k === "arrowup" ? -step : k === "arrowdown" ? step : 0;
@@ -133,7 +164,19 @@ export function useKeyboardShortcuts(): void {
         store.updateElements(patches);
       }
     };
+
+    // Releasing an arrow key ends the nudge run immediately (the idle timer is
+    // the fallback for a held key that auto-repeats without interim keyups).
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (nudging && ARROW_KEYS.has(e.key.toLowerCase())) commitNudge();
+    };
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+      commitNudge(); // flush any open nudge on unmount
+    };
   }, []);
 }

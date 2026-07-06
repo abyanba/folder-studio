@@ -450,15 +450,26 @@ export const useDocumentStore = create<DocumentStore>()(
  * resume, then re-apply the final doc — recording exactly one entry.
  */
 let previewStartDoc: FolderDocument | null = null;
+let previewDepth = 0;
 
+/**
+ * Open (or nest into) a preview transaction. Reentrant (ST-01): overlapping
+ * gestures share one transaction whose "before" is the outermost gesture's
+ * start, so only the outermost `endDocPreview` commits. Callers must balance
+ * begin/end.
+ */
 export function beginDocPreview(): void {
-  if (previewStartDoc) return;
-  previewStartDoc = useDocumentStore.getState().doc;
-  useDocumentStore.temporal.getState().pause();
+  if (previewDepth++ === 0) {
+    previewStartDoc = useDocumentStore.getState().doc;
+    useDocumentStore.temporal.getState().pause();
+  }
 }
 
 export function endDocPreview(commit = true): void {
-  if (!previewStartDoc) return;
+  if (previewDepth === 0) return; // unbalanced extra end → no-op
+  previewDepth -= 1;
+  if (previewDepth > 0) return; // an inner gesture ended; keep the transaction open
+  if (!previewStartDoc) return; // defensive
   const finalDoc = useDocumentStore.getState().doc;
   useDocumentStore.setState({ doc: previewStartDoc });
   previewStartDoc = null;
@@ -467,5 +478,5 @@ export function endDocPreview(commit = true): void {
 }
 
 export function isDocPreviewActive(): boolean {
-  return previewStartDoc !== null;
+  return previewDepth > 0;
 }

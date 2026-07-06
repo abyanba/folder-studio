@@ -52,6 +52,16 @@ export interface InteractionState {
 const NO_SNAP: SnapGuides = { v: false, h: false, vx: null, hy: null };
 const IDLE: InteractionState = { overrides: {}, marquee: null, snap: NO_SNAP, dragging: false };
 
+/**
+ * Module-level "a canvas gesture is live" flag — the single source of truth used
+ * by the keyboard handler to block history ops mid-drag (ST-02). Set when any
+ * begin* attaches its listeners, cleared on drop/unmount.
+ */
+let interactionActive = false;
+export function isInteractionActive(): boolean {
+  return interactionActive;
+}
+
 type Drag =
   | { kind: "move"; startX: number; startY: number; movingEls: IdRect[]; others: IdRect[] }
   | {
@@ -129,6 +139,7 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
   const onUp = useCallback(() => {
     window.removeEventListener("mousemove", onMove);
     window.removeEventListener("mouseup", onUp);
+    interactionActive = false;
     const d = dragRef.current;
     dragRef.current = null;
     const live = liveRef.current;
@@ -150,12 +161,14 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
   }, [apply, onMove]);
 
   const attach = useCallback(() => {
+    interactionActive = true;
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, [onMove, onUp]);
 
   useEffect(
     () => () => {
+      interactionActive = false;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     },

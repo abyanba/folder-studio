@@ -92,16 +92,21 @@ describe("useKeyboardShortcuts", () => {
     expect(useDocumentStore.getState().doc.elements).toHaveLength(1);
   });
 
-  it("nudges the selection with arrow keys as one entry per press", () => {
+  it("nudges the selection with arrow keys, coalescing a run into one entry (ST-03)", () => {
     const shape = seedRect();
     useSelectionStore.getState().select(shape.id);
     render(<KbHost />);
+    const baseline = useDocumentStore.temporal.getState().pastStates.length;
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
     expect(useDocumentStore.getState().doc.elements[0].x).toBe(201);
     fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
     expect(useDocumentStore.getState().doc.elements[0].x).toBe(211);
-    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(2);
+    // Still one open transaction — nothing recorded until the key is released.
+    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(baseline);
+
+    act(() => fireEvent.keyUp(window, { key: "ArrowRight" }));
+    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(baseline + 1);
   });
 
   it("ignores shortcuts while editing text", () => {

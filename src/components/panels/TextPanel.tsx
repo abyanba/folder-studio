@@ -6,6 +6,7 @@
  * fit, and transform. Auto-fit ports the legacy binary-search helpers.
  */
 
+import { useEffect, useRef, useState } from "react";
 import { AlignCenter, AlignLeft, AlignRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +27,81 @@ import { StrokeControls } from "@/components/controls/StrokeControls";
 import { TransformFields } from "@/components/controls/TransformFields";
 import { FONTS } from "@/lib/constants";
 import { autoFitLineHeight, autoFitSize, autoFitSpacing } from "@/lib/textFit";
-import { useDocumentStore } from "@/store/documentStore";
+import {
+  beginDocPreview,
+  endDocPreview,
+  useDocumentStore,
+} from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import type { TextAlign, TextElement } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
+
+/**
+ * Content editor that drafts locally inside one preview transaction (ST-04): the
+ * canvas still updates live per keystroke, but the whole edit session collapses
+ * to a single undo entry on blur — mirroring the NumberField idiom. Escape
+ * restores the pre-edit text.
+ */
+function ContentTextarea({ el }: { el: TextElement }) {
+  const updateElement = useDocumentStore((s) => s.updateElement);
+  const [draft, setDraft] = useState(el.text);
+  const original = useRef(el.text);
+  const active = useRef(false);
+
+  // Sync when the text changes from outside (selection change, undo) — but not
+  // while we're mid-edit, or we'd clobber the user's draft.
+  useEffect(() => {
+    if (!active.current) setDraft(el.text);
+  }, [el.text]);
+
+  // Flush an open transaction if the panel unmounts before blur.
+  useEffect(
+    () => () => {
+      if (active.current) {
+        active.current = false;
+        endDocPreview(true);
+      }
+    },
+    [],
+  );
+
+  const begin = () => {
+    if (active.current) return;
+    active.current = true;
+    original.current = el.text;
+    beginDocPreview();
+  };
+  const end = (commit: boolean) => {
+    if (!active.current) return;
+    active.current = false;
+    endDocPreview(commit);
+  };
+
+  return (
+    <Textarea
+      value={draft}
+      rows={2}
+      className="min-h-14 text-xs"
+      aria-label="Text content"
+      onFocus={begin}
+      onChange={(e) => {
+        begin();
+        setDraft(e.target.value);
+        updateElement(el.id, { text: e.target.value });
+      }}
+      onBlur={() => end(draft !== original.current)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setDraft(original.current);
+          updateElement(el.id, { text: original.current });
+          end(false);
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
 
 function FitButton({ label, onClick }: { label?: string; onClick: () => void }) {
   return (
@@ -51,13 +123,7 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
   return (
     <div className="space-y-4">
       <PanelSection title="Content">
-        <Textarea
-          value={el.text}
-          rows={2}
-          className="min-h-14 text-xs"
-          aria-label="Text content"
-          onChange={(e) => updateElement(el.id, { text: e.target.value })}
-        />
+        <ContentTextarea el={el} />
       </PanelSection>
 
       <PanelSection title="Typography">

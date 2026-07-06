@@ -19,6 +19,8 @@ function Harness() {
 const temporal = () => useDocumentStore.temporal.getState();
 const key = (init: KeyboardEventInit) =>
   window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...init }));
+const keyUp = (init: KeyboardEventInit) =>
+  window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
 
 beforeEach(() => {
   useDocumentStore.getState().reset();
@@ -49,6 +51,39 @@ describe("undo/redo keys", () => {
     key({ key: "z", ctrlKey: true });
     key({ key: "z", ctrlKey: true, shiftKey: true });
     expect(useDocumentStore.getState().doc.elements[0].x).toBe(99);
+  });
+});
+
+describe("arrow-nudge coalescing (ST-02/ST-03)", () => {
+  it("collapses a run of arrow nudges into a single undo entry", () => {
+    const id = useDocumentStore.getState().addShape("rect");
+    useSelectionStore.getState().select(id);
+    const x0 = useDocumentStore.getState().doc.elements[0].x;
+    const baseline = temporal().pastStates.length;
+
+    for (let i = 0; i < 10; i++) key({ key: "ArrowRight" });
+    // Moves live, but nothing recorded yet — the transaction is still open.
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0 + 10);
+    expect(temporal().pastStates.length).toBe(baseline);
+
+    keyUp({ key: "ArrowRight" }); // release commits exactly one entry
+    expect(temporal().pastStates.length).toBe(baseline + 1);
+
+    key({ key: "z", ctrlKey: true }); // one undo reverts the whole run
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0);
+  });
+
+  it("blocks Ctrl+Z while a nudge preview is open", () => {
+    const id = useDocumentStore.getState().addShape("rect");
+    useSelectionStore.getState().select(id);
+    const x0 = useDocumentStore.getState().doc.elements[0].x;
+
+    key({ key: "ArrowRight" }); // opens the preview, moves +1 (no keyup yet)
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0 + 1);
+    key({ key: "z", ctrlKey: true }); // guarded → no-op mid-preview
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(x0 + 1);
+
+    keyUp({ key: "ArrowRight" }); // commit so the transaction doesn't leak
   });
 });
 
