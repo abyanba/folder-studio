@@ -24,7 +24,7 @@ function renderTextElement() {
   const id = useDocumentStore.getState().addText();
   const el = useDocumentStore.getState().doc.elements[0] as TextElement;
   const { container, rerender } = render(
-    <ElementView el={el} onMouseDown={() => {}} />,
+    <ElementView el={el} onPointerDown={() => {}} />,
   );
   return { id, el, container, rerender };
 }

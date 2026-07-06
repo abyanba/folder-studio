@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderElement, TextElement } from "@/types/element";
@@ -21,7 +21,7 @@ import type { LiveOverride } from "@/hooks/useInteraction";
 interface Props {
   el: FolderElement;
   override?: LiveOverride;
-  onMouseDown: (e: ReactMouseEvent, id: string) => void;
+  onPointerDown: (e: ReactPointerEvent, id: string) => void;
 }
 
 function svgHtml(el: FolderElement, w: number, h: number): string | null {
@@ -111,7 +111,7 @@ function TextContent({ el }: { el: TextElement }) {
   );
 }
 
-export function ElementView({ el, override, onMouseDown }: Props) {
+export function ElementView({ el, override, onPointerDown }: Props) {
   const x = override?.x ?? el.x;
   const y = override?.y ?? el.y;
   const width = override?.width ?? el.width;
@@ -138,6 +138,10 @@ export function ElementView({ el, override, onMouseDown }: Props) {
     transform: `rotate(${rotation}deg) scale(${el.scaleX}, ${el.scaleY})`,
     transformOrigin: "center",
     opacity: el.visible === false ? 0 : el.opacity,
+    // Touch drags must not scroll/zoom the page; hidden elements (rendered only
+    // because selected) must not swallow pointer hits (IN-01/IN-04).
+    touchAction: "none",
+    pointerEvents: el.visible === false ? "none" : undefined,
     cursor: el.locked ? "default" : "grab",
     filter: hasShadow
       ? `drop-shadow(${el.dropShadow!.x}px ${el.dropShadow!.y}px ${el.dropShadow!.blur}px ${hexA(el.dropShadow!.color, el.dropShadow!.opacity)})`
@@ -177,9 +181,9 @@ export function ElementView({ el, override, onMouseDown }: Props) {
     <div
       data-element-id={el.id}
       style={style}
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (el.type === "text" && useUiStore.getState().editingTextId === el.id) return;
-        onMouseDown(e, el.id);
+        onPointerDown(e, el.id);
       }}
       onDoubleClick={
         el.type === "text"

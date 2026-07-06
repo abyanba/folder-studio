@@ -48,6 +48,18 @@ describe("computeShapeCommit", () => {
     expect(computeShapeCommit([], "line", "#fff", 4, 1)).toBeNull();
   });
 
+  it("returns null for a single anchor with no dragged handles (IN-08)", () => {
+    // A double-click that left one bare anchor must not commit an invisible path.
+    const bare = [{ x: 30, y: 30, h1x: 30, h1y: 30, h2x: 30, h2y: 30 }];
+    expect(computeShapeCommit(bare, "line", "#fff", 4, 1)).toBeNull();
+    expect(computeShapeCommit(bare, "arc", "#fff", 4, 1)).toBeNull();
+  });
+
+  it("commits a single arc anchor whose handles were dragged out", () => {
+    const dragged = [{ x: 30, y: 30, h1x: 10, h1y: 10, h2x: 50, h2y: 50 }];
+    expect(computeShapeCommit(dragged, "arc", "#fff", 4, 1)).not.toBeNull();
+  });
+
   it("offsets anchors and handles into local space with size+4 padding", () => {
     const pts = [
       { x: 20, y: 20, h1x: 20, h1y: 20, h2x: 40, h2y: 10 },

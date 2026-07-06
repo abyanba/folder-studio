@@ -32,6 +32,7 @@ function effective(el: FolderElement, o: LiveOverride | undefined): EffectiveRec
     width: o?.width ?? el.width,
     height: o?.height ?? el.height,
     rotation: o?.rotation ?? el.rotation,
+    hidden: el.visible === false,
   };
 }
 
@@ -50,7 +51,7 @@ export function Workspace() {
 
   const renderEl = (el: FolderElement) =>
     el.visible === false && !selectedIds.includes(el.id) ? null : (
-      <ElementView key={el.id} el={el} override={overrides[el.id]} onMouseDown={beginMove} />
+      <ElementView key={el.id} el={el} override={overrides[el.id]} onPointerDown={beginMove} />
     );
 
   const selectedEls = doc.elements
@@ -94,12 +95,14 @@ export function Workspace() {
         <div
           ref={wsRef}
           data-ws
-          style={{ position: "relative", width: FW, height: FH }}
-        onMouseDown={(e) => {
-          if (useUiStore.getState().editingTextId) return;
-          beginMarquee(e);
-        }}
-      >
+          style={{ position: "relative", width: FW, height: FH, touchAction: "none" }}
+          onPointerDown={(e) => {
+            if (useUiStore.getState().editingTextId) return;
+            // The draw tool owns the canvas — don't also start a marquee (IN-12).
+            if (drawToolActive) return;
+            beginMarquee(e);
+          }}
+        >
         <div style={contentLayerStyle}>
           <FolderBase doc={doc} />
           <div style={contentRect}>

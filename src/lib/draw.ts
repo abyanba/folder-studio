@@ -63,7 +63,19 @@ export function computeShapeCommit(
   size: number,
   opacity: number,
 ): CreateDrawInput | null {
-  if (points.length < 1) return null;
+  // A single anchor with no dragged handles is a bare `M x y` that renders
+  // nothing — an invisible, selectable element polluting layers/undo (IN-08).
+  // Require ≥2 points, or one point whose arc handles were actually dragged out.
+  let draggedHandles = false;
+  if (points.length === 1) {
+    const p = points[0];
+    draggedHandles =
+      (p.h1x ?? p.x) !== p.x ||
+      (p.h1y ?? p.y) !== p.y ||
+      (p.h2x ?? p.x) !== p.x ||
+      (p.h2y ?? p.y) !== p.y;
+  }
+  if (points.length < 2 && !draggedHandles) return null;
   const pad = size + 4;
   const { mnX, mnY, w, h } = bounds(points, pad);
   const off = points.map((p) => ({

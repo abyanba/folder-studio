@@ -4,7 +4,7 @@
  * elements in the content-rect stack. Ported from public/legacy.html L1216-1235.
  */
 
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { ResizeHandle } from "@/types/interaction";
 
 export interface EffectiveRect {
@@ -14,13 +14,15 @@ export interface EffectiveRect {
   width: number;
   height: number;
   rotation: number;
+  /** Hidden elements get ghosted/dashed chrome (IN-04). */
+  hidden?: boolean;
 }
 
 interface Props {
   selected: EffectiveRect[];
   primaryId: string | null;
-  onResizeDown: (e: ReactMouseEvent, handle: ResizeHandle) => void;
-  onRotateDown: (e: ReactMouseEvent) => void;
+  onResizeDown: (e: ReactPointerEvent, handle: ResizeHandle) => void;
+  onRotateDown: (e: ReactPointerEvent) => void;
 }
 
 const ACCENT = "var(--primary)";
@@ -84,14 +86,15 @@ export function SelectionOverlay({ selected, primaryId, onResizeDown, onRotateDo
               style={{
                 position: "absolute",
                 inset: -1,
-                border: `1.5px solid ${ACCENT}`,
+                border: `1.5px ${el.hidden ? "dashed" : "solid"} ${ACCENT}`,
                 borderRadius: 1,
+                opacity: el.hidden ? 0.7 : 1,
                 pointerEvents: "none",
               }}
             />
             {isPrimary &&
               [...CORNERS, ...EDGES].map((p) => (
-                <div key={p} style={handleStyle(p)} onMouseDown={(e) => onResizeDown(e, p)} />
+                <div key={p} style={handleStyle(p)} onPointerDown={(e) => onResizeDown(e, p)} />
               ))}
             {isPrimary && (
               <>
@@ -108,7 +111,7 @@ export function SelectionOverlay({ selected, primaryId, onResizeDown, onRotateDo
                   }}
                 />
                 <div
-                  onMouseDown={onRotateDown}
+                  onPointerDown={onRotateDown}
                   style={{
                     position: "absolute",
                     top: ROTATE_OFFSET - 8,

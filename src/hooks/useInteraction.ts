@@ -4,14 +4,20 @@
  * `startRotate` + `onMove`/`onUp` (public/legacy.html L659-700), reusing the pure
  * math in `geometry.ts` / `workspaceGeometry.ts`.
  *
+ * Phase 4 migrated this from window MouseEvents to PointerEvents with pointer
+ * capture (IN-01/02): gestures survive the pointer leaving the window, only the
+ * primary button starts them, a lost button/`pointercancel` ends them cleanly,
+ * and Escape cancels a drag. Selecting still happens on press, but the docked
+ * panel only switches on a click-without-drag (IN-11), and a plain click inside a
+ * multi-selection collapses it to the clicked element (IN-07).
+ *
  * Undo model — commit-once: during a drag the in-progress transform lives in
  * ephemeral React state (`state.overrides`) and the workspace renders it, but the
- * tracked document store is written exactly once on mouse-up, so each gesture is
- * a single undo entry (matching the legacy start/end snapshot pattern).
+ * tracked document store is written exactly once on release.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 import { resizeElement, rotateAngle, snapMove } from "@/lib/geometry";
 import type { Rect } from "@/lib/geometry";
 import {
@@ -51,19 +57,42 @@ export interface InteractionState {
 
 const NO_SNAP: SnapGuides = { v: false, h: false, vx: null, hy: null };
 const IDLE: InteractionState = { overrides: {}, marquee: null, snap: NO_SNAP, dragging: false };
+/** Pointer travel (px) before a press counts as a drag rather than a click. */
+const MOVE_SLOP = 3;
 
 /**
  * Module-level "a canvas gesture is live" flag — the single source of truth used
- * by the keyboard handler to block history ops mid-drag (ST-02). Set when any
- * begin* attaches its listeners, cleared on drop/unmount.
+ * by the keyboard handler to block history ops mid-drag (ST-02) and to defer
+ * Escape to the drag-cancel path (IN-03). Set when a begin* attaches its
+ * listeners, cleared on drop/cancel/unmount.
  */
 let interactionActive = false;
 export function isInteractionActive(): boolean {
   return interactionActive;
 }
 
+/** Panel a given element type routes to when clicked (IN-11). */
+const PANEL_BY_TYPE: Record<string, string> = {
+  image: "image",
+  icon: "icon",
+  text: "text",
+  draw: "draw",
+  shape: "shapes",
+};
+
 type Drag =
-  | { kind: "move"; startX: number; startY: number; movingEls: IdRect[]; others: IdRect[] }
+  | {
+      kind: "move";
+      startX: number;
+      startY: number;
+      movingEls: IdRect[];
+      others: IdRect[];
+      downId: string;
+      panelType?: string;
+      /** A plain click (no drag) collapses a multi-selection to this element. */
+      collapseOnClick: boolean;
+      didMove: boolean;
+    }
   | {
       kind: "resize";
       handle: ResizeHandle;
@@ -80,16 +109,18 @@ function toIdRect(e: { id: string; x: number; y: number; width: number; height: 
 
 export interface Interaction {
   state: InteractionState;
-  beginMove: (e: ReactMouseEvent, id: string) => void;
-  beginResize: (e: ReactMouseEvent, handle: ResizeHandle) => void;
-  beginRotate: (e: ReactMouseEvent) => void;
-  beginMarquee: (e: ReactMouseEvent) => void;
+  beginMove: (e: ReactPointerEvent, id: string) => void;
+  beginResize: (e: ReactPointerEvent, handle: ResizeHandle) => void;
+  beginRotate: (e: ReactPointerEvent) => void;
+  beginMarquee: (e: ReactPointerEvent) => void;
 }
 
 export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interaction {
   const [state, setState] = useState<InteractionState>(IDLE);
   const dragRef = useRef<Drag | null>(null);
   const liveRef = useRef<InteractionState>(IDLE);
+  const pointerIdRef = useRef<number | null>(null);
+  const finishRef = useRef<(commit: boolean) => void>(() => {});
 
   const apply = useCallback((next: InteractionState) => {
     liveRef.current = next;
@@ -97,12 +128,24 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
   }, []);
 
   const onMove = useCallback(
-    (e: globalThis.MouseEvent) => {
+    (e: globalThis.PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
+      // Ignore a second pointer's stream. Lenient: only reject when both ids are
+      // present and differ (jsdom may leave pointerId undefined).
+      if (pointerIdRef.current != null && e.pointerId != null && e.pointerId !== pointerIdRef.current) {
+        return;
+      }
+      // Insurance against a mouseup lost off-window: if the primary button is no
+      // longer down, end the gesture where it stands.
+      if ((e.buttons & 1) === 0) {
+        finishRef.current(true);
+        return;
+      }
       if (d.kind === "move") {
         const dx = e.clientX - d.startX;
         const dy = e.clientY - d.startY;
+        if (!d.didMove && Math.hypot(dx, dy) > MOVE_SLOP) d.didMove = true;
         if (d.movingEls.length > 1) {
           const r = groupMoveSnap(d.movingEls, dx, dy);
           apply({
@@ -136,47 +179,100 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
     [apply],
   );
 
-  const onUp = useCallback(() => {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-    interactionActive = false;
-    const d = dragRef.current;
-    dragRef.current = null;
-    const live = liveRef.current;
-    if (d) {
-      if (d.kind === "marquee") {
-        if (d.startX !== undefined && live.marquee) {
-          const doc = useDocumentStore.getState().doc;
-          const hits = marqueeHits(
-            doc.elements.filter((e) => e.visible !== false).map(toIdRect),
-            live.marquee,
-          );
-          useSelectionStore.getState().setMany(hits);
-        }
-      } else if (Object.keys(live.overrides).length > 0) {
-        useDocumentStore.getState().updateElements(live.overrides);
-      }
+  const onUp = useCallback(() => finishRef.current(true), []);
+  const onCancel = useCallback(() => finishRef.current(false), []);
+  const onKey = useCallback((e: globalThis.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      finishRef.current(false);
     }
-    apply(IDLE);
-  }, [apply, onMove]);
+  }, []);
 
-  const attach = useCallback(() => {
-    interactionActive = true;
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, [onMove, onUp]);
+  const detach = useCallback(() => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    window.removeEventListener("keydown", onKey);
+  }, [onMove, onUp, onCancel, onKey]);
+
+  const finish = useCallback(
+    (commit: boolean) => {
+      detach();
+      interactionActive = false;
+      const pid = pointerIdRef.current;
+      pointerIdRef.current = null;
+      if (pid !== null) {
+        try {
+          wsRef.current?.releasePointerCapture(pid);
+        } catch {
+          // Capture may already be gone (pointercancel); ignore.
+        }
+      }
+      const d = dragRef.current;
+      dragRef.current = null;
+      const live = liveRef.current;
+      if (d) {
+        if (d.kind === "marquee") {
+          if (commit && live.marquee) {
+            const doc = useDocumentStore.getState().doc;
+            const hits = marqueeHits(
+              doc.elements.filter((e) => e.visible !== false).map(toIdRect),
+              live.marquee,
+            );
+            useSelectionStore.getState().setMany(hits);
+          }
+        } else if (d.kind === "move") {
+          if (d.didMove) {
+            if (commit && Object.keys(live.overrides).length > 0) {
+              useDocumentStore.getState().updateElements(live.overrides);
+            }
+          } else if (commit) {
+            // Click, no drag: collapse a multi-selection (IN-07) and open the
+            // element's panel — but never yank away from Layers/Gallery (IN-11).
+            if (d.collapseOnClick) useSelectionStore.getState().select(d.downId);
+            const active = useUiStore.getState().activePanel;
+            if (d.panelType && active !== "layers" && active !== "gallery") {
+              useUiStore.getState().setActivePanel(d.panelType);
+            }
+          }
+        } else if (commit && Object.keys(live.overrides).length > 0) {
+          useDocumentStore.getState().updateElements(live.overrides);
+        }
+      }
+      apply(IDLE);
+    },
+    [apply, detach, wsRef],
+  );
+  finishRef.current = finish;
+
+  const attach = useCallback(
+    (e: ReactPointerEvent) => {
+      interactionActive = true;
+      pointerIdRef.current = e.pointerId;
+      try {
+        wsRef.current?.setPointerCapture(e.pointerId);
+      } catch {
+        // jsdom / no-capture environments — window listeners still fire.
+      }
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("keydown", onKey);
+    },
+    [onMove, onUp, onCancel, onKey, wsRef],
+  );
 
   useEffect(
     () => () => {
       interactionActive = false;
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      detach();
     },
-    [onMove, onUp],
+    [detach],
   );
 
   const beginMove = useCallback(
-    (e: ReactMouseEvent, id: string) => {
+    (e: ReactPointerEvent, id: string) => {
+      if (e.button !== 0) return; // primary button only (IN-02)
       e.stopPropagation();
       e.preventDefault();
       const doc = useDocumentStore.getState().doc;
@@ -185,6 +281,7 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
       const sel = useSelectionStore.getState();
 
       let ids: string[];
+      let collapseOnClick = false;
       if (e.ctrlKey || e.metaKey) {
         const has = sel.selectedIds.includes(id);
         const next = has ? sel.selectedIds.filter((x) => x !== id) : [...sel.selectedIds, id];
@@ -196,21 +293,11 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         sel.select(id);
       } else {
         ids = sel.selectedIds;
+        // Pressing an already-selected element inside a multi-selection: a drag
+        // moves the group, but a plain click collapses to just this element.
+        collapseOnClick = sel.selectedIds.length > 1;
       }
       useUiStore.getState().setEditingTextId(null);
-
-      // Legacy startMove: grabbing an element opens its type's panel (SVG
-      // data-URL images count as icons/logos → the icon panel doesn't apply;
-      // they edit in the image panel here, see ImagePanel).
-      const panelByType: Record<string, string> = {
-        image: "image",
-        icon: "icon",
-        text: "text",
-        draw: "draw",
-        shape: "shapes",
-      };
-      const panel = panelByType[el.type];
-      if (panel) useUiStore.getState().setActivePanel(panel);
 
       const movingEls = ids
         .map((i) => doc.elements.find((x) => x.id === i))
@@ -221,15 +308,26 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         .filter((x) => !moving.has(x.id) && x.visible !== false)
         .map(toIdRect);
 
-      dragRef.current = { kind: "move", startX: e.clientX, startY: e.clientY, movingEls, others };
+      dragRef.current = {
+        kind: "move",
+        startX: e.clientX,
+        startY: e.clientY,
+        movingEls,
+        others,
+        downId: id,
+        panelType: PANEL_BY_TYPE[el.type],
+        collapseOnClick,
+        didMove: false,
+      };
       apply({ overrides: {}, marquee: null, snap: NO_SNAP, dragging: true });
-      attach();
+      attach(e);
     },
     [apply, attach],
   );
 
   const beginResize = useCallback(
-    (e: ReactMouseEvent, handle: ResizeHandle) => {
+    (e: ReactPointerEvent, handle: ResizeHandle) => {
+      if (e.button !== 0) return;
       e.stopPropagation();
       e.preventDefault();
       const doc = useDocumentStore.getState().doc;
@@ -244,13 +342,14 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         el: { ...toIdRect(el), rotation: el.rotation },
       };
       apply({ overrides: {}, marquee: null, snap: NO_SNAP, dragging: true });
-      attach();
+      attach(e);
     },
     [apply, attach],
   );
 
   const beginRotate = useCallback(
-    (e: ReactMouseEvent) => {
+    (e: ReactPointerEvent) => {
+      if (e.button !== 0) return;
       e.stopPropagation();
       e.preventDefault();
       const doc = useDocumentStore.getState().doc;
@@ -260,20 +359,21 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
       if (!el || el.locked || !wsRect) return;
       dragRef.current = { kind: "rotate", el: toIdRect(el), wsRect };
       apply({ overrides: {}, marquee: null, snap: NO_SNAP, dragging: true });
-      attach();
+      attach(e);
     },
     [apply, attach, wsRef],
   );
 
   const beginMarquee = useCallback(
-    (e: ReactMouseEvent) => {
+    (e: ReactPointerEvent) => {
+      if (e.button !== 0) return;
       const wsRect = wsRef.current?.getBoundingClientRect();
       if (!wsRect) return;
       useSelectionStore.getState().clear();
       useUiStore.getState().setEditingTextId(null);
       dragRef.current = { kind: "marquee", startX: e.clientX, startY: e.clientY, wsRect };
       apply({ overrides: {}, marquee: null, snap: NO_SNAP, dragging: true });
-      attach();
+      attach(e);
     },
     [apply, attach, wsRef],
   );

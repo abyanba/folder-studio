@@ -59,6 +59,15 @@ export function useKeyboardShortcuts(): void {
     };
 
     const onKey = (e: KeyboardEvent) => {
+      // Escape leaves text editing by blurring the contentEditable, whose onBlur
+      // commits the text (IN-03). Must run before the editing-guard early-return.
+      if (e.key === "Escape" && useUiStore.getState().editingTextId) {
+        e.preventDefault();
+        const active = document.activeElement as HTMLElement | null;
+        if (active?.blur) active.blur();
+        else useUiStore.getState().setEditingTextId(null);
+        return;
+      }
       if (useUiStore.getState().editingTextId) return;
       if (isFormTarget(e.target)) return;
       // Another handler (Radix slider, dnd-kit keyboard drag, …) already
@@ -94,6 +103,9 @@ export function useKeyboardShortcuts(): void {
         return;
       }
       if (k === "escape") {
+        // Mid-drag, Escape cancels the gesture (handled in useInteraction) — do
+        // not also clear the selection here (IN-03).
+        if (isInteractionActive()) return;
         const ui = useUiStore.getState();
         if (ui.activeTool === "draw") {
           // First Escape discards in-progress strokes/anchors; a second exits.

@@ -30,17 +30,17 @@ function seedRect() {
 
 beforeEach(reset);
 
-describe("useInteraction — move", () => {
-  it("selects on mousedown and commits a drag as one undo entry", () => {
+describe("useInteraction — move (PointerEvents, IN-01/02)", () => {
+  it("selects on pointerdown and commits a drag as one undo entry", () => {
     const shape = seedRect();
     render(<Workspace />);
     const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
 
-    fireEvent.mouseDown(node, { clientX: 100, clientY: 100 });
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
     expect(useSelectionStore.getState().selectedId).toBe(shape.id);
 
-    fireEvent.mouseMove(window, { clientX: 130, clientY: 110 });
-    fireEvent.mouseUp(window);
+    fireEvent.pointerMove(window, { clientX: 130, clientY: 110, buttons: 1 });
+    fireEvent.pointerUp(window);
 
     const el = useDocumentStore.getState().doc.elements[0];
     expect(Math.round(el.x)).toBe(230); // 200 + 30
@@ -52,12 +52,35 @@ describe("useInteraction — move", () => {
     const shape = seedRect();
     render(<Workspace />);
     const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
-    fireEvent.mouseDown(node, { clientX: 0, clientY: 0 });
-    fireEvent.mouseMove(window, { clientX: 25, clientY: 0 });
-    fireEvent.mouseUp(window);
+    fireEvent.pointerDown(node, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 25, clientY: 0, buttons: 1 });
+    fireEvent.pointerUp(window);
     expect(Math.round(useDocumentStore.getState().doc.elements[0].x)).toBe(225);
     act(() => useDocumentStore.temporal.getState().undo());
     expect(useDocumentStore.getState().doc.elements[0].x).toBe(200);
+  });
+
+  it("ignores a non-primary (right/middle) button press", () => {
+    const shape = seedRect();
+    render(<Workspace />);
+    const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
+    fireEvent.pointerDown(node, { button: 2, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200, buttons: 2 });
+    fireEvent.pointerUp(window);
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(200);
+    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(0);
+  });
+
+  it("ends the gesture when the button is released off-window (buttons=0)", () => {
+    const shape = seedRect();
+    render(<Workspace />);
+    const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
+    fireEvent.pointerDown(node, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 30, clientY: 0, buttons: 1 });
+    // A move with no buttons held commits and detaches — no more tracking after.
+    fireEvent.pointerMove(window, { clientX: 60, clientY: 0, buttons: 0 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 0, buttons: 1 });
+    expect(Math.round(useDocumentStore.getState().doc.elements[0].x)).toBe(230);
   });
 
   it("does not start a drag on a locked element", () => {
@@ -66,11 +89,29 @@ describe("useInteraction — move", () => {
     useDocumentStore.temporal.getState().clear();
     render(<Workspace />);
     const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
-    fireEvent.mouseDown(node, { clientX: 100, clientY: 100 });
-    fireEvent.mouseMove(window, { clientX: 200, clientY: 200 });
-    fireEvent.mouseUp(window);
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200, buttons: 1 });
+    fireEvent.pointerUp(window);
     expect(useDocumentStore.getState().doc.elements[0].x).toBe(200);
     expect(useDocumentStore.temporal.getState().pastStates.length).toBe(0);
+  });
+
+  it("switches the panel on a click without drag, but not while Layers is open (IN-11)", () => {
+    const shape = seedRect();
+    render(<Workspace />);
+    const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
+
+    // Plain click → opens the element's panel.
+    useUiStore.getState().setActivePanel("shape");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(window);
+    expect(useUiStore.getState().activePanel).toBe("shapes");
+
+    // While Layers is open, a click must not yank it away.
+    useUiStore.getState().setActivePanel("layers");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(window);
+    expect(useUiStore.getState().activePanel).toBe("layers");
   });
 });
 
