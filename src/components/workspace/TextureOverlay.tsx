@@ -5,6 +5,7 @@
  * L1144/L1241.
  */
 
+import { memo } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY } from "@/lib/constants";
 import type { TextureSettings } from "@/types/document";
@@ -16,7 +17,7 @@ function parseAttr(svg: string, attr: string): number {
   return m ? parseFloat(m[1]) : 10;
 }
 
-export function TextureOverlay({
+function TextureOverlayImpl({
   texture,
   maskUrl,
 }: {
@@ -62,3 +63,8 @@ export function TextureOverlay({
     </div>
   );
 }
+
+// Memoized on (texture, maskUrl) so it doesn't rebuild the tile SVG + regex-parse
+// it on every unrelated drag frame (PF-03); the texture object identity is stable
+// unless the texture actually changes.
+export const TextureOverlay = memo(TextureOverlayImpl);

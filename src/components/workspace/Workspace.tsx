@@ -5,7 +5,7 @@
  * live drag transforms are applied to both elements and selection chrome.
  */
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY, CDW, CDH } from "@/lib/constants";
 import type { FolderElement } from "@/types/element";
@@ -47,7 +47,9 @@ export function Workspace() {
   const { overrides, marquee, snap } = state;
 
   const tz = Math.min(doc.textureLayerZ, doc.elements.length);
-  const maskUrl = toSvgDataUrl(getBaseShapeMask(doc.baseShape));
+  // Pure function of the base shape — don't rebuild the mask data URL every
+  // drag frame (PF-03).
+  const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
 
   const renderEl = (el: FolderElement) =>
     el.visible === false && !selectedIds.includes(el.id) ? null : (

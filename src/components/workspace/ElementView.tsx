@@ -6,7 +6,7 @@
  * (contentEditable + CSS), since the canvas draws it with `fillText` instead.
  */
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
@@ -111,7 +111,7 @@ function TextContent({ el }: { el: TextElement }) {
   );
 }
 
-export function ElementView({ el, override, onPointerDown }: Props) {
+function ElementViewImpl({ el, override, onPointerDown }: Props) {
   const x = override?.x ?? el.x;
   const y = override?.y ?? el.y;
   const width = override?.width ?? el.width;
@@ -120,7 +120,16 @@ export function ElementView({ el, override, onPointerDown }: Props) {
   const hasShadow =
     (el.type === "shape" || el.type === "icon" || el.type === "image") && el.dropShadow;
   // Re-render when a fetched icon body lands in the cache.
-  useIconCacheVersion();
+  const iconVersion = useIconCacheVersion();
+  // Rebuild the injected SVG only when the element, its box, or the icon cache
+  // actually changed — so an unrelated drag frame doesn't re-serialize it (PF-01).
+  const svg = useMemo(
+    () =>
+      el.type === "shape" || el.type === "draw" || el.type === "icon"
+        ? svgHtml(el, width, height)
+        : null,
+    [el, width, height, iconVersion],
+  );
   // Live-preview of a hovered blend mode (image panel) on the selected image.
   const blendPreview = useUiStore((s) =>
     el.type === "image" ? s.blendPreview : null,
@@ -166,11 +175,10 @@ export function ElementView({ el, override, onPointerDown }: Props) {
       />
     );
   } else {
-    const html = svgHtml(el, width, height);
-    content = html ? (
+    content = svg ? (
       <div
         style={{ width: "100%", height: "100%", pointerEvents: "none" }}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: svg }}
       />
     ) : (
       <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.06)", borderRadius: 4 }} />
@@ -198,3 +206,7 @@ export function ElementView({ el, override, onPointerDown }: Props) {
     </div>
   );
 }
+
+// Memoized so a drag frame re-renders only the elements whose props changed
+// (the dragged one's override) rather than the whole element list (PF-01).
+export const ElementView = memo(ElementViewImpl);

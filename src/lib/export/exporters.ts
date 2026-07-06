@@ -7,7 +7,6 @@
  * decide how to deliver it; {@link downloadBlob} is the browser save helper.
  */
 
-import JSZip from "jszip";
 import type { FolderDocument } from "@/types/document";
 import { buildExportCanvas } from "./renderCanvas";
 import type { RenderDeps } from "./renderCanvas";
@@ -81,6 +80,8 @@ export async function batchExportZip(
   formats: ExportFormat[],
   deps: RenderDeps,
 ): Promise<ExportBlob> {
+  // Lazy-load JSZip so it ships as its own chunk, off the main bundle (PF-05).
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const sorted = [...sizes].sort((a, b) => a - b);
   const skipped = new Set<string>();
