@@ -30,6 +30,7 @@ import { useDocumentStore } from "@/store/documentStore";
 import { notify } from "@/store/toastStore";
 import { getIconBody } from "@/lib/iconify";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
+import { prepareDocumentAssets } from "@/lib/export/exportPrep";
 import {
   batchExportZip,
   downloadBlob,
@@ -42,8 +43,10 @@ import type { ExportBlob, ExportFormat } from "@/lib/export/exporters";
 const SIZES = ["64", "128", "256", "512", "1024"];
 const FORMATS: ExportFormat[] = ["png", "svg", "ico"];
 const BATCH_SIZES = [64, 128, 256, 512];
+/** ICO is a Windows format capped at 256px; larger sizes make invalid files (EXP-08). */
+const ICO_MAX = 256;
 
-const deps: RenderDeps = { getIconBody };
+const deps: RenderDeps = { getIconBody, prepare: prepareDocumentAssets };
 
 export function ExportDialog() {
   const [mode, setMode] = useState<"single" | "batch">("single");
@@ -52,6 +55,22 @@ export function ExportDialog() {
   const [batchSizes, setBatchSizes] = useState<string[]>(BATCH_SIZES.map(String));
   const [batchFormats, setBatchFormats] = useState<string[]>(["png"]);
   const [busy, setBusy] = useState(false);
+
+  // ICO is capped at 256px (EXP-08): restrict single-mode sizes and, in batch,
+  // drop/disable any size above 256 while ICO is one of the chosen formats.
+  const sizeOptions = format === "ico" ? SIZES.filter((s) => Number(s) <= ICO_MAX) : SIZES;
+  const icoInBatch = batchFormats.includes("ico");
+
+  function selectFormat(v: ExportFormat) {
+    setFormat(v);
+    if (v === "ico" && Number(size) > ICO_MAX) setSize(String(ICO_MAX));
+  }
+
+  function selectBatchFormats(v: string[]) {
+    if (!v.length) return; // keep at least one format
+    setBatchFormats(v);
+    if (v.includes("ico")) setBatchSizes((prev) => prev.filter((s) => Number(s) <= ICO_MAX));
+  }
 
   async function run(task: () => Promise<void>) {
     setBusy(true);
@@ -143,7 +162,7 @@ export function ExportDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SIZES.map((s) => (
+                  {sizeOptions.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}×{s}
                     </SelectItem>
@@ -153,7 +172,7 @@ export function ExportDialog() {
             </label>
             <label className="grid gap-1.5 text-sm">
               <span className="text-muted-foreground">Format</span>
-              <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+              <Select value={format} onValueChange={(v) => selectFormat(v as ExportFormat)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -165,6 +184,9 @@ export function ExportDialog() {
                   ))}
                 </SelectContent>
               </Select>
+              {format === "ico" && (
+                <span className="text-[11px] text-muted-foreground">ICO supports up to 256 px</span>
+              )}
             </label>
           </div>
         ) : (
@@ -179,11 +201,19 @@ export function ExportDialog() {
                 onValueChange={setBatchSizes}
               >
                 {BATCH_SIZES.map((s) => (
-                  <ToggleGroupItem key={s} value={String(s)} className="flex-1 text-xs">
+                  <ToggleGroupItem
+                    key={s}
+                    value={String(s)}
+                    disabled={icoInBatch && s > ICO_MAX}
+                    className="flex-1 text-xs"
+                  >
                     {s}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+              {icoInBatch && (
+                <span className="text-[11px] text-muted-foreground">ICO supports up to 256 px</span>
+              )}
             </div>
             <div className="space-y-1.5">
               <span className="text-sm text-muted-foreground">Formats</span>
@@ -192,9 +222,7 @@ export function ExportDialog() {
                 variant="outline"
                 className="w-full"
                 value={batchFormats}
-                onValueChange={(v) => {
-                  if (v.length) setBatchFormats(v);
-                }}
+                onValueChange={selectBatchFormats}
               >
                 {FORMATS.map((f) => (
                   <ToggleGroupItem key={f} value={f} className="flex-1 text-xs uppercase">

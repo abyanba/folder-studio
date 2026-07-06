@@ -49,14 +49,21 @@ export interface TrimTransform {
  * Given opaque `bounds`, compute the `drawImage` source/destination transform
  * that pads (~2%), scales to fit, and centers the content on a `size` canvas.
  * Returns null when the source is empty (caller should leave the canvas as-is).
+ *
+ * The padded source box is clamped to the canvas bounds *before* deriving the
+ * destination size (EXP-11), so content flush against an edge — where the pad
+ * would overrun `size` — scales without stretching. Callers must draw `tw`/`th`
+ * as-is (they are already the clamped source size).
  */
 export function computeTrimTransform(bounds: TrimBounds, size: number): TrimTransform | null {
   if (bounds.empty) return null;
   const pad = Math.round(size * 0.02);
-  const tw = bounds.x1 - bounds.x0 + 1 + pad * 2;
-  const th = bounds.y1 - bounds.y0 + 1 + pad * 2;
   const srcX = Math.max(0, bounds.x0 - pad);
   const srcY = Math.max(0, bounds.y0 - pad);
+  // Clamp the padded source rect to what actually exists on the canvas so the
+  // destination is derived from the real source, keeping aspect ratio intact.
+  const tw = Math.min(bounds.x1 - bounds.x0 + 1 + pad * 2, size - srcX);
+  const th = Math.min(bounds.y1 - bounds.y0 + 1 + pad * 2, size - srcY);
   const scale = Math.min(size / tw, size / th);
   const dw = tw * scale;
   const dh = th * scale;

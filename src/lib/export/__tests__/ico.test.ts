@@ -13,14 +13,21 @@ function make2x2(): Uint8ClampedArray {
   ]);
 }
 
+/** 1bpp AND-mask bytes: each row padded to a 4-byte boundary. */
+function maskSize(size: number): number {
+  return Math.ceil(size / 8 / 4) * 4 * size;
+}
+
 describe("encodeIco", () => {
-  it("produces a buffer of length 62 + w*h*4", () => {
+  it("produces a buffer of length 62 + w*h*4 + AND mask", () => {
     const buf = encodeIco(make2x2(), 2);
-    expect(buf.byteLength).toBe(62 + 2 * 2 * 4); // 78
+    expect(buf.byteLength).toBe(62 + 2 * 2 * 4 + maskSize(2)); // 62 + 16 + 8
   });
 
   it("writes the ICONDIR / ICONDIRENTRY / BITMAPINFOHEADER fields", () => {
     const dv = new DataView(encodeIco(make2x2(), 2));
+    const xor = 2 * 2 * 4;
+    const mask = maskSize(2);
     // ICONDIR
     expect(dv.getUint16(0, true)).toBe(0); // reserved
     expect(dv.getUint16(2, true)).toBe(1); // type = icon
@@ -29,7 +36,7 @@ describe("encodeIco", () => {
     expect(dv.getUint8(6)).toBe(2); // width
     expect(dv.getUint8(7)).toBe(2); // height
     expect(dv.getUint16(12, true)).toBe(32); // bpp
-    expect(dv.getUint32(14, true)).toBe(40 + 2 * 2 * 4); // bytes in resource
+    expect(dv.getUint32(14, true)).toBe(40 + xor + mask); // bytes in resource (incl. mask)
     expect(dv.getUint32(18, true)).toBe(22); // pixel-data offset
     // BITMAPINFOHEADER
     expect(dv.getUint32(22, true)).toBe(40); // header size
@@ -37,7 +44,15 @@ describe("encodeIco", () => {
     expect(dv.getInt32(30, true)).toBe(4); // height doubled (XOR+AND)
     expect(dv.getUint16(36, true)).toBe(32); // bpp
     expect(dv.getUint32(38, true)).toBe(0); // BI_RGB
-    expect(dv.getUint32(42, true)).toBe(2 * 2 * 4); // image size
+    expect(dv.getUint32(42, true)).toBe(xor + mask); // image size (XOR + AND)
+  });
+
+  it("appends an all-zero AND mask sized to the declared resource", () => {
+    const buf = encodeIco(make2x2(), 2);
+    const dv = new DataView(buf);
+    const maskStart = 62 + 2 * 2 * 4;
+    expect(buf.byteLength - maskStart).toBe(maskSize(2));
+    for (let i = maskStart; i < buf.byteLength; i++) expect(dv.getUint8(i)).toBe(0);
   });
 
   it("stores rows bottom-up in BGRA order", () => {

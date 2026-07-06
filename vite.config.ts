@@ -35,6 +35,7 @@ export default defineConfig({
         // Verified in real Chrome via the dev harness + Phase-8 QA instead.
         "src/lib/export/renderCanvas.ts",
         "src/lib/export/exporters.ts",
+        "src/lib/export/exportPrep.ts", // browser-only (document.fonts)
         "src/lib/compose-refs.ts", // vendored (diceui sortable dependency)
       ],
       // Thresholds are enforced so coverage regressions fail the run;

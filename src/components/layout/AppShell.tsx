@@ -9,12 +9,14 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Toolbar } from "./Toolbar";
 import { IconRail } from "./IconRail";
 import { PanelDock } from "./PanelDock";
+import { IconHydrator } from "./IconHydrator";
 import { Workspace } from "@/components/workspace/Workspace";
 
 export function AppShell() {
   useKeyboardShortcuts();
   return (
     <TooltipProvider delayDuration={300}>
+      <IconHydrator />
       <div className="flex h-svh w-full flex-col bg-background text-foreground">
         <Toolbar />
         <div className="flex min-h-0 flex-1">

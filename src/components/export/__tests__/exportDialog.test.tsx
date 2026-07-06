@@ -53,13 +53,27 @@ describe("single export", () => {
     await user.click(screen.getByRole("combobox", { name: /size/i }));
     await user.click(screen.getByRole("option", { name: "512×512" }));
     await user.click(screen.getByRole("combobox", { name: /format/i }));
+    await user.click(screen.getByRole("option", { name: "SVG" }));
+    await user.click(screen.getByRole("button", { name: "Download" }));
+
+    expect(mocks.exportSvg).toHaveBeenCalledTimes(1);
+    expect(mocks.exportSvg.mock.calls[0][1]).toBe(512);
+    expect(mocks.exportPng).not.toHaveBeenCalled();
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon-512.svg");
+  });
+
+  it("caps ICO exports at 256px (EXP-08)", async () => {
+    const user = await openDialog();
+    // Choose an oversized 512 while on PNG, then switch to ICO → clamped to 256.
+    await user.click(screen.getByRole("combobox", { name: /size/i }));
+    await user.click(screen.getByRole("option", { name: "512×512" }));
+    await user.click(screen.getByRole("combobox", { name: /format/i }));
     await user.click(screen.getByRole("option", { name: "ICO" }));
     await user.click(screen.getByRole("button", { name: "Download" }));
 
     expect(mocks.exportIco).toHaveBeenCalledTimes(1);
-    expect(mocks.exportIco.mock.calls[0][1]).toBe(512);
-    expect(mocks.exportPng).not.toHaveBeenCalled();
-    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon-512.ico");
+    expect(mocks.exportIco.mock.calls[0][1]).toBe(256);
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon-256.ico");
   });
 });
 

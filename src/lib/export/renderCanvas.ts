@@ -23,6 +23,7 @@ import type { FolderElement, TextElement } from "@/types/element";
 import { buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
+import { containRect } from "./containRect";
 import { buildTextureSvg } from "./textures";
 import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLayout";
 import { toSvgDataUrl } from "./svgDataUrl";
@@ -43,6 +44,12 @@ export interface RenderDeps {
   loadImage?: ImageLoader;
   /** Create a canvas. Defaults to `document.createElement("canvas")`. */
   createCanvas?: CanvasFactory;
+  /**
+   * Await document-driven asset readiness before rasterizing: hydrate icon
+   * bodies (EXP-13) and load fonts (EXP-07). Injected so the pure pipeline stays
+   * jsdom-testable; real callers pass `prepareDocumentAssets`.
+   */
+  prepare?: (doc: FolderDocument) => Promise<void>;
 }
 
 /** A rendered canvas plus the human-readable labels of any layers that failed to load. */
@@ -231,6 +238,10 @@ async function renderElement(
   }
   ctx.translate(ex + ew / 2, ey + eh / 2);
   ctx.rotate(el.rotation * (Math.PI / 180));
+  // Flip/non-uniform scale applies to EVERY element type here, mirroring the
+  // editor's single `rotate() scale()` transform on the element wrapper — not
+  // just images (EXP-01). Keep this above the branches so text flips too.
+  ctx.scale(el.scaleX ?? 1, el.scaleY ?? 1);
 
   if (el.type === "icon") {
     const body = deps.getIconBody(el.iconName, el.iconVariant || "regular");
@@ -243,8 +254,12 @@ async function renderElement(
       if (el.blendMode && el.blendMode !== "normal") {
         ctx.globalCompositeOperation = el.blendMode;
       }
-      ctx.scale(el.scaleX ?? 1, el.scaleY ?? 1);
-      ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+      // Letterbox to preserve aspect ratio, matching the editor's
+      // `object-fit: contain` (EXP-02) instead of stretching to the box.
+      const natW = img.naturalWidth ?? ew;
+      const natH = img.naturalHeight ?? eh;
+      const r = containRect(natW, natH, ew, eh);
+      ctx.drawImage(img, -ew / 2 + r.dx, -eh / 2 + r.dy, r.dw, r.dh);
       if (el.stroke?.enabled && (el.stroke.width || 0) > 0) {
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = el.stroke.color || "#000000";
@@ -328,6 +343,10 @@ export async function buildExportCanvas(
   const createCanvas = deps.createCanvas ?? defaultCreateCanvas;
   const skipped: string[] = [];
 
+  // Ensure icon bodies and fonts are loaded before we rasterize, so a
+  // gallery-loaded design doesn't export with blank icons or fallback fonts.
+  if (deps.prepare) await deps.prepare(doc);
+
   const canvas = createCanvas(size, size);
   await recolorCanvas(canvas, doc, size, loadImage, skipped);
   const ctx = canvas.getContext("2d");
@@ -368,17 +387,8 @@ export async function buildExportCanvas(
     const fc = createCanvas(size, size);
     const fctx = fc.getContext("2d");
     if (fctx) {
-      fctx.drawImage(
-        canvas,
-        t.srcX,
-        t.srcY,
-        Math.min(t.tw, size - t.srcX),
-        Math.min(t.th, size - t.srcY),
-        t.dx,
-        t.dy,
-        t.dw,
-        t.dh,
-      );
+      // t.tw/t.th are already clamped to the canvas by computeTrimTransform.
+      fctx.drawImage(canvas, t.srcX, t.srcY, t.tw, t.th, t.dx, t.dy, t.dw, t.dh);
       return { canvas: fc, skipped };
     }
   }
