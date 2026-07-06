@@ -156,6 +156,47 @@ describe("duplicate and clipboard", () => {
   });
 });
 
+describe("fluency keys (Phase 7)", () => {
+  it("Ctrl+A selects every visible, unlocked element", () => {
+    const s = useDocumentStore.getState();
+    const a = s.addShape("rect");
+    const b = s.addShape("star");
+    const c = s.addShape("ellipse");
+    s.updateElement(c, { locked: true });
+
+    key({ key: "a", ctrlKey: true });
+    expect(new Set(useSelectionStore.getState().selectedIds)).toEqual(new Set([a, b]));
+  });
+
+  it("stacks successive pastes with a cumulative offset (ST-09)", () => {
+    const s = useDocumentStore.getState();
+    const a = s.addShape("rect");
+    useSelectionStore.getState().select(a);
+    const x0 = useDocumentStore.getState().doc.elements[0].x;
+
+    key({ key: "c", ctrlKey: true });
+    key({ key: "v", ctrlKey: true });
+    key({ key: "v", ctrlKey: true });
+
+    const els = useDocumentStore.getState().doc.elements;
+    expect(els).toHaveLength(3);
+    expect(els[1].x).toBe(x0 + 12); // first paste
+    expect(els[2].x).toBe(x0 + 24); // second paste stacks, not overlaps
+  });
+
+  it("[ and ] reorder the primary selection", () => {
+    const s = useDocumentStore.getState();
+    const a = s.addShape("rect");
+    const b = s.addShape("star");
+    useSelectionStore.getState().select(a);
+
+    key({ key: "]" }); // bring forward → a moves above b
+    expect(useDocumentStore.getState().doc.elements.map((e) => e.id)).toEqual([b, a]);
+    key({ key: "[" }); // send back → a returns below b
+    expect(useDocumentStore.getState().doc.elements.map((e) => e.id)).toEqual([a, b]);
+  });
+});
+
 describe("Escape semantics", () => {
   it("clears selection when the draw tool is off", () => {
     const id = useDocumentStore.getState().addShape("rect");

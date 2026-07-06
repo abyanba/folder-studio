@@ -146,8 +146,9 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         const dx = e.clientX - d.startX;
         const dy = e.clientY - d.startY;
         if (!d.didMove && Math.hypot(dx, dy) > MOVE_SLOP) d.didMove = true;
+        const noSnap = e.altKey; // Alt bypasses snapping (IN-05)
         if (d.movingEls.length > 1) {
-          const r = groupMoveSnap(d.movingEls, dx, dy);
+          const r = groupMoveSnap(d.movingEls, dx, dy, noSnap);
           apply({
             overrides: r.overrides,
             marquee: null,
@@ -156,7 +157,7 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
           });
         } else {
           const el = d.movingEls[0];
-          const r = snapMove(el, d.others, dx, dy);
+          const r = snapMove(el, d.others, dx, dy, noSnap);
           apply({
             overrides: { [el.id]: { x: r.x, y: r.y } },
             marquee: null,

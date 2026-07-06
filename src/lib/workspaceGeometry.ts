@@ -31,7 +31,17 @@ const SNAP_THRESHOLD = 7;
  * to the content-rect center within {@link SNAP_THRESHOLD}px. Returns per-id
  * `{x,y}` overrides plus which guides to show.
  */
-export function groupMoveSnap(movingEls: IdRect[], dx: number, dy: number): GroupSnapResult {
+export function groupMoveSnap(
+  movingEls: IdRect[],
+  dx: number,
+  dy: number,
+  disableSnap = false,
+): GroupSnapResult {
+  if (disableSnap) {
+    const overrides: Record<string, { x: number; y: number }> = {};
+    for (const m of movingEls) overrides[m.id] = { x: m.x + dx, y: m.y + dy };
+    return { overrides, snapV: false, snapH: false, snapVX: null, snapHY: null };
+  }
   const gx1 = Math.min(...movingEls.map((m) => m.x)) + dx;
   const gy1 = Math.min(...movingEls.map((m) => m.y)) + dy;
   const gx2 = Math.max(...movingEls.map((m) => m.x + m.width)) + dx;

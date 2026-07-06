@@ -35,15 +35,21 @@ const PANELS: Record<string, ComponentType> = {
   gallery: GalleryPanel,
 };
 
+/** Management panels that stay reachable during a multi-selection (IN-13). */
+const MANAGEMENT_PANELS = new Set(["layers", "gallery"]);
+
 export function PanelDock() {
   const activePanel = useUiStore((s) => s.activePanel);
   const multi = useSelectionStore((s) => s.selectedIds.length > 1);
   if (!activePanel && !multi) return null;
   const Panel = activePanel ? PANELS[activePanel] : null;
+  // The multi-select panel overrides an element panel, but an explicit Layers/
+  // Gallery choice wins — so they aren't unreachable while multi-selecting.
+  const showMulti = multi && !(activePanel && MANAGEMENT_PANELS.has(activePanel));
   return (
     <aside className="w-[280px] shrink-0 border-r bg-card">
       <ScrollArea className="h-full">
-        {multi ? <MultiSelectPanel /> : Panel ? <Panel /> : null}
+        {showMulti ? <MultiSelectPanel /> : Panel ? <Panel /> : null}
       </ScrollArea>
     </aside>
   );

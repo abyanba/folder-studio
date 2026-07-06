@@ -143,9 +143,36 @@ const SNAP_THRESHOLD = 7;
  * thirds and to the edges/centers of `others` when within {@link SNAP_THRESHOLD}px.
  * Ported from the single-element branch of `onMove` (L665).
  */
-export function snapMove(el: Rect, others: readonly Rect[], dx: number, dy: number): SnapResult {
-  let snapNx = el.x + dx;
-  let snapNy = el.y + dy;
+/** Nearest snap target for `mine` edges against `targets`, or null if none within threshold. */
+function nearestSnap(mine: number[], targets: number[]): { adj: number; at: number } | null {
+  let best: { adj: number; at: number; d: number } | null = null;
+  for (const m of mine) {
+    for (const t of targets) {
+      const d = Math.abs(m - t);
+      if (d < SNAP_THRESHOLD && (best === null || d < best.d)) best = { adj: t - m, at: t, d };
+    }
+  }
+  return best;
+}
+
+/**
+ * Move `el` by (dx, dy), snapping its left/center/right edges to the content-rect
+ * thirds and to the edges/centers of `others` when within {@link SNAP_THRESHOLD}px.
+ * Picks the NEAREST candidate rather than the first in iteration order (IN-05);
+ * pass `disableSnap` (Alt held) to move freely.
+ */
+export function snapMove(
+  el: Rect,
+  others: readonly Rect[],
+  dx: number,
+  dy: number,
+  disableSnap = false,
+): SnapResult {
+  const snapNx = el.x + dx;
+  const snapNy = el.y + dy;
+  if (disableSnap) {
+    return { x: snapNx, y: snapNy, snapV: false, snapH: false, snapVX: null, snapHY: null };
+  }
   const ew = el.width;
   const eh = el.height;
 
@@ -156,35 +183,15 @@ export function snapMove(el: Rect, others: readonly Rect[], dx: number, dy: numb
     yEdges.push(o.y, o.y + o.height / 2, o.y + o.height);
   }
 
-  const myXs = [snapNx, snapNx + ew / 2, snapNx + ew];
-  const myYs = [snapNy, snapNy + eh / 2, snapNy + eh];
-  let snapV = false;
-  let snapH = false;
-  let snapVX: number | null = null;
-  let snapHY: number | null = null;
+  const bx = nearestSnap([snapNx, snapNx + ew / 2, snapNx + ew], xEdges);
+  const by = nearestSnap([snapNy, snapNy + eh / 2, snapNy + eh], yEdges);
 
-  for (const mx of myXs) {
-    for (const ex of xEdges) {
-      if (Math.abs(mx - ex) < SNAP_THRESHOLD) {
-        snapNx += ex - mx;
-        snapV = true;
-        snapVX = ex;
-        break;
-      }
-    }
-    if (snapV) break;
-  }
-  for (const my of myYs) {
-    for (const ey of yEdges) {
-      if (Math.abs(my - ey) < SNAP_THRESHOLD) {
-        snapNy += ey - my;
-        snapH = true;
-        snapHY = ey;
-        break;
-      }
-    }
-    if (snapH) break;
-  }
-
-  return { x: snapNx, y: snapNy, snapV, snapH, snapVX, snapHY };
+  return {
+    x: bx ? snapNx + bx.adj : snapNx,
+    y: by ? snapNy + by.adj : snapNy,
+    snapV: bx !== null,
+    snapH: by !== null,
+    snapVX: bx ? bx.at : null,
+    snapHY: by ? by.at : null,
+  };
 }

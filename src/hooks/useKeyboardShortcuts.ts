@@ -25,6 +25,8 @@ const NUDGE_IDLE_MS = 400;
 
 /** Ephemeral copy/paste buffer (module-scoped; not persisted). */
 let clipboard: FolderElement[] = [];
+/** How many times the current clipboard payload has been pasted (cumulative offset, ST-09). */
+let pasteCount = 0;
 
 function isFormTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -136,25 +138,45 @@ export function useKeyboardShortcuts(): void {
         }
         return;
       }
+      if (mod && k === "a") {
+        const ids = store.doc.elements
+          .filter((el) => el.visible !== false && !el.locked)
+          .map((el) => el.id);
+        if (ids.length) {
+          e.preventDefault();
+          sel.setMany(ids);
+        }
+        return;
+      }
       if (mod && k === "c") {
         if (sel.selectedIds.length) {
           clipboard = store.doc.elements
             .filter((el) => sel.selectedIds.includes(el.id))
             .map((el) => structuredClone(el));
+          pasteCount = 0; // fresh payload → offset restarts
         }
         return;
       }
       if (mod && k === "v") {
         if (clipboard.length) {
           e.preventDefault();
+          pasteCount += 1;
+          const off = 12 * pasteCount; // stack successive pastes, not overlap (ST-09)
           const newIds: string[] = [];
           for (const el of clipboard) {
-            const copy = { ...structuredClone(el), id: createId(), x: el.x + 12, y: el.y + 12 };
+            const copy = { ...structuredClone(el), id: createId(), x: el.x + off, y: el.y + off };
             store.addElement(copy);
             newIds.push(copy.id);
           }
           sel.setMany(newIds);
         }
+        return;
+      }
+      // Z-order on the primary selection: [ sends back one, ] brings forward one.
+      if ((k === "[" || k === "]") && sel.selectedId) {
+        e.preventDefault();
+        if (k === "]") store.moveUp(sel.selectedId);
+        else store.moveDown(sel.selectedId);
         return;
       }
       if (ARROW_KEYS.has(k) && sel.selectedIds.length && !isInteractiveTarget(e.target)) {

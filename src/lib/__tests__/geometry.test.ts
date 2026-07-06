@@ -52,4 +52,20 @@ describe("snapMove", () => {
     expect(r.snapV).toBe(true);
     expect(r.snapVX).toBe(10);
   });
+
+  it("picks the NEAREST candidate, not the first in iteration order (IN-05)", () => {
+    // Left edge lands at 10: 5px from other A (15), 2px from other B (12).
+    const a = { x: 15, y: 100, width: 50, height: 50 };
+    const b = { x: 12, y: 100, width: 50, height: 50 };
+    const r = snapMove(el, [a, b], -90, 0);
+    expect(r.x).toBe(12); // the closer target, not A's 15
+    expect(r.snapVX).toBe(12);
+  });
+
+  it("moves freely with snapping disabled (Alt held)", () => {
+    const r = snapMove(el, [], -96, 0, true);
+    expect(r.x).toBe(4);
+    expect(r.snapV).toBe(false);
+    expect(r.snapVX).toBeNull();
+  });
 });
