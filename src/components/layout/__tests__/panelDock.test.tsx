@@ -1,6 +1,8 @@
 /**
  * PanelDock precedence (IN-13): a multi-selection overrides an element panel,
- * but an explicit Layers/Gallery choice stays reachable.
+ * but an explicit Layers/Gallery choice stays reachable. When Layers wins, its
+ * own inline "N selected" group-edit section renders alongside the list (rather
+ * than the standalone MultiSelectPanel replacing it).
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -39,11 +41,13 @@ describe("PanelDock", () => {
     expect(screen.queryByRole("heading", { name: "Base Shape" })).toBeNull();
   });
 
-  it("keeps Layers reachable during a multi-selection (IN-13)", () => {
+  it("keeps Layers reachable during a multi-selection (IN-13), with an inline group section", () => {
     selectTwo();
     useUiStore.getState().setActivePanel("layers");
     renderDock();
+    // The Layers panel is NOT replaced by the standalone MultiSelectPanel...
     expect(screen.getByRole("heading", { name: "Layers" })).toBeInTheDocument();
-    expect(screen.queryByText("2 selected")).toBeNull();
+    // ...but its own inline "N selected" group-edit section renders alongside it.
+    expect(screen.getByText("2 selected")).toBeInTheDocument();
   });
 });

@@ -8,16 +8,23 @@
  */
 
 import { useState, type MouseEvent } from "react";
-import { Eye, EyeOff, GripVertical, Lock, LockOpen, Trash2 } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, GripVertical, Lock, LockOpen, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   Sortable,
   SortableContent,
   SortableItem,
   SortableItemHandle,
 } from "@/components/ui/sortable";
+import { MultiSelectControls, useHasMultiSelection } from "./MultiSelectControls";
 import { buildDrawSvg, buildShapeSvg } from "@/lib/export/elementSvg";
 import { getIconBody, useIconCacheVersion } from "@/lib/iconify";
 import { getHex } from "@/lib/color";
@@ -31,6 +38,15 @@ import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
 
 const TEXTURE_KEY = "__texture__";
+
+/** Plural label for the "Select all of type" action, per element type. */
+const TYPE_PLURAL: Record<FolderElement["type"], string> = {
+  shape: "shapes",
+  text: "text",
+  image: "images",
+  icon: "icons",
+  draw: "drawings",
+};
 
 export function getElementLabel(el: FolderElement): string {
   if (el.type === "text") {
@@ -80,7 +96,19 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
   const selectedIds = useSelectionStore((s) => s.selectedIds);
   const selected = selectedIds.includes(el.id);
   const editing = useUiStore((s) => s.editingLayerName === el.id);
+  const sameTypeCount = useDocumentStore(
+    (s) => s.doc.elements.filter((e) => e.type === el.type && e.visible !== false).length,
+  );
   const [draft, setDraft] = useState(el.name);
+
+  // Right-click → grab every visible element of this type in one shot.
+  const selectSameType = () => {
+    const ids = useDocumentStore
+      .getState()
+      .doc.elements.filter((e) => e.type === el.type && e.visible !== false)
+      .map((e) => e.id);
+    useSelectionStore.getState().setMany(ids);
+  };
 
   const onRowClick = (e: MouseEvent) => {
     const sel = useSelectionStore.getState();
@@ -109,6 +137,8 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
   };
 
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <div
       className={cn(
         "group flex h-9 items-center gap-1.5 rounded-md border px-1.5 text-xs transition-colors",
@@ -195,6 +225,17 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
         </Button>
       </div>
     </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem
+          className="text-xs"
+          disabled={sameTypeCount < 2}
+          onSelect={selectSameType}
+        >
+          Select all {TYPE_PLURAL[el.type]} ({sameTypeCount})
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -224,6 +265,9 @@ function TextureRow({ textureId }: { textureId: string }) {
 export function LayersPanel() {
   const doc = useDocumentStore((s) => s.doc);
   const applyLayerOrder = useDocumentStore((s) => s.applyLayerOrder);
+  const multi = useHasMultiSelection();
+  const selectedCount = useSelectionStore((s) => s.selectedIds.length);
+  const [groupOpen, setGroupOpen] = useState(true);
 
   const hasTexture = doc.texture.id !== "none";
   const tz = Math.min(doc.textureLayerZ, doc.elements.length);
@@ -260,6 +304,30 @@ export function LayersPanel() {
           </Sortable>
         )}
       </div>
+
+      {/* Group-edit for a multi-selection lives inline here (not the overriding
+          MultiSelectPanel) so the layer list stays visible while you curate and
+          act on the selection at once. */}
+      {multi && (
+        <div className="border-t">
+          <button
+            type="button"
+            className="flex w-full items-center gap-1.5 px-3 py-2 text-xs font-medium hover:bg-muted/40"
+            onClick={() => setGroupOpen((o) => !o)}
+            aria-expanded={groupOpen}
+          >
+            <ChevronRight
+              className={cn("size-3.5 transition-transform", groupOpen && "rotate-90")}
+            />
+            {selectedCount} selected
+          </button>
+          {groupOpen && (
+            <div className="px-3 pb-3">
+              <MultiSelectControls />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

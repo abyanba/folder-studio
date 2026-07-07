@@ -75,6 +75,29 @@ describe("applyLayerOrder", () => {
   });
 });
 
+describe("LayersPanel inline multi-select section", () => {
+  it("hides the group section with a single selection", () => {
+    const s = useDocumentStore.getState();
+    const a = s.addShape("rect");
+    s.addShape("star");
+    useSelectionStore.getState().select(a);
+    render(<LayersPanel />);
+    expect(screen.queryByText(/^\d+ selected$/)).toBeNull();
+  });
+
+  it("renders the group-edit controls inline once 2+ layers are selected", () => {
+    const s = useDocumentStore.getState();
+    const a = s.addShape("rect");
+    const b = s.addShape("star");
+    useSelectionStore.getState().setMany([a, b]);
+    render(<LayersPanel />);
+    // The Layers list and the inline "N selected" group section coexist.
+    expect(screen.getByRole("heading", { name: "Layers" })).toBeInTheDocument();
+    expect(screen.getByText("2 selected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Delete All \(2\)/ })).toBeInTheDocument();
+  });
+});
+
 describe("getElementLabel", () => {
   it("prefers text content for default-named text elements", () => {
     const el = { ...createTextElement(), text: "Hello world this is long text" };
