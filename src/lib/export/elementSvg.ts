@@ -45,6 +45,38 @@ export function buildIconSvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${vw} ${vh}">${defs}${body}</svg>`;
 }
 
+/**
+ * Shape geometry (opening tag + coordinate attrs, no fill/stroke/closing) for a
+ * given inward inset `off`. Shared by the visible element and the "inside"
+ * stroke clip-path so both agree on the exact same outline.
+ */
+function shapeGeometry(el: ShapeElement, off: number): string {
+  if (el.shapeType === "ellipse") {
+    return `<ellipse cx="50" cy="50" rx="${50 - off}" ry="${50 - off}"`;
+  } else if (el.shapeType === "triangle") {
+    return `<polygon points="50,${off} ${100 - off},${100 - off} ${off},${100 - off}"`;
+  } else if (el.shapeType === "star") {
+    const pts: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const ang = (Math.PI / 5) * i - Math.PI / 2;
+      const r = i % 2 === 0 ? 50 - off : (50 - off) * 0.42;
+      pts.push(`${(50 + r * Math.cos(ang)).toFixed(1)},${(50 + r * Math.sin(ang)).toFixed(1)}`);
+    }
+    return `<polygon points="${pts.join(" ")}"`;
+  } else if (el.shapeType === "hexagon") {
+    const pts: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const ang = (Math.PI / 3) * i - Math.PI / 2;
+      const r = 50 - off;
+      pts.push(`${(50 + r * Math.cos(ang)).toFixed(1)},${(50 + r * Math.sin(ang)).toFixed(1)}`);
+    }
+    return `<polygon points="${pts.join(" ")}"`;
+  }
+  const maxR = 50 - off;
+  const rad = Math.min(el.borderRadius || 0, maxR);
+  return `<rect x="${off}" y="${off}" width="${100 - off * 2}" height="${100 - off * 2}" rx="${rad}" ry="${rad}"`;
+}
+
 /** Build the SVG for a shape element (rect/ellipse/triangle/star/hexagon). */
 export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string {
   const sw = el.stroke.enabled ? el.stroke.width : 0;
@@ -53,6 +85,7 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
   const off = sp === "outside" ? sw : 0;
   const paintOrder = sp === "inside" ? "fill stroke" : sp === "outside" ? "stroke fill" : "";
   const poAttr = paintOrder ? ` paint-order="${paintOrder}"` : "";
+  const linejoinAttr = el.shapeType === "rect" || el.shapeType === "ellipse" ? "" : ` stroke-linejoin="round"`;
 
   let defs = "";
   let fillStr: string;
@@ -68,32 +101,20 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
   const strokeC = el.stroke.enabled ? el.stroke.color : "none";
 
   const common = `fill="${fillStr}" stroke="${strokeC}" stroke-width="${actualSW}"`;
-  let inner: string;
-  if (el.shapeType === "ellipse") {
-    inner = `<ellipse cx="50" cy="50" rx="${50 - off}" ry="${50 - off}" ${common}${poAttr}/>`;
-  } else if (el.shapeType === "triangle") {
-    inner = `<polygon points="50,${off} ${100 - off},${100 - off} ${off},${100 - off}" ${common} stroke-linejoin="round"${poAttr}/>`;
-  } else if (el.shapeType === "star") {
-    const pts: string[] = [];
-    for (let i = 0; i < 10; i++) {
-      const ang = (Math.PI / 5) * i - Math.PI / 2;
-      const r = i % 2 === 0 ? 50 - off : (50 - off) * 0.42;
-      pts.push(`${(50 + r * Math.cos(ang)).toFixed(1)},${(50 + r * Math.sin(ang)).toFixed(1)}`);
-    }
-    inner = `<polygon points="${pts.join(" ")}" ${common} stroke-linejoin="round"${poAttr}/>`;
-  } else if (el.shapeType === "hexagon") {
-    const pts: string[] = [];
-    for (let i = 0; i < 6; i++) {
-      const ang = (Math.PI / 3) * i - Math.PI / 2;
-      const r = 50 - off;
-      pts.push(`${(50 + r * Math.cos(ang)).toFixed(1)},${(50 + r * Math.sin(ang)).toFixed(1)}`);
-    }
-    inner = `<polygon points="${pts.join(" ")}" ${common} stroke-linejoin="round"${poAttr}/>`;
-  } else {
-    const maxR = 50 - off;
-    const rad = Math.min(el.borderRadius || 0, maxR);
-    inner = `<rect x="${off}" y="${off}" width="${100 - off * 2}" height="${100 - off * 2}" rx="${rad}" ry="${rad}" ${common}${poAttr}/>`;
+
+  // "inside" doubles the stroke width (centered on the true outline) then relies
+  // on a clip-path of that same outline to discard the outer half. Clipping to
+  // the shape itself (rather than just the viewBox edge) keeps the stroke fully
+  // interior for every shape type, not just rects that happen to touch all four
+  // viewBox edges.
+  let clipAttr = "";
+  if (sp === "inside" && sw > 0) {
+    const clipId = "gsclip" + el.id;
+    defs += `<clipPath id="${clipId}">${shapeGeometry(el, 0)}/></clipPath>`;
+    clipAttr = ` clip-path="url(#${clipId})"`;
   }
+
+  const inner = `${shapeGeometry(el, off)} ${common}${linejoinAttr}${poAttr}${clipAttr}/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 100 100" preserveAspectRatio="none">${defs}${inner}</svg>`;
 }

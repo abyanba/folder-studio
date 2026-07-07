@@ -93,17 +93,22 @@ export function Workspace() {
         className={`relative flex flex-1 items-center justify-center overflow-hidden transition-colors ${
           canvasLight ? "bg-neutral-200" : ""
         }`}
+        style={{ touchAction: "none" }}
+        // Marquee-select spans the whole visible workspace pane, not just the
+        // FW×FH canvas — a drag can start in the surrounding padding and still
+        // pick up elements once it crosses into the content rect (only the
+        // canvas area itself is ever exported).
+        onPointerDown={(e) => {
+          if (useUiStore.getState().editingTextId) return;
+          // The draw tool owns the canvas — don't also start a marquee (IN-12).
+          if (drawToolActive) return;
+          beginMarquee(e);
+        }}
       >
         <div
           ref={wsRef}
           data-ws
           style={{ position: "relative", width: FW, height: FH, touchAction: "none" }}
-          onPointerDown={(e) => {
-            if (useUiStore.getState().editingTextId) return;
-            // The draw tool owns the canvas — don't also start a marquee (IN-12).
-            if (drawToolActive) return;
-            beginMarquee(e);
-          }}
         >
         <div style={contentLayerStyle}>
           <FolderBase doc={doc} />

@@ -63,6 +63,17 @@ describe("buildShapeSvg", () => {
     expect(svg).toContain("<linearGradient");
   });
 
+  it("clips inside strokes to the shape's own outline (not just viewBox edges)", () => {
+    // Rects touch all four viewBox edges, so viewBox clipping alone would mask
+    // an inside stroke; ellipses only touch at 4 tangent points, so the old
+    // implementation left a visible bleed around the rest of the circumference.
+    const el = createShapeElement("ellipse");
+    el.stroke = { color: "#000000", enabled: true, width: 4, position: "inside" };
+    const svg = buildShapeSvg(el, 100, 100);
+    expect(svg).toContain("<clipPath");
+    expect(svg).toMatch(/clip-path="url\(#gsclip/);
+  });
+
   it("renders the right primitive per shapeType", () => {
     expect(buildShapeSvg(createShapeElement("ellipse"), 100, 100)).toContain("<ellipse");
     expect(buildShapeSvg(createShapeElement("triangle"), 100, 100)).toContain("<polygon");

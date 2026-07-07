@@ -76,7 +76,11 @@ function TextContent({ el }: { el: TextElement }) {
     cursor: editing ? "text" : "grab",
     userSelect: editing ? "text" : "none",
     pointerEvents: editing ? "auto" : "none",
-    background: grad ? textGradientCss(grad, el.width, el.height) : "none",
+    // `background` is a shorthand that resets background-clip to its initial
+    // value (border-box) — using the backgroundImage longhand instead keeps
+    // the "text" clip from being silently dropped, which was letting the
+    // gradient paint the whole box instead of just the glyphs.
+    backgroundImage: grad ? textGradientCss(grad, el.width, el.height) : "none",
     WebkitBackgroundClip: grad ? "text" : "unset",
     backgroundClip: grad ? "text" : "unset",
     WebkitTextFillColor: grad ? "transparent" : "unset",
@@ -98,6 +102,18 @@ function TextContent({ el }: { el: TextElement }) {
       style={style}
       onMouseDown={(e) => {
         if (editing) e.stopPropagation();
+      }}
+      onInput={(e) => {
+        // Backspacing to empty commonly leaves the div non-structurally-empty
+        // (a stray <br>, or two adjacent text nodes split by the deletion) —
+        // normalize() merges split text nodes, and clearing innerHTML once
+        // textContent is truly "" removes the leftover <br>. Without this, an
+        // extra keystroke is needed before the field reads as empty (IN-05).
+        // Skip mid-IME-composition so candidate insertion is never disturbed.
+        if ((e.nativeEvent as InputEvent).isComposing) return;
+        const div = e.currentTarget;
+        div.normalize();
+        if (div.textContent === "") div.innerHTML = "";
       }}
       onBlur={(e) => {
         const text = e.currentTarget.innerText;
