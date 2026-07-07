@@ -31,8 +31,24 @@ describe("loadWorkingDoc", () => {
   it("restores a doc that has real content", () => {
     const doc = createEmptyDocument();
     doc.baseShape = "macos";
-    localStorage.setItem(KEY, JSON.stringify({ v: 1, doc }));
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, t: Date.now(), doc }));
     expect(loadWorkingDoc()?.baseShape).toBe("macos");
+  });
+
+  it("returns null (and clears) for a doc older than a day", () => {
+    const doc = createEmptyDocument();
+    doc.baseShape = "macos";
+    const stale = Date.now() - 25 * 60 * 60 * 1000;
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, t: stale, doc }));
+    expect(loadWorkingDoc()).toBeNull();
+    expect(localStorage.getItem(KEY)).toBeNull();
+  });
+
+  it("returns null for a saved doc with no timestamp (pre-expiry format)", () => {
+    const doc = createEmptyDocument();
+    doc.baseShape = "macos";
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, doc }));
+    expect(loadWorkingDoc()).toBeNull();
   });
 
   it("returns null on corrupt JSON", () => {

@@ -4,8 +4,10 @@
  * skipped mid-gesture (commit-time state only) and a quota failure surfaces once
  * via a latch, not on every write.
  *
- * Persist format: `{ v: 1, doc }`. The doc is normalized through the same
- * migration path as gallery snapshots on restore.
+ * Persist format: `{ v: 1, t, doc }` where `t` is the write timestamp (ms). A
+ * saved doc older than one day is treated as absent so stale sessions don't
+ * resurface. The doc is normalized through the same migration path as gallery
+ * snapshots on restore.
  */
 
 import isEqual from "fast-deep-equal";
@@ -17,19 +19,26 @@ import { notify } from "@/store/toastStore";
 
 const KEY = "fs_workingdoc";
 const DEBOUNCE_MS = 800;
+const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
 
 interface Persisted {
   v: 1;
+  t?: number;
   doc: FolderDocument;
 }
 
-/** Read the saved working doc, or null when absent/corrupt/pristine. */
+/** Read the saved working doc, or null when absent/corrupt/pristine/expired. */
 export function loadWorkingDoc(): FolderDocument | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Persisted;
     if (!parsed || typeof parsed !== "object" || !parsed.doc) return null;
+    // Expire sessions older than a day (missing timestamp = pre-expiry format).
+    if (typeof parsed.t !== "number" || Date.now() - parsed.t > MAX_AGE_MS) {
+      clearWorkingDoc();
+      return null;
+    }
     const doc = normalizeLegacySnapshot(parsed.doc);
     // Nothing to restore if it's an untouched empty document.
     return isEqual(doc, createEmptyDocument()) ? null : doc;
@@ -56,7 +65,7 @@ export function startAutosave(): () => void {
 
   const write = (doc: FolderDocument): void => {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ v: 1, doc }));
+      localStorage.setItem(KEY, JSON.stringify({ v: 1, t: Date.now(), doc }));
       quotaWarned = false;
     } catch {
       if (!quotaWarned) {
