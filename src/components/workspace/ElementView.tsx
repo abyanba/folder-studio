@@ -12,7 +12,7 @@ import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderElement, TextElement } from "@/types/element";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
-import { getIconBody, useIconCacheVersion } from "@/lib/iconify";
+import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
@@ -180,8 +180,31 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
         style={{ width: "100%", height: "100%", pointerEvents: "none" }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
+    ) : el.type === "icon" && iconStatus(el.iconName, el.iconVariant) === "failed" ? (
+      // Resolved-but-empty: a distinct, static "unavailable" box — not the
+      // pulsing loader — so a permanently-missing icon reads as failed (ST-10).
+      <div
+        title="Icon unavailable offline"
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px dashed rgba(255,255,255,0.25)",
+          borderRadius: 4,
+          color: "rgba(255,255,255,0.4)",
+          fontSize: 12,
+        }}
+      >
+        ?
+      </div>
     ) : (
-      <div style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.06)", borderRadius: 4 }} />
+      // Still loading (pending / not yet requested): pulsing placeholder.
+      <div
+        className="animate-pulse"
+        style={{ width: "100%", height: "100%", background: "rgba(255,255,255,0.06)", borderRadius: 4 }}
+      />
     );
   }
 

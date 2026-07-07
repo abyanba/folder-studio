@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/context-menu";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
+import { hasClipboard, pasteClipboard, selectAll } from "@/lib/clipboard";
 
 export function ElementContextMenu({ children }: { children: ReactNode }) {
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -35,7 +36,18 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
       >
         {children}
       </ContextMenuTrigger>
-      {el && (
+      {!el ? (
+        // Right-click on empty canvas (AR-10): canvas-level actions instead of a
+        // dead, contentless menu.
+        <ContextMenuContent className="w-44">
+          <ContextMenuItem className="text-xs" disabled={!hasClipboard()} onSelect={pasteClipboard}>
+            Paste
+          </ContextMenuItem>
+          <ContextMenuItem className="text-xs" onSelect={selectAll}>
+            Select all
+          </ContextMenuItem>
+        </ContextMenuContent>
+      ) : (
         <ContextMenuContent className="w-44">
           <ContextMenuItem
             className="text-xs"

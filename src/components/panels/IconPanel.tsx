@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,8 +24,10 @@ import { TransformFields } from "@/components/controls/TransformFields";
 import { ICON_CATEGORIES, ICON_NAMES } from "@/data/iconNames";
 import {
   getIconBody,
+  iconStatus,
   phCacheKey,
   requestPhosphorIcons,
+  retryIcon,
   useIconCacheVersion,
 } from "@/lib/iconify";
 import { getHex } from "@/lib/color";
@@ -59,6 +61,20 @@ function IconGlyph({
 }) {
   const body = getIconBody(name, variant);
   if (!body) {
+    // Failed reads as a static dashed box; still-loading keeps pulsing (ST-10).
+    if (iconStatus(name, variant) === "failed") {
+      return (
+        <div
+          title="Icon unavailable offline"
+          className={cn(
+            "flex items-center justify-center rounded border border-dashed text-muted-foreground",
+            className,
+          )}
+        >
+          ?
+        </div>
+      );
+    }
     return <div className={cn("animate-pulse rounded bg-muted", className)} />;
   }
   const vw = body.width ?? 256;
@@ -124,6 +140,20 @@ function SelectedIconEditor({ el }: { el: IconElement }) {
           />
         </div>
       </div>
+
+      {iconStatus(el.iconName, el.iconVariant) === "failed" && (
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-destructive/40 bg-destructive/5 px-2.5 py-2 text-xs text-muted-foreground">
+          <span className="flex-1">This icon isn’t available offline.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            onClick={() => retryIcon(el.iconName, el.iconVariant)}
+          >
+            <RotateCw className="size-3.5" /> Retry
+          </Button>
+        </div>
+      )}
 
       {el.iconVariant !== "logo" && (
         <PanelSection title="Style">

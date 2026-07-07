@@ -22,7 +22,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ["Delete · Backspace", "Delete selection"],
   ["Arrows", "Nudge (Shift = 10px)"],
   ["[ · ]", "Send backward · Bring forward"],
-  ["Alt + drag", "Move without snapping"],
+  ["Alt + drag", "Duplicate element"],
   ["Double-click text", "Edit in place"],
   ["Escape", "Cancel drag / exit editing"],
   ["?", "This cheat sheet"],

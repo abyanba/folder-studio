@@ -6,7 +6,6 @@
  */
 
 import { useEffect } from "react";
-import { createId } from "@/lib/id";
 import type { FolderElement } from "@/types/element";
 import {
   beginDocPreview,
@@ -18,15 +17,11 @@ import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
 import { isInteractionActive } from "@/hooks/useInteraction";
 import { commitShapePoints } from "@/hooks/useDrawTool";
+import { copySelection, hasClipboard, pasteClipboard, selectAll } from "@/lib/clipboard";
 
 const ARROW_KEYS = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright"]);
 /** A run of arrow nudges commits after this idle gap (or on key release). */
 const NUDGE_IDLE_MS = 400;
-
-/** Ephemeral copy/paste buffer (module-scoped; not persisted). */
-let clipboard: FolderElement[] = [];
-/** How many times the current clipboard payload has been pasted (cumulative offset, ST-09). */
-let pasteCount = 0;
 
 function isFormTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -147,36 +142,20 @@ export function useKeyboardShortcuts(): void {
         return;
       }
       if (mod && k === "a") {
-        const ids = store.doc.elements
-          .filter((el) => el.visible !== false && !el.locked)
-          .map((el) => el.id);
-        if (ids.length) {
+        if (store.doc.elements.some((el) => el.visible !== false && !el.locked)) {
           e.preventDefault();
-          sel.setMany(ids);
+          selectAll();
         }
         return;
       }
       if (mod && k === "c") {
-        if (sel.selectedIds.length) {
-          clipboard = store.doc.elements
-            .filter((el) => sel.selectedIds.includes(el.id))
-            .map((el) => structuredClone(el));
-          pasteCount = 0; // fresh payload → offset restarts
-        }
+        copySelection();
         return;
       }
       if (mod && k === "v") {
-        if (clipboard.length) {
+        if (hasClipboard()) {
           e.preventDefault();
-          pasteCount += 1;
-          const off = 12 * pasteCount; // stack successive pastes, not overlap (ST-09)
-          const newIds: string[] = [];
-          for (const el of clipboard) {
-            const copy = { ...structuredClone(el), id: createId(), x: el.x + off, y: el.y + off };
-            store.addElement(copy);
-            newIds.push(copy.id);
-          }
-          sel.setMany(newIds);
+          pasteClipboard();
         }
         return;
       }

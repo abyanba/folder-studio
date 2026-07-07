@@ -11,11 +11,13 @@ import {
   __resetIconCacheForTests,
   getColorLogoBody,
   getIconBody,
+  iconStatus,
   isIconPending,
   phCacheKey,
   requestColorLogos,
   requestMonoLogos,
   requestPhosphorIcons,
+  retryIcon,
 } from "@/lib/iconify";
 import { MONO_LOGO_NAMES } from "@/data/generated/monoLogoNames";
 
@@ -71,15 +73,34 @@ describe("baked Phosphor icons (offline)", () => {
     expect(getIconBody("ghost", "regular")?.body).toBe("<g/>");
   });
 
-  it("evicts failed fallback names so they can retry, and dedupes cached ones", async () => {
-    await requestPhosphorIcons(["ghost"], "regular"); // fetch throws
+  it("marks an unresolved fallback name failed (not evicted), sticky until retryIcon", async () => {
+    await requestPhosphorIcons(["ghost"], "regular"); // fetch throws → failed
     expect(getIconBody("ghost", "regular")).toBeNull();
     expect(isIconPending("ghost")).toBe(false);
+    expect(iconStatus("ghost", "regular")).toBe("failed"); // ST-10: distinct state
 
+    // A plain re-request is a no-op — "failed" is sticky, no forever-retry loop.
     fetchMock.mockReset();
-    await requestPhosphorIcons(["house"], "regular"); // baked
-    await requestPhosphorIcons(["house"], "regular"); // cached → no work
+    fetchMock.mockRejectedValue(new Error("still offline"));
+    await requestPhosphorIcons(["ghost"], "regular");
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(iconStatus("ghost", "regular")).toBe("failed");
+
+    // Explicit retry clears the marker and fetches again — now succeeding.
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      json: async () => ({ icons: { ghost: { body: "<g/>" } }, width: 256, height: 256 }),
+    });
+    await retryIcon("ghost", "regular");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getIconBody("ghost", "regular")?.body).toBe("<g/>");
+    expect(iconStatus("ghost", "regular")).toBe("ready");
+  });
+
+  it("iconStatus reports idle → ready across a baked resolve", async () => {
+    expect(iconStatus("house", "regular")).toBe("idle"); // never requested
+    await requestPhosphorIcons(["house"], "regular");
+    expect(iconStatus("house", "regular")).toBe("ready");
   });
 });
 

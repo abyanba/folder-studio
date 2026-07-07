@@ -96,6 +96,40 @@ describe("useInteraction — move (PointerEvents, IN-01/02)", () => {
     expect(useDocumentStore.temporal.getState().pastStates.length).toBe(0);
   });
 
+  it("Alt-drag duplicates the element and drags the copy as one undo entry", () => {
+    const shape = seedRect();
+    render(<Workspace />);
+    const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
+
+    fireEvent.pointerDown(node, { button: 0, altKey: true, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: 130, clientY: 110, buttons: 1, altKey: true });
+    fireEvent.pointerUp(window);
+
+    const els = useDocumentStore.getState().doc.elements;
+    expect(els).toHaveLength(2);
+    expect(els[0].x).toBe(200); // original stays put
+    expect(Math.round(els[1].x)).toBe(230); // the copy moved (200 + 30)
+    expect(Math.round(els[1].y)).toBe(110);
+    expect(useSelectionStore.getState().selectedId).toBe(els[1].id); // copy is selected
+    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(1); // clone + move = 1 entry
+
+    act(() => useDocumentStore.temporal.getState().undo());
+    expect(useDocumentStore.getState().doc.elements).toHaveLength(1);
+    expect(useDocumentStore.getState().doc.elements[0].x).toBe(200);
+  });
+
+  it("Alt-click without dragging leaves no duplicate behind", () => {
+    const shape = seedRect();
+    render(<Workspace />);
+    const node = document.querySelector(`[data-element-id="${shape.id}"]`)!;
+
+    fireEvent.pointerDown(node, { button: 0, altKey: true, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(window);
+
+    expect(useDocumentStore.getState().doc.elements).toHaveLength(1);
+    expect(useDocumentStore.temporal.getState().pastStates.length).toBe(0);
+  });
+
   it("switches the panel on a click without drag, but not while Layers is open (IN-11)", () => {
     const shape = seedRect();
     render(<Workspace />);

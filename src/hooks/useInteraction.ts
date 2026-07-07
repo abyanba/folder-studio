@@ -28,7 +28,13 @@ import {
 } from "@/lib/workspaceGeometry";
 import type { IdRect } from "@/lib/workspaceGeometry";
 import type { ResizeHandle } from "@/types/interaction";
-import { useDocumentStore } from "@/store/documentStore";
+import type { FolderElement } from "@/types/element";
+import { createId } from "@/lib/id";
+import {
+  beginDocPreview,
+  endDocPreview,
+  useDocumentStore,
+} from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
 
@@ -92,6 +98,8 @@ type Drag =
       /** A plain click (no drag) collapses a multi-selection to this element. */
       collapseOnClick: boolean;
       didMove: boolean;
+      /** Alt-drag: the moving els are fresh clones inside a preview transaction. */
+      duplicate: boolean;
     }
   | {
       kind: "resize";
@@ -146,7 +154,9 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         const dx = e.clientX - d.startX;
         const dy = e.clientY - d.startY;
         if (!d.didMove && Math.hypot(dx, dy) > MOVE_SLOP) d.didMove = true;
-        const noSnap = e.altKey; // Alt bypasses snapping (IN-05)
+        // Alt bypasses snapping (IN-05) — but on an Alt-drag *duplicate* Alt is
+        // held the whole time to mean "clone", so keep snapping on there.
+        const noSnap = e.altKey && !d.duplicate;
         if (d.movingEls.length > 1) {
           const r = groupMoveSnap(d.movingEls, dx, dy, noSnap);
           apply({
@@ -223,7 +233,19 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
             useSelectionStore.getState().setMany(hits);
           }
         } else if (d.kind === "move") {
-          if (d.didMove) {
+          if (d.duplicate) {
+            // Alt-drag duplicate: clones were added inside a preview transaction.
+            // A real drag commits clones + their final positions as ONE undo
+            // entry; a bare Alt-click (no drag) or a cancel rolls the clones back.
+            if (commit && d.didMove) {
+              if (Object.keys(live.overrides).length > 0) {
+                useDocumentStore.getState().updateElements(live.overrides);
+              }
+              endDocPreview(true);
+            } else {
+              endDocPreview(false);
+            }
+          } else if (d.didMove) {
             if (commit && Object.keys(live.overrides).length > 0) {
               useDocumentStore.getState().updateElements(live.overrides);
             }
@@ -300,14 +322,46 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
       }
       useUiStore.getState().setEditingTextId(null);
 
-      const movingEls = ids
-        .map((i) => doc.elements.find((x) => x.id === i))
-        .filter((x): x is NonNullable<typeof x> => Boolean(x) && !x!.locked)
-        .map(toIdRect);
-      const moving = new Set(movingEls.map((m) => m.id));
-      const others = doc.elements
-        .filter((x) => !moving.has(x.id) && x.visible !== false)
-        .map(toIdRect);
+      // Alt-drag duplicates: clone the moving set in place inside a preview
+      // transaction, make the copies the selection, and drag them — the clone
+      // and its final position land as one undo entry on drop.
+      const wantDuplicate = e.altKey && !(e.ctrlKey || e.metaKey);
+      let movingEls: IdRect[];
+      let others: IdRect[];
+      let downId = id;
+      let duplicate = false;
+
+      if (wantDuplicate) {
+        const srcEls = ids
+          .map((i) => doc.elements.find((x) => x.id === i))
+          .filter((x): x is FolderElement => Boolean(x) && !x!.locked);
+        if (!srcEls.length) return;
+        beginDocPreview();
+        const store = useDocumentStore.getState();
+        const clones = srcEls.map(
+          (src) => ({ ...structuredClone(src), id: createId() }) as FolderElement,
+        );
+        for (const c of clones) store.addElement(c);
+        const newIds = clones.map((c) => c.id);
+        sel.setMany(newIds);
+        duplicate = true;
+        downId = newIds[0];
+        movingEls = clones.map(toIdRect);
+        const moving = new Set(newIds);
+        others = useDocumentStore
+          .getState()
+          .doc.elements.filter((x) => !moving.has(x.id) && x.visible !== false)
+          .map(toIdRect);
+      } else {
+        movingEls = ids
+          .map((i) => doc.elements.find((x) => x.id === i))
+          .filter((x): x is NonNullable<typeof x> => Boolean(x) && !x!.locked)
+          .map(toIdRect);
+        const moving = new Set(movingEls.map((m) => m.id));
+        others = doc.elements
+          .filter((x) => !moving.has(x.id) && x.visible !== false)
+          .map(toIdRect);
+      }
 
       dragRef.current = {
         kind: "move",
@@ -315,10 +369,11 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         startY: e.clientY,
         movingEls,
         others,
-        downId: id,
+        downId,
         panelType: PANEL_BY_TYPE[el.type],
-        collapseOnClick,
+        collapseOnClick: duplicate ? false : collapseOnClick,
         didMove: false,
+        duplicate,
       };
       apply({ overrides: {}, marquee: null, snap: NO_SNAP, dragging: true });
       attach(e);

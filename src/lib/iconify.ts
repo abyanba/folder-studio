@@ -23,7 +23,7 @@ import { useSyncExternalStore } from "react";
 import type { IconBody } from "@/lib/export/elementSvg";
 import type { IconVariant } from "@/types/element";
 
-type CacheEntry = IconBody | "pending";
+type CacheEntry = IconBody | "pending" | "failed";
 
 const cache = new Map<string, CacheEntry>();
 const listeners = new Set<() => void>();
@@ -55,17 +55,47 @@ export function phCacheKey(name: string, variant: IconVariant | string): string 
 /** Legacy `_getIconBody`: `variant === "logo"` reads the mono-logo cache. */
 export function getIconBody(name: string, variant: IconVariant | string): IconBody | null {
   const key = variant === "logo" ? `logo:${name}` : phCacheKey(name, variant);
-  const v = cache.get(key);
-  return v && v !== "pending" ? v : null;
+  return resolvedBody(cache.get(key));
 }
 
 export function getColorLogoBody(name: string): IconBody | null {
-  const v = cache.get(`logoc:${name}`);
-  return v && v !== "pending" ? v : null;
+  return resolvedBody(cache.get(`logoc:${name}`));
+}
+
+/** A cache entry is a real body only if it isn't one of the string sentinels. */
+function resolvedBody(v: CacheEntry | undefined): IconBody | null {
+  return v && v !== "pending" && v !== "failed" ? v : null;
 }
 
 export function isIconPending(cacheKey: string): boolean {
   return cache.get(cacheKey) === "pending";
+}
+
+/** Cache key for an icon element, mirroring `getIconBody`'s key scheme. */
+export function iconCacheKey(name: string, variant: IconVariant | string): string {
+  return variant === "logo" ? `logo:${name}` : phCacheKey(name, variant);
+}
+
+/**
+ * Resolution state of an icon element (ST-10). "failed" means baked lookup (and
+ * any REST fallback) came up empty — a distinct, non-loading state so the editor
+ * can show "unavailable offline" instead of a placeholder that pulses forever.
+ */
+export function iconStatus(
+  name: string,
+  variant: IconVariant | string,
+): "ready" | "pending" | "failed" | "idle" {
+  const v = cache.get(iconCacheKey(name, variant));
+  if (v === "pending") return "pending";
+  if (v === "failed") return "failed";
+  return v ? "ready" : "idle";
+}
+
+/** Clear a "failed" marker and re-request the icon (explicit user retry, ST-10). */
+export function retryIcon(name: string, variant: IconVariant | string): Promise<void> {
+  const key = iconCacheKey(name, variant);
+  if (cache.get(key) === "failed") cache.delete(key);
+  return variant === "logo" ? requestMonoLogos([name]) : requestPhosphorIcons([name], variant);
 }
 
 // ---------------------------------------------------------- baked assets
@@ -95,9 +125,6 @@ async function fetchPhosphorFallback(keys: string[]): Promise<void> {
       width?: number;
       height?: number;
     };
-    keys.forEach((k) => {
-      if (cache.get(k) === "pending") cache.delete(k);
-    });
     Object.entries(data.icons ?? {}).forEach(([apiName, body]) => {
       if (keys.includes(apiName)) {
         cache.set(apiName, {
@@ -108,9 +135,8 @@ async function fetchPhosphorFallback(keys: string[]): Promise<void> {
       }
     });
   } catch {
-    keys.forEach((k) => {
-      if (cache.get(k) === "pending") cache.delete(k);
-    });
+    // Leave keys "pending"; `resolve` marks whatever the fallback didn't fill
+    // as "failed" (ST-10), so an offline miss is a distinct state, not an evict.
   }
 }
 
@@ -136,12 +162,13 @@ async function resolve(
 
   if (missing.length && fallback) {
     await fallback(missing);
-  } else {
-    // No fallback source — evict so a later request may retry.
-    uncached.forEach((e) => {
-      if (cache.get(e.cacheKey) === "pending") cache.delete(e.cacheKey);
-    });
   }
+  // Anything still pending after baked assets (+ optional fallback) has no
+  // offline source — mark it "failed" (not evicted) so the UI can show a
+  // distinct "unavailable" state instead of a forever-pulsing placeholder (ST-10).
+  uncached.forEach((e) => {
+    if (cache.get(e.cacheKey) === "pending") cache.set(e.cacheKey, "failed");
+  });
   notify();
 }
 
