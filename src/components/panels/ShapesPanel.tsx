@@ -5,7 +5,6 @@
  */
 
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
@@ -209,17 +208,20 @@ export function ShapesPanel() {
         {el ? (
           <SelectedShapeEditor el={el} />
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {SHAPE_TYPES.map((s) => (
-              <Button
+              <button
                 key={s.id}
-                variant="outline"
-                className="h-16 flex-col gap-1 text-[11px] text-muted-foreground"
+                type="button"
+                title={s.name}
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-transparent bg-muted/40 p-2 transition-colors hover:border-border hover:bg-muted"
                 onClick={() => select(addShape(s.id))}
               >
                 <ShapeGlyph>{s.icon}</ShapeGlyph>
-                {s.name}
-              </Button>
+                <span className="max-w-full truncate text-[9px] leading-tight text-muted-foreground">
+                  {s.name}
+                </span>
+              </button>
             ))}
           </div>
         )}

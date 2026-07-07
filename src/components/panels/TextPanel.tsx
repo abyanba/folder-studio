@@ -134,7 +134,9 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
           <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Font family">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          {/* Anchor below the trigger (not item-aligned) so the list doesn't
+              recenter on the selected font and shift up/down as you browse. */}
+          <SelectContent position="popper" side="bottom" sideOffset={4}>
             {FONTS.map((f) => (
               <SelectItem key={f} value={f} className="text-xs" style={{ fontFamily: f }}>
                 {f}

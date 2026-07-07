@@ -8,7 +8,7 @@ import { buildShapeSvgPath, buildSvgPath, chaikinSmooth } from "./smoothing";
 import type { ControlPoint, Point } from "./smoothing";
 import type { CreateDrawInput } from "./elementFactories";
 import type { ColorValue } from "@/types/gradient";
-import type { FolderElement } from "@/types/element";
+import type { DrawElement, FolderElement } from "@/types/element";
 
 export interface CurrentDraw {
   points: Point[];
@@ -101,6 +101,55 @@ export function computeShapeCommit(
     strokeSize: size,
     opacity,
     linecap: "round",
+  };
+}
+
+/** Shift every coordinate pair in a pairs-only draw path (M/L/Q/C) by (dx,dy). */
+function translatePath(svgPath: string, dx: number, dy: number): string {
+  let i = 0;
+  return svgPath.replace(/-?\d*\.?\d+/g, (m) => {
+    const v = parseFloat(m) + (i++ % 2 === 0 ? dx : dy);
+    return String(Number(v.toFixed(2)));
+  });
+}
+
+/**
+ * Patch that resizes a draw element's stroke while keeping the wider stroke from
+ * clipping at the viewBox edge. The stroke's half-width can exceed the padding
+ * baked in at draw time, so we re-pad the box around the path's own bounds
+ * (`newSize/2 + 2`), re-center the element in place, and translate the path to
+ * sit at the new inset — the on-screen path scale and center are preserved, and
+ * both renderers keep drawing the element into its (now larger) box.
+ */
+export function strokeSizePatch(el: DrawElement, newSize: number): Partial<DrawElement> {
+  const pts = pathPolyline(el.svgPath);
+  const stroke = { ...el.stroke, size: newSize };
+  if (pts.length === 0) return { stroke };
+
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const tw = Math.max(...xs) - minX;
+  const th = Math.max(...ys) - minY;
+
+  const pad = newSize / 2 + 2;
+  const newOrigW = Math.max(tw + 2 * pad, 2);
+  const newOrigH = Math.max(th + 2 * pad, 2);
+  const sx = el.width / (el.origWidth || el.width || 1);
+  const sy = el.height / (el.origHeight || el.height || 1);
+  const newW = newOrigW * sx;
+  const newH = newOrigH * sy;
+
+  return {
+    x: el.x + (el.width - newW) / 2,
+    y: el.y + (el.height - newH) / 2,
+    width: newW,
+    height: newH,
+    origWidth: newOrigW,
+    origHeight: newOrigH,
+    svgPath: translatePath(el.svgPath, pad - minX, pad - minY),
+    stroke,
   };
 }
 

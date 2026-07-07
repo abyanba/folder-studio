@@ -9,6 +9,7 @@ import {
   computeFreehandCommit,
   computeShapeCommit,
   eraseHitIds,
+  strokeSizePatch,
   symmetricHandles,
 } from "@/lib/draw";
 import { createDrawElement, createShapeElement } from "@/lib/elementFactories";
@@ -115,6 +116,49 @@ describe("eraseHitIds", () => {
     // Inside the bbox but far from the diagonal (the corner that used to delete
     // the whole stroke) → now a miss.
     expect(eraseHitIds(els, 145, 95, 8)).toEqual([]);
+  });
+});
+
+describe("strokeSizePatch", () => {
+  // A path from (10,10)→(50,30): tight box 40×20, currently padded for size 4.
+  const el = createDrawElement({
+    x: 100,
+    y: 100,
+    width: 48,
+    height: 28,
+    origWidth: 48,
+    origHeight: 28,
+    svgPath: "M 10 10 L 50 30",
+    strokeColor: "#fff",
+    strokeSize: 4,
+    linecap: "round",
+  });
+
+  it("grows the box to fit a wider stroke and keeps the element centered", () => {
+    const patch = strokeSizePatch(el, 40);
+    // New pad = 40/2 + 2 = 22 → origW = 40 + 44 = 84, origH = 20 + 44 = 64.
+    expect(patch.origWidth).toBe(84);
+    expect(patch.origHeight).toBe(64);
+    // scale was 1 (width==origWidth) so display size tracks origW/origH.
+    expect(patch.width).toBe(84);
+    expect(patch.height).toBe(64);
+    // Center is preserved: old center (124,114) == new center.
+    expect(patch.x! + patch.width! / 2).toBeCloseTo(124);
+    expect(patch.y! + patch.height! / 2).toBeCloseTo(114);
+    expect(patch.stroke).toEqual({ color: "#fff", size: 40, linecap: "round" });
+  });
+
+  it("translates the path so it sits at the new inset (pad on every side)", () => {
+    const patch = strokeSizePatch(el, 40);
+    // minX/minY were 10,10; pad 22 → shift by +12 → path starts at 22,22.
+    expect(patch.svgPath).toBe("M 22 22 L 62 42");
+  });
+
+  it("re-padding is idempotent for an unchanged size", () => {
+    const patch = strokeSizePatch(el, 4);
+    // pad = 4 → origW = 40+8 = 48 (unchanged), path re-anchored at 4,4.
+    expect(patch.origWidth).toBe(48);
+    expect(patch.svgPath).toBe("M 4 4 L 44 24");
   });
 });
 

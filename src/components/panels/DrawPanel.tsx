@@ -12,6 +12,7 @@ import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { TransformFields } from "@/components/controls/TransformFields";
+import { strokeSizePatch } from "@/lib/draw";
 import { gradientToCss, getHex } from "@/lib/color";
 import { isGradient, type ColorValue } from "@/types/gradient";
 import { useDocumentStore } from "@/store/documentStore";
@@ -70,7 +71,9 @@ function SelectedDrawEditor({ el }: { el: DrawElement }) {
           value={el.stroke.size}
           min={1}
           max={40}
-          onChange={(v) => updateElement(el.id, { stroke: { ...el.stroke, size: v } })}
+          // Re-pad/re-center the box so a wider stroke grows cleanly instead of
+          // clipping at the baked viewBox edge (Figma-like).
+          onChange={(v) => updateElement(el.id, strokeSizePatch(el, v))}
           className="flex-1"
         />
         <ColorField

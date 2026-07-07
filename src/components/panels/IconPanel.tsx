@@ -161,7 +161,7 @@ function SelectedIconEditor({ el }: { el: IconElement }) {
             <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon style">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" side="bottom" sideOffset={4}>
               {VARIANTS.map((v) => (
                 <SelectItem key={v} value={v} className="text-xs capitalize">
                   {v}
@@ -227,7 +227,7 @@ function IconLibrary() {
         <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon style">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper" side="bottom" sideOffset={4}>
           {VARIANTS.map((v) => (
             <SelectItem key={v} value={v} className="text-xs capitalize">
               {v}
@@ -273,7 +273,12 @@ function IconLibrary() {
               select(id);
             }}
           >
-            <IconGlyph name={name} variant={variant} className="size-7" />
+            <IconGlyph
+              name={name}
+              variant={variant}
+              tint={iconTint(iconDefaults.color)}
+              className="size-7"
+            />
           </button>
         ))}
       </div>

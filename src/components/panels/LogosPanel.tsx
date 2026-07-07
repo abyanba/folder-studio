@@ -7,8 +7,6 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
@@ -128,26 +126,13 @@ export function LogosPanel() {
             </ToggleGroupItem>
           </ToggleGroup>
           {logoMode === "mono" && (
-            <>
-              <ColorField
-                value={logoColor}
-                onChange={(v) => {
-                  if (typeof v === "string") setLogoColor(v);
-                }}
-                ariaLabel="Mono logo color"
-              />
-              {logoColor !== "#ffffff" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  aria-label="Reset mono logo color"
-                  onClick={() => setLogoColor("#ffffff")}
-                >
-                  <RotateCcw className="size-3" />
-                </Button>
-              )}
-            </>
+            <ColorField
+              value={logoColor}
+              onChange={(v) => {
+                if (typeof v === "string") setLogoColor(v);
+              }}
+              ariaLabel="Mono logo color"
+            />
           )}
         </div>
 
