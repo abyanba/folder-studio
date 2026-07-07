@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Crop, Loader2, Moon, Redo2, Save, Sparkles, Sun, Undo2 } from "lucide-react";
+import { Crop, HelpCircle, Loader2, Moon, Redo2, Save, Sparkles, Sun, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -122,6 +122,20 @@ export function Toolbar() {
           </Button>
         </TooltipTrigger>
         <TooltipContent>Save to gallery</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Keyboard shortcuts"
+            onClick={() => useUiStore.getState().setHelpOpen(true)}
+          >
+            <HelpCircle className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Keyboard shortcuts (?)</TooltipContent>
       </Tooltip>
 
       <Separator orientation="vertical" className="mx-1 !h-6" />

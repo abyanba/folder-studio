@@ -103,13 +103,18 @@ describe("eraseHitIds", () => {
   shapeEl.x = 100;
   shapeEl.y = 100;
 
-  it("hits draw elements within bbox + drawSize/2+6 padding, never other types", () => {
+  it("hits within pad of the actual stroke path, never other types (IN-09)", () => {
+    // Stroke runs (100,100)→(140,120); pad = 8/2+6 = 10.
     const els = [drawEl, shapeEl];
-    // pad = 8/2+6 = 10 → hit zone x 90..150, y 90..130.
+    // Near the start endpoint → hit.
     expect(eraseHitIds(els, 95, 95, 8)).toEqual([drawEl.id]);
+    // Exactly on the end → hit.
+    expect(eraseHitIds(els, 140, 120, 8)).toEqual([drawEl.id]);
+    // Outside the padded bbox entirely → miss.
     expect(eraseHitIds(els, 89, 95, 8)).toEqual([]);
-    expect(eraseHitIds(els, 149, 129, 8)).toEqual([drawEl.id]);
-    expect(eraseHitIds(els, 151, 129, 8)).toEqual([]);
+    // Inside the bbox but far from the diagonal (the corner that used to delete
+    // the whole stroke) → now a miss.
+    expect(eraseHitIds(els, 145, 95, 8)).toEqual([]);
   });
 });
 

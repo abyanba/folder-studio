@@ -33,6 +33,8 @@ export interface UiStore {
   logoColor: string;
   /** Light workspace backdrop to preview the icon on a bright background. */
   canvasLight: boolean;
+  /** Keyboard-shortcut cheat sheet visibility. */
+  helpOpen: boolean;
 
   // Draw tool
   activeTool: "draw" | null;
@@ -59,6 +61,7 @@ export interface UiStore {
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
   setCanvasLight: (light: boolean) => void;
+  setHelpOpen: (open: boolean) => void;
   setActiveTool: (tool: "draw" | null) => void;
   setDrawMode: (mode: DrawMode) => void;
   /** Switching submode discards any in-progress line/arc points (legacy). */
@@ -84,6 +87,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   logoMode: "mono",
   logoColor: "#ffffff",
   canvasLight: false,
+  helpOpen: false,
   activeTool: null,
   drawMode: "pen",
   drawSubmode: "freehand",
@@ -104,6 +108,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
   setCanvasLight: (light) => set({ canvasLight: light }),
+  setHelpOpen: (open) => set({ helpOpen: open }),
   setActiveTool: (tool) =>
     set({
       activeTool: tool,

@@ -11,6 +11,7 @@ import { Toolbar } from "./Toolbar";
 import { IconRail } from "./IconRail";
 import { PanelDock } from "./PanelDock";
 import { IconHydrator } from "./IconHydrator";
+import { HelpDialog } from "./HelpDialog";
 import { Workspace } from "@/components/workspace/Workspace";
 
 export function AppShell() {
@@ -27,6 +28,7 @@ export function AppShell() {
           <Workspace />
         </div>
       </div>
+      <HelpDialog />
       <Toaster />
     </TooltipProvider>
   );

@@ -104,9 +104,55 @@ export function computeShapeCommit(
   };
 }
 
+/** Coarse polyline of a draw path: every coordinate pair (incl. bezier controls). */
+function pathPolyline(svgPath: string): Point[] {
+  const nums = svgPath.match(/-?\d*\.?\d+/g);
+  if (!nums) return [];
+  const pts: Point[] = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    pts.push({ x: parseFloat(nums[i]), y: parseFloat(nums[i + 1]) });
+  }
+  return pts;
+}
+
+/** Distance from point (px,py) to the segment a→b. */
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
 /**
- * Draw elements whose padded bounding box contains the cursor
- * (legacy eraser: `pad = drawSize / 2 + 6`).
+ * True when (x,y) is within `pad` of the stroke's actual path (IN-09), not just
+ * its bounding box — so the empty corner of a long diagonal stroke no longer
+ * deletes it. The padded bbox is a cheap pre-filter before the segment test.
+ */
+export function strokeHitTest(
+  el: { x: number; y: number; width: number; height: number; origWidth: number; origHeight: number; svgPath: string },
+  x: number,
+  y: number,
+  pad: number,
+): boolean {
+  if (x < el.x - pad || x > el.x + el.width + pad || y < el.y - pad || y > el.y + el.height + pad) {
+    return false;
+  }
+  const sx = el.width / (el.origWidth || el.width || 1);
+  const sy = el.height / (el.origHeight || el.height || 1);
+  const pts = pathPolyline(el.svgPath).map((p) => ({ x: el.x + p.x * sx, y: el.y + p.y * sy }));
+  if (pts.length === 0) return false;
+  if (pts.length === 1) return Math.hypot(x - pts[0].x, y - pts[0].y) <= pad;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (distToSegment(x, y, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y) <= pad) return true;
+  }
+  return false;
+}
+
+/**
+ * Draw elements whose stroke passes within `drawSize / 2 + 6` of the cursor
+ * (legacy pad, now measured to the path not the bbox — IN-09).
  */
 export function eraseHitIds(
   elements: FolderElement[],
@@ -116,14 +162,7 @@ export function eraseHitIds(
 ): string[] {
   const pad = drawSize / 2 + 6;
   return elements
-    .filter(
-      (e) =>
-        e.type === "draw" &&
-        x >= e.x - pad &&
-        x <= e.x + e.width + pad &&
-        y >= e.y - pad &&
-        y <= e.y + e.height + pad,
-    )
+    .filter((e) => e.type === "draw" && strokeHitTest(e, x, y, pad))
     .map((e) => e.id);
 }
 

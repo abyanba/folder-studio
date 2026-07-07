@@ -184,6 +184,14 @@ describe("fluency keys (Phase 7)", () => {
     expect(els[2].x).toBe(x0 + 24); // second paste stacks, not overlaps
   });
 
+  it("? toggles the keyboard cheat sheet", () => {
+    expect(useUiStore.getState().helpOpen).toBe(false);
+    key({ key: "?" });
+    expect(useUiStore.getState().helpOpen).toBe(true);
+    key({ key: "?" });
+    expect(useUiStore.getState().helpOpen).toBe(false);
+  });
+
   it("[ and ] reorder the primary selection", () => {
     const s = useDocumentStore.getState();
     const a = s.addShape("rect");

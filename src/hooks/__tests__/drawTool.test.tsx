@@ -72,12 +72,13 @@ describe("freehand", () => {
 
 describe("eraser", () => {
   it("erases hit drawings in one undo entry per swipe", () => {
-    // Two drawings: one at (10..60, 10..30), one far away.
+    // Two drawings: one whose stroke spans (10..60, 10..30), one far away. The
+    // paths must actually span their bbox — IN-09 measures to the path, not the box.
     useDocumentStore.getState().addDrawElement(
-      { x: 10, y: 10, width: 50, height: 20, origWidth: 50, origHeight: 20, svgPath: "M 0 0 L 1 1", strokeColor: "#fff", strokeSize: 4 },
+      { x: 10, y: 10, width: 50, height: 20, origWidth: 50, origHeight: 20, svgPath: "M 0 0 L 50 20", strokeColor: "#fff", strokeSize: 4 },
     );
     useDocumentStore.getState().addDrawElement(
-      { x: 200, y: 150, width: 30, height: 20, origWidth: 30, origHeight: 20, svgPath: "M 0 0 L 1 1", strokeColor: "#fff", strokeSize: 4 },
+      { x: 200, y: 150, width: 30, height: 20, origWidth: 30, origHeight: 20, svgPath: "M 0 0 L 30 20", strokeColor: "#fff", strokeSize: 4 },
     );
     useUiStore.setState({ drawMode: "eraser" });
     const target = overlay();

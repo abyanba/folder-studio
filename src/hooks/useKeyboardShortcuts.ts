@@ -76,6 +76,14 @@ export function useKeyboardShortcuts(): void {
       // consumed this key — don't double-handle it.
       if (e.defaultPrevented) return;
 
+      // `?` toggles the keyboard-shortcut cheat sheet.
+      if (e.key === "?") {
+        e.preventDefault();
+        const ui = useUiStore.getState();
+        ui.setHelpOpen(!ui.helpOpen);
+        return;
+      }
+
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
       const store = useDocumentStore.getState();
