@@ -8,10 +8,14 @@
  */
 
 import type { FolderDocument } from "@/types/document";
+import type { TextElement } from "@/types/element";
 import { buildExportCanvas } from "./renderCanvas";
 import type { RenderDeps } from "./renderCanvas";
 import { encodeIco, encodeIcoMulti } from "./ico";
 import type { IcoImage } from "./ico";
+import { buildExportSvg } from "./svgExport";
+import type { MeasureText } from "./textLayout";
+import { collectFontFaceCss } from "./svgFonts";
 
 export type ExportFormat = "png" | "svg" | "ico";
 
@@ -33,9 +37,14 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
   });
 }
 
-/** SVG that embeds the rendered PNG as an `<image>` (matches the legacy export). */
-function svgWrapper(pngDataUrl: string, size: number): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><image href="${pngDataUrl}" width="${size}" height="${size}"/></svg>`;
+/** A canvas-backed text measurer so SVG word-wrap matches the raster export. */
+function makeMeasure(): (el: TextElement) => MeasureText {
+  const ctx = document.createElement("canvas").getContext("2d");
+  return (el) => {
+    if (!ctx) return (s) => s.length * el.fontSize * 0.5; // defensive fallback
+    ctx.font = `${el.fontStyle === "italic" ? "italic " : ""}${el.fontWeight} ${el.fontSize}px "${el.fontFamily}"`;
+    return (s) => ctx.measureText(s).width;
+  };
 }
 
 /** Read a rendered canvas back as raw RGBA pixels for ICO packing. */
@@ -63,8 +72,16 @@ export async function exportSvg(
   size: number,
   deps: RenderDeps,
 ): Promise<ExportBlob> {
-  const { canvas, skipped } = await buildExportCanvas(doc, size, deps);
-  const svg = svgWrapper(canvas.toDataURL("image/png"), size);
+  // True vector SVG (EXP-14): compose the shared builders + real <text>, with
+  // used fonts inlined so the file is self-contained.
+  if (deps.prepare) await deps.prepare(doc);
+  const fontFaceCss = await collectFontFaceCss(doc);
+  const measure = makeMeasure();
+  const { svg, skipped } = buildExportSvg(doc, size, {
+    getIconBody: deps.getIconBody,
+    measure,
+    fontFaceCss,
+  });
   return { blob: new Blob([svg], { type: "image/svg+xml" }), skipped };
 }
 
@@ -117,6 +134,11 @@ export async function batchExportZip(
   // ICO is packed once as a single multi-resolution file (not one per size).
   const icoImages: IcoImage[] = [];
   const wantIco = formats.includes("ico");
+  // SVG is vector: measure + inlined fonts are computed once, shared across sizes.
+  const wantSvg = formats.includes("svg");
+  const svgDeps = wantSvg
+    ? { getIconBody: deps.getIconBody, measure: makeMeasure(), fontFaceCss: await collectFontFaceCss(doc) }
+    : null;
   for (const size of sorted) {
     const result = await buildExportCanvas(doc, size, deps);
     result.skipped.forEach((s) => skipped.add(s));
@@ -124,8 +146,10 @@ export async function batchExportZip(
     for (const fmt of formats) {
       if (fmt === "png") {
         zip.file(`folder-icon-${size}x${size}.png`, await canvasToBlob(canvas, "image/png"));
-      } else if (fmt === "svg") {
-        zip.file(`folder-icon-${size}x${size}.svg`, svgWrapper(canvas.toDataURL("image/png"), size));
+      } else if (fmt === "svg" && svgDeps) {
+        const out = buildExportSvg(doc, size, svgDeps);
+        out.skipped.forEach((s) => skipped.add(s));
+        zip.file(`folder-icon-${size}x${size}.svg`, out.svg);
       }
     }
     if (wantIco && size <= 256) icoImages.push({ size, pixels: icoPixels(canvas, size) });
