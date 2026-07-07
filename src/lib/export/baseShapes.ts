@@ -263,7 +263,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "file-folder", "glass", "detailed", "minimal", "rounded"];
+const _SOLID_ORDER = ["windows", "macos", "file-folder", "glass", "minimal"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [

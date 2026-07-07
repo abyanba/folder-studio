@@ -22,6 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+docs/*
+*.png
+*.jpg
+*.svg
+*.ico
+*.zip
 
 # AI / agent tooling — kept local, never pushed.
 # This is a static site (visitors just open the GitHub Pages URL), so no
