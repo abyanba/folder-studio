@@ -37,6 +37,7 @@ export default defineConfig({
         "src/lib/export/exporters.ts",
         "src/lib/export/exportPrep.ts", // browser-only (document.fonts)
         "src/lib/importImage.ts", // browser-only (canvas raster) — fitWithin is tested in importImage.test
+        "src/lib/projectActions.ts", // browser-only glue (download + File.text) — parseProject/serializeProject are tested
         "src/lib/compose-refs.ts", // vendored (diceui sortable dependency)
       ],
       // Thresholds are enforced so coverage regressions fail the run;

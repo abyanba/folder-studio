@@ -5,8 +5,8 @@
  * redesign — functional parity with the legacy toolbar, not a pixel port.
  */
 
-import { useState } from "react";
-import { Crop, HelpCircle, Loader2, Moon, Redo2, Save, Sparkles, Sun, Undo2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Crop, FileJson, FolderOpen, HelpCircle, Loader2, Moon, Redo2, Save, Sparkles, Sun, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -14,6 +14,7 @@ import { useHistory } from "@/store";
 import { useDocumentStore } from "@/store/documentStore";
 import { useUiStore } from "@/store/uiStore";
 import { saveCurrentToGallery } from "@/lib/saveToGallery";
+import { openProjectFile, saveProjectFile } from "@/lib/projectActions";
 import { notify } from "@/store/toastStore";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import { buildSampleDocument } from "@/dev/sampleDocument";
@@ -24,6 +25,13 @@ export function Toolbar() {
   const canvasLight = useUiStore((s) => s.canvasLight);
   const setCanvasLight = useUiStore((s) => s.setCanvasLight);
   const [saving, setSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const onOpenFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void openProjectFile(file);
+    e.target.value = ""; // allow re-opening the same file
+  };
 
   const saveToGallery = async () => {
     setSaving(true);
@@ -107,6 +115,36 @@ export function Toolbar() {
           </Button>
         </TooltipTrigger>
         <TooltipContent>{clipToFolder ? "Clipping: on" : "Clipping: off"}</TooltipContent>
+      </Tooltip>
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={onOpenFile}
+      />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open project file"
+            onClick={() => fileInput.current?.click()}
+          >
+            <FolderOpen className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Open project (.json)</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label="Save project file" onClick={saveProjectFile}>
+            <FileJson className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Save project (.json)</TooltipContent>
       </Tooltip>
 
       <Tooltip>
