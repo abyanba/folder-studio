@@ -12,9 +12,10 @@ import { ExportDialog } from "@/components/export/ExportDialog";
 import { useDocumentStore } from "@/store/documentStore";
 
 const mocks = vi.hoisted(() => ({
+  ICO_SIZES: [16, 32, 48, 64, 128, 256],
   exportPng: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["png"]), skipped: [] })),
   exportSvg: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["svg"]), skipped: [] })),
-  exportIco: vi.fn(async (_doc: unknown, _size: number) => ({ blob: new Blob(["ico"]), skipped: [] })),
+  exportIcoMulti: vi.fn(async (_doc: unknown, _sizes: number[]) => ({ blob: new Blob(["ico"]), skipped: [] })),
   batchExportZip: vi.fn(
     async (_doc: unknown, _sizes: number[], _formats: string[]) => ({
       blob: new Blob(["zip"]),
@@ -28,7 +29,9 @@ vi.mock("@/lib/export/exporters", () => mocks);
 
 beforeEach(() => {
   useDocumentStore.getState().reset();
-  Object.values(mocks).forEach((m) => m.mockClear());
+  Object.values(mocks).forEach((m) => {
+    if (typeof m === "function") (m as { mockClear: () => void }).mockClear();
+  });
 });
 
 async function openDialog() {
@@ -62,18 +65,16 @@ describe("single export", () => {
     expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon-512.svg");
   });
 
-  it("caps ICO exports at 256px (EXP-08)", async () => {
+  it("exports ICO as one multi-resolution file (EXP-08 / Phase 8)", async () => {
     const user = await openDialog();
-    // Choose an oversized 512 while on PNG, then switch to ICO → clamped to 256.
-    await user.click(screen.getByRole("combobox", { name: /size/i }));
-    await user.click(screen.getByRole("option", { name: "512×512" }));
     await user.click(screen.getByRole("combobox", { name: /format/i }));
     await user.click(screen.getByRole("option", { name: "ICO" }));
     await user.click(screen.getByRole("button", { name: "Download" }));
 
-    expect(mocks.exportIco).toHaveBeenCalledTimes(1);
-    expect(mocks.exportIco.mock.calls[0][1]).toBe(256);
-    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon-256.ico");
+    expect(mocks.exportIcoMulti).toHaveBeenCalledTimes(1);
+    // Packs the standard set of resolutions (all ≤256) into a single .ico.
+    expect(mocks.exportIcoMulti.mock.calls[0][1]).toEqual([16, 32, 48, 64, 128, 256]);
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon.ico");
   });
 });
 

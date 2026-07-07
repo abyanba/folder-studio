@@ -32,9 +32,10 @@ import { getIconBody } from "@/lib/iconify";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
 import { prepareDocumentAssets } from "@/lib/export/exportPrep";
 import {
+  ICO_SIZES,
   batchExportZip,
   downloadBlob,
-  exportIco,
+  exportIcoMulti,
   exportPng,
   exportSvg,
 } from "@/lib/export/exporters";
@@ -100,13 +101,15 @@ export function ExportDialog() {
   function exportSingle() {
     return run(async () => {
       const doc = useDocumentStore.getState().doc;
+      // ICO is always packed as one multi-resolution file (Windows picks the
+      // sharpest size per context), so the size picker doesn't apply to it.
+      if (format === "ico") {
+        deliver(await exportIcoMulti(doc, ICO_SIZES, deps), "folder-icon.ico");
+        return;
+      }
       const sz = Number(size);
       const result =
-        format === "png"
-          ? await exportPng(doc, sz, deps)
-          : format === "svg"
-            ? await exportSvg(doc, sz, deps)
-            : await exportIco(doc, sz, deps);
+        format === "png" ? await exportPng(doc, sz, deps) : await exportSvg(doc, sz, deps);
       deliver(result, `folder-icon-${sz}.${format}`);
     });
   }
@@ -157,18 +160,24 @@ export function ExportDialog() {
           <div className="grid grid-cols-2 gap-4 py-2">
             <label className="grid gap-1.5 text-sm">
               <span className="text-muted-foreground">Size</span>
-              <Select value={size} onValueChange={setSize}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sizeOptions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}×{s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {format === "ico" ? (
+                <div className="flex h-9 items-center rounded-md border border-dashed px-3 text-xs text-muted-foreground">
+                  Multi-resolution
+                </div>
+              ) : (
+                <Select value={size} onValueChange={setSize}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sizeOptions.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}×{s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </label>
             <label className="grid gap-1.5 text-sm">
               <span className="text-muted-foreground">Format</span>
@@ -185,7 +194,9 @@ export function ExportDialog() {
                 </SelectContent>
               </Select>
               {format === "ico" && (
-                <span className="text-[11px] text-muted-foreground">ICO supports up to 256 px</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Packs {ICO_SIZES.join(", ")} px into one .ico
+                </span>
               )}
             </label>
           </div>

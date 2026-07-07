@@ -10,9 +10,13 @@
 import type { FolderDocument } from "@/types/document";
 import { buildExportCanvas } from "./renderCanvas";
 import type { RenderDeps } from "./renderCanvas";
-import { encodeIco } from "./ico";
+import { encodeIco, encodeIcoMulti } from "./ico";
+import type { IcoImage } from "./ico";
 
 export type ExportFormat = "png" | "svg" | "ico";
+
+/** Standard multi-resolution set packed into an .ico (all ≤256, the ICO cap). */
+export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
 
 /** A finished export plus the labels of any layers that couldn't be rendered (EXP-12/13). */
 export interface ExportBlob {
@@ -34,11 +38,15 @@ function svgWrapper(pngDataUrl: string, size: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><image href="${pngDataUrl}" width="${size}" height="${size}"/></svg>`;
 }
 
-function icoBytes(canvas: HTMLCanvasElement, size: number): ArrayBuffer {
+/** Read a rendered canvas back as raw RGBA pixels for ICO packing. */
+function icoPixels(canvas: HTMLCanvasElement, size: number): Uint8ClampedArray {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context unavailable for ICO export");
-  const px = ctx.getImageData(0, 0, size, size).data;
-  return encodeIco(px, size);
+  return ctx.getImageData(0, 0, size, size).data;
+}
+
+function icoBytes(canvas: HTMLCanvasElement, size: number): ArrayBuffer {
+  return encodeIco(icoPixels(canvas, size), size);
 }
 
 export async function exportPng(
@@ -70,6 +78,27 @@ export async function exportIco(
 }
 
 /**
+ * Multi-resolution ICO: render each requested size once and pack them into a
+ * single .ico so Windows can pick the crispest resolution per context (taskbar,
+ * desktop, alt-tab). Sizes above 256 are dropped (the ICO cap, EXP-08).
+ */
+export async function exportIcoMulti(
+  doc: FolderDocument,
+  sizes: number[],
+  deps: RenderDeps,
+): Promise<ExportBlob> {
+  const use = [...new Set(sizes.filter((s) => s <= 256))].sort((a, b) => a - b);
+  const images: IcoImage[] = [];
+  const skipped = new Set<string>();
+  for (const size of use) {
+    const { canvas, skipped: sk } = await buildExportCanvas(doc, size, deps);
+    sk.forEach((s) => skipped.add(s));
+    images.push({ size, pixels: icoPixels(canvas, size) });
+  }
+  return { blob: new Blob([encodeIcoMulti(images)], { type: "image/x-icon" }), skipped: [...skipped] };
+}
+
+/**
  * Render every `size` once and emit each requested `format`, zipped. Mirrors the
  * legacy batch export (one canvas per size, reused across formats). `skipped`
  * layers are the same across sizes (same doc), so they're deduped.
@@ -85,21 +114,23 @@ export async function batchExportZip(
   const zip = new JSZip();
   const sorted = [...sizes].sort((a, b) => a - b);
   const skipped = new Set<string>();
+  // ICO is packed once as a single multi-resolution file (not one per size).
+  const icoImages: IcoImage[] = [];
+  const wantIco = formats.includes("ico");
   for (const size of sorted) {
     const result = await buildExportCanvas(doc, size, deps);
     result.skipped.forEach((s) => skipped.add(s));
     const canvas = result.canvas;
     for (const fmt of formats) {
-      const name = `folder-icon-${size}x${size}.${fmt}`;
       if (fmt === "png") {
-        zip.file(name, await canvasToBlob(canvas, "image/png"));
+        zip.file(`folder-icon-${size}x${size}.png`, await canvasToBlob(canvas, "image/png"));
       } else if (fmt === "svg") {
-        zip.file(name, svgWrapper(canvas.toDataURL("image/png"), size));
-      } else {
-        zip.file(name, icoBytes(canvas, size));
+        zip.file(`folder-icon-${size}x${size}.svg`, svgWrapper(canvas.toDataURL("image/png"), size));
       }
     }
+    if (wantIco && size <= 256) icoImages.push({ size, pixels: icoPixels(canvas, size) });
   }
+  if (icoImages.length) zip.file("folder-icon.ico", encodeIcoMulti(icoImages));
   return { blob: await zip.generateAsync({ type: "blob" }), skipped: [...skipped] };
 }
 

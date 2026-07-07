@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { encodeIco } from "@/lib/export/ico";
+import { encodeIco, encodeIcoMulti } from "@/lib/export/ico";
 
 /** Build a 2×2 RGBA buffer with distinct, easy-to-track channel values. */
 function make2x2(): Uint8ClampedArray {
@@ -11,6 +11,10 @@ function make2x2(): Uint8ClampedArray {
     90, 100, 110, 120, // (0,1)
     130, 140, 150, 160, // (1,1)
   ]);
+}
+
+function make1x1(): Uint8ClampedArray {
+  return new Uint8ClampedArray([1, 2, 3, 4]);
 }
 
 /** 1bpp AND-mask bytes: each row padded to a 4-byte boundary. */
@@ -78,5 +82,40 @@ describe("encodeIco", () => {
     expect(dv.getUint8(7)).toBe(0);
     expect(dv.getInt32(26, true)).toBe(256);
     expect(dv.getInt32(30, true)).toBe(512);
+  });
+});
+
+describe("encodeIcoMulti", () => {
+  it("packs N resolutions with a shared directory and sequential offsets", () => {
+    // Passed largest-first to prove it sorts ascending internally.
+    const buf = encodeIcoMulti([
+      { size: 2, pixels: make2x2() },
+      { size: 1, pixels: make1x1() },
+    ]);
+    const dv = new DataView(buf);
+    expect(dv.getUint16(4, true)).toBe(2); // image count
+
+    const dirSize = 6 + 16 * 2;
+    const dib1 = 40 + 1 * 1 * 4 + maskSize(1); // size-1 DIB
+    const dib2 = 40 + 2 * 2 * 4 + maskSize(2); // size-2 DIB
+
+    // Entry 0 = smallest (size 1), placed right after the directory.
+    expect(dv.getUint8(6)).toBe(1);
+    expect(dv.getUint32(6 + 8, true)).toBe(dib1);
+    expect(dv.getUint32(6 + 12, true)).toBe(dirSize);
+
+    // Entry 1 = size 2, offset follows the first image's bytes.
+    const e1 = 6 + 16;
+    expect(dv.getUint8(e1)).toBe(2);
+    expect(dv.getUint32(e1 + 8, true)).toBe(dib2);
+    expect(dv.getUint32(e1 + 12, true)).toBe(dirSize + dib1);
+
+    expect(buf.byteLength).toBe(dirSize + dib1 + dib2);
+  });
+
+  it("is byte-identical to encodeIco for a single image", () => {
+    const single = new Uint8Array(encodeIco(make2x2(), 2));
+    const multi = new Uint8Array(encodeIcoMulti([{ size: 2, pixels: make2x2() }]));
+    expect([...multi]).toEqual([...single]);
   });
 });
