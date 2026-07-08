@@ -22,6 +22,8 @@ import { ElementView } from "./ElementView";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
 import { ElementContextMenu } from "./ElementContextMenu";
+import { WorkspaceGrid } from "./WorkspaceGrid";
+import { AlignBar } from "./AlignBar";
 import type { EffectiveRect } from "./SelectionOverlay";
 
 function effective(el: FolderElement, o: LiveOverride | undefined): EffectiveRect {
@@ -105,6 +107,8 @@ export function Workspace() {
           beginMarquee(e);
         }}
       >
+        <WorkspaceGrid />
+        <AlignBar />
         <div
           ref={wsRef}
           data-ws

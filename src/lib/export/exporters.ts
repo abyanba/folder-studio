@@ -13,14 +13,19 @@ import { buildExportCanvas } from "./renderCanvas";
 import type { RenderDeps } from "./renderCanvas";
 import { encodeIco, encodeIcoMulti } from "./ico";
 import type { IcoImage } from "./ico";
+import { encodeIcns, isIcnsSize } from "./icns";
+import type { IcnsImage } from "./icns";
 import { buildExportSvg } from "./svgExport";
 import type { MeasureText } from "./textLayout";
 import { collectFontFaceCss } from "./svgFonts";
 
-export type ExportFormat = "png" | "svg" | "ico";
+export type ExportFormat = "png" | "svg" | "ico" | "icns";
 
 /** Standard multi-resolution set packed into an .ico (all ≤256, the ICO cap). */
 export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
+
+/** Standard multi-resolution set packed into an .icns (macOS iconset sizes). */
+export const ICNS_EXPORT_SIZES = [16, 32, 128, 256, 512];
 
 /** A finished export plus the labels of any layers that couldn't be rendered (EXP-12/13). */
 export interface ExportBlob {
@@ -115,6 +120,32 @@ export async function exportIcoMulti(
   return { blob: new Blob([encodeIcoMulti(images)], { type: "image/x-icon" }), skipped: [...skipped] };
 }
 
+/** Read a rendered canvas back as PNG bytes for .icns packing. */
+async function pngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  const blob = await canvasToBlob(canvas, "image/png");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * Multi-resolution macOS .icns: render each requested size and pack one PNG per
+ * size behind its OSType. Sizes without an .icns type are dropped.
+ */
+export async function exportIcns(
+  doc: FolderDocument,
+  sizes: number[],
+  deps: RenderDeps,
+): Promise<ExportBlob> {
+  const use = [...new Set(sizes.filter(isIcnsSize))].sort((a, b) => a - b);
+  const images: IcnsImage[] = [];
+  const skipped = new Set<string>();
+  for (const size of use) {
+    const { canvas, skipped: sk } = await buildExportCanvas(doc, size, deps);
+    sk.forEach((s) => skipped.add(s));
+    images.push({ size, png: await pngBytes(canvas) });
+  }
+  return { blob: new Blob([encodeIcns(images)], { type: "image/icns" }), skipped: [...skipped] };
+}
+
 /**
  * Render every `size` once and emit each requested `format`, zipped. Mirrors the
  * legacy batch export (one canvas per size, reused across formats). `skipped`
@@ -131,9 +162,11 @@ export async function batchExportZip(
   const zip = new JSZip();
   const sorted = [...sizes].sort((a, b) => a - b);
   const skipped = new Set<string>();
-  // ICO is packed once as a single multi-resolution file (not one per size).
+  // ICO / ICNS are each packed once as a single multi-resolution file.
   const icoImages: IcoImage[] = [];
+  const icnsImages: IcnsImage[] = [];
   const wantIco = formats.includes("ico");
+  const wantIcns = formats.includes("icns");
   // SVG is vector: measure + inlined fonts are computed once, shared across sizes.
   const wantSvg = formats.includes("svg");
   const svgDeps = wantSvg
@@ -153,8 +186,10 @@ export async function batchExportZip(
       }
     }
     if (wantIco && size <= 256) icoImages.push({ size, pixels: icoPixels(canvas, size) });
+    if (wantIcns && isIcnsSize(size)) icnsImages.push({ size, png: await pngBytes(canvas) });
   }
   if (icoImages.length) zip.file("folder-icon.ico", encodeIcoMulti(icoImages));
+  if (icnsImages.length) zip.file("folder-icon.icns", encodeIcns(icnsImages));
   return { blob: await zip.generateAsync({ type: "blob" }), skipped: [...skipped] };
 }
 

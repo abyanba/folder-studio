@@ -32,9 +32,11 @@ import { getIconBody } from "@/lib/iconify";
 import type { RenderDeps } from "@/lib/export/renderCanvas";
 import { prepareDocumentAssets } from "@/lib/export/exportPrep";
 import {
+  ICNS_EXPORT_SIZES,
   ICO_SIZES,
   batchExportZip,
   downloadBlob,
+  exportIcns,
   exportIcoMulti,
   exportPng,
   exportSvg,
@@ -42,10 +44,12 @@ import {
 import type { ExportBlob, ExportFormat } from "@/lib/export/exporters";
 
 const SIZES = ["64", "128", "256", "512", "1024"];
-const FORMATS: ExportFormat[] = ["png", "svg", "ico"];
+const FORMATS: ExportFormat[] = ["png", "svg", "ico", "icns"];
 const BATCH_SIZES = [64, 128, 256, 512];
 /** ICO is a Windows format capped at 256px; larger sizes make invalid files (EXP-08). */
 const ICO_MAX = 256;
+/** ICO and ICNS are packed as one multi-resolution file (size picker n/a). */
+const isMultiRes = (f: ExportFormat) => f === "ico" || f === "icns";
 
 const deps: RenderDeps = { getIconBody, prepare: prepareDocumentAssets };
 
@@ -107,6 +111,10 @@ export function ExportDialog() {
         deliver(await exportIcoMulti(doc, ICO_SIZES, deps), "folder-icon.ico");
         return;
       }
+      if (format === "icns") {
+        deliver(await exportIcns(doc, ICNS_EXPORT_SIZES, deps), "folder-icon.icns");
+        return;
+      }
       const sz = Number(size);
       const result =
         format === "png" ? await exportPng(doc, sz, deps) : await exportSvg(doc, sz, deps);
@@ -160,7 +168,7 @@ export function ExportDialog() {
           <div className="grid grid-cols-2 gap-4 py-2">
             <label className="grid gap-1.5 text-sm">
               <span className="text-muted-foreground">Size</span>
-              {format === "ico" ? (
+              {isMultiRes(format) ? (
                 <div className="flex h-9 items-center rounded-md border border-dashed px-3 text-xs text-muted-foreground">
                   Multi-resolution
                 </div>
@@ -196,6 +204,11 @@ export function ExportDialog() {
               {format === "ico" && (
                 <span className="text-[11px] text-muted-foreground">
                   Packs {ICO_SIZES.join(", ")} px into one .ico
+                </span>
+              )}
+              {format === "icns" && (
+                <span className="text-[11px] text-muted-foreground">
+                  Packs {ICNS_EXPORT_SIZES.join(", ")} px into one macOS .icns
                 </span>
               )}
             </label>

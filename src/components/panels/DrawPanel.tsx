@@ -13,7 +13,7 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { TransformFields } from "@/components/controls/TransformFields";
 import { strokeSizePatch } from "@/lib/draw";
-import { gradientToCss, getHex } from "@/lib/color";
+import { getHex } from "@/lib/color";
 import { isGradient, type ColorValue } from "@/types/gradient";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
@@ -28,16 +28,23 @@ const HINTS: Record<DrawSubmode, string> = {
   arc: "Click and drag to place curved points. Double-click or press Enter to finish.",
 };
 
-function strokeCss(color: ColorValue): string {
-  return isGradient(color)
-    ? gradientToCss(color)
-    : color;
-}
-
 function solidPreview(color: ColorValue): string {
   if (!isGradient(color)) return color;
   const first = [...color.stops].sort((a, b) => a.pos - b.pos)[0];
   return first ? getHex(first.hue, first.sat, first.bri) : "#ffffff";
+}
+
+/** A smooth sine wave across the box, so the pen preview reads as a real stroke. */
+function wavePath(w: number, h: number, amp: number): string {
+  const mid = h / 2;
+  const n = 48;
+  let d = "";
+  for (let i = 0; i <= n; i++) {
+    const x = (i / n) * w;
+    const y = mid + Math.sin((i / n) * Math.PI * 4) * amp;
+    d += `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)} `;
+  }
+  return d.trim();
 }
 
 function SelectedDrawEditor({ el }: { el: DrawElement }) {
@@ -231,15 +238,39 @@ export function DrawPanel() {
                 />
 
                 <PanelSection title="Preview">
-                  <div className="flex h-12 items-center rounded-lg border bg-muted/40 px-3">
-                    <div
-                      className="w-full rounded-full"
-                      style={{
-                        height: Math.min(drawSize, 40),
-                        background: strokeCss(drawColor),
-                        opacity: drawOpacity,
-                      }}
-                    />
+                  <div className="rounded-lg border bg-muted/40 px-3 py-1.5">
+                    {(() => {
+                      const sw = Math.min(drawSize, 40);
+                      const amp = Math.max(3, (48 - sw) / 2 - 3);
+                      const grad = isGradient(drawColor) ? drawColor : null;
+                      const stops = grad ? [...grad.stops].sort((a, b) => a.pos - b.pos) : [];
+                      return (
+                        <svg viewBox="0 0 200 48" preserveAspectRatio="none" className="h-11 w-full">
+                          {grad && (
+                            <defs>
+                              <linearGradient id="drawWavePreview" x1="0" y1="0" x2="1" y2="0">
+                                {stops.map((st) => (
+                                  <stop
+                                    key={st.id}
+                                    offset={`${Math.round(st.pos * 100)}%`}
+                                    stopColor={getHex(st.hue, st.sat, st.bri)}
+                                  />
+                                ))}
+                              </linearGradient>
+                            </defs>
+                          )}
+                          <path
+                            d={wavePath(200, 48, amp)}
+                            fill="none"
+                            stroke={grad ? "url(#drawWavePreview)" : (drawColor as string)}
+                            strokeWidth={sw}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            opacity={drawOpacity}
+                          />
+                        </svg>
+                      );
+                    })()}
                   </div>
                 </PanelSection>
               </>

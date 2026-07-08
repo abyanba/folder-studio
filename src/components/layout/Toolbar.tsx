@@ -10,6 +10,7 @@ import { Crop, FileJson, FolderOpen, HelpCircle, Loader2, Moon, Redo2, Save, Spa
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { useHistory } from "@/store";
 import { useDocumentStore } from "@/store/documentStore";
 import { useUiStore } from "@/store/uiStore";
@@ -63,7 +64,13 @@ export function Toolbar() {
             <Undo2 className="size-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+        <TooltipContent>
+          Undo
+          <KbdGroup>
+            <Kbd>Ctrl</Kbd>
+            <Kbd>Z</Kbd>
+          </KbdGroup>
+        </TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -71,7 +78,13 @@ export function Toolbar() {
             <Redo2 className="size-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+        <TooltipContent>
+          Redo
+          <KbdGroup>
+            <Kbd>Ctrl</Kbd>
+            <Kbd>Y</Kbd>
+          </KbdGroup>
+        </TooltipContent>
       </Tooltip>
 
       <div className="flex-1" />
@@ -173,7 +186,10 @@ export function Toolbar() {
             <HelpCircle className="size-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Keyboard shortcuts (?)</TooltipContent>
+        <TooltipContent>
+          Keyboard shortcuts
+          <Kbd>?</Kbd>
+        </TooltipContent>
       </Tooltip>
 
       <Separator orientation="vertical" className="mx-1 !h-6" />
