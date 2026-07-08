@@ -97,6 +97,12 @@ export interface ImageElement extends BaseElement {
   type: "image";
   /** Data URL or object URL. SVG-as-data-URL is used for color logos. */
   src: string;
+  /**
+   * Brand key when this image is a placed *color* logo (vs. a user upload).
+   * Lets a placed color logo route to the Logos panel and be swapped in place;
+   * absent on ordinary images. Mono logos are `icon` elements instead.
+   */
+  logoName?: string;
   blendMode?: BlendMode;
   stroke?: { color: string; enabled: boolean; width: number };
   dropShadow?: DropShadow;
@@ -148,3 +154,19 @@ export const isIcon = (el: FolderElement): el is IconElement =>
   el.type === "icon";
 export const isDraw = (el: FolderElement): el is DrawElement =>
   el.type === "draw";
+
+/**
+ * A placed brand logo: a mono logo (tintable `icon` with `iconVariant: "logo"`)
+ * or a color logo (`image` carrying a `logoName`). Used to route a clicked logo
+ * to the Logos panel instead of Icons/Image.
+ */
+export const isLogoElement = (el: FolderElement): boolean =>
+  (el.type === "icon" && el.iconVariant === "logo") ||
+  (el.type === "image" && el.logoName != null);
+
+/** The brand key of a logo element (see {@link isLogoElement}), else null. */
+export function logoElementName(el: FolderElement): string | null {
+  if (el.type === "icon" && el.iconVariant === "logo") return el.iconName;
+  if (el.type === "image" && el.logoName != null) return el.logoName;
+  return null;
+}

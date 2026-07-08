@@ -55,7 +55,13 @@ export interface DocumentStore {
    * caller can select it). Numbering/naming mirrors the legacy `addImage`:
    * SVG data-URLs count as "Icon N", other sources as "Image N".
    */
-  addImage: (src: string, srcWidth: number, srcHeight: number, name?: string) => string;
+  addImage: (
+    src: string,
+    srcWidth: number,
+    srcHeight: number,
+    name?: string,
+    logoName?: string,
+  ) => string;
   addText: () => string;
   addShape: (shapeType: ShapeType) => string;
   addIcon: (input: CreateIconInput) => string;
@@ -150,7 +156,7 @@ export const useDocumentStore = create<DocumentStore>()(
       addElement: (element) =>
         set((s) => ({ doc: { ...s.doc, elements: [...s.doc.elements, element] } })),
 
-      addImage: (src, srcWidth, srcHeight, name) => {
+      addImage: (src, srcWidth, srcHeight, name, logoName) => {
         let id = "";
         set((s) => {
           const isSvg = src.startsWith("data:image/svg+xml");
@@ -158,7 +164,13 @@ export const useDocumentStore = create<DocumentStore>()(
           const count = s.doc.elements.filter(
             (e) => e.type === "image" && e.src.startsWith("data:image/svg+xml") === isSvg,
           ).length;
-          const el = createImageElement(src, srcWidth, srcHeight, name ?? `${label} ${count + 1}`);
+          const el = createImageElement(
+            src,
+            srcWidth,
+            srcHeight,
+            name ?? `${label} ${count + 1}`,
+            logoName,
+          );
           id = el.id;
           return { doc: { ...s.doc, elements: [...s.doc.elements, el] } };
         });

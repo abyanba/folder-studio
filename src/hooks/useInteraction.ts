@@ -29,6 +29,7 @@ import {
 import type { IdRect } from "@/lib/workspaceGeometry";
 import type { ResizeHandle } from "@/types/interaction";
 import type { FolderElement } from "@/types/element";
+import { isLogoElement } from "@/types/element";
 import { createId } from "@/lib/id";
 import {
   beginDocPreview,
@@ -85,6 +86,12 @@ const PANEL_BY_TYPE: Record<string, string> = {
   draw: "draw",
   shape: "shapes",
 };
+
+/** Panel a clicked element routes to: logos get their own panel (mono icons /
+ * color images alike), everything else routes by type. */
+function panelForElement(el: FolderElement): string {
+  return isLogoElement(el) ? "logos" : PANEL_BY_TYPE[el.type];
+}
 
 type Drag =
   | {
@@ -370,7 +377,7 @@ export function useInteraction(wsRef: RefObject<HTMLDivElement | null>): Interac
         movingEls,
         others,
         downId,
-        panelType: PANEL_BY_TYPE[el.type],
+        panelType: panelForElement(el),
         collapseOnClick: duplicate ? false : collapseOnClick,
         didMove: false,
         duplicate,

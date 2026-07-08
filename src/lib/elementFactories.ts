@@ -81,6 +81,7 @@ export function createImageElement(
   srcWidth: number,
   srcHeight: number,
   name = "Image",
+  logoName?: string,
 ): ImageElement {
   const mw = CDW * 0.55;
   const mh = CDH * 0.55;
@@ -98,6 +99,7 @@ export function createImageElement(
     ...baseFields(w, h, name),
     type: "image",
     src,
+    ...(logoName != null ? { logoName } : {}),
   };
 }
 
