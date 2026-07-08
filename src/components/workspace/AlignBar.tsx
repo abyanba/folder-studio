@@ -64,7 +64,13 @@ export function AlignBar() {
 
   return (
     <TooltipProvider>
-      <div className="absolute top-3 left-1/2 z-[500] flex -translate-x-1/2 items-center gap-0.5 rounded-lg border bg-card/90 px-1.5 py-1 shadow-md backdrop-blur">
+      <div
+        // The bar lives inside the workspace pane, whose onPointerDown starts a
+        // marquee that would clear the selection (hiding the bar) before the
+        // button click resolves. Keep pointer events from reaching the pane.
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute top-3 left-1/2 z-[500] flex -translate-x-1/2 items-center gap-0.5 rounded-lg border bg-card/90 px-1.5 py-1 shadow-md backdrop-blur"
+      >
       <BarButton label="Align left" icon={AlignStartVertical} onClick={a("left")} />
       <BarButton label="Align center" icon={AlignCenterVertical} onClick={a("center")} />
       <BarButton label="Align right" icon={AlignEndVertical} onClick={a("right")} />
