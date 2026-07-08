@@ -174,6 +174,7 @@ export function TexturePanel() {
           placeholder="Search textures…"
           className="h-7 px-2 text-xs"
           aria-label="Search textures"
+          data-panel-search
         />
         <div className="grid grid-cols-3 gap-1.5">
           {shown.map((t) => {

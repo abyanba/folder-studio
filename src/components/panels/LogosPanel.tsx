@@ -142,6 +142,7 @@ export function LogosPanel() {
           placeholder="Search logos…"
           className="h-7 px-2 text-xs"
           aria-label="Search logos"
+          data-panel-search
         />
 
         {!q && (

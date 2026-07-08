@@ -71,6 +71,19 @@ export function useKeyboardShortcuts(): void {
       // consumed this key — don't double-handle it.
       if (e.defaultPrevented) return;
 
+      // `/` jumps focus to the active panel's search box (Icons/Logos/Textures).
+      if (e.key === "/") {
+        const search = document.querySelector<HTMLInputElement>("[data-panel-search]");
+        // Only intercept when a search box is actually on screen; otherwise let
+        // "/" type normally.
+        if (search && search.offsetParent !== null) {
+          e.preventDefault();
+          search.focus();
+          search.select();
+          return;
+        }
+      }
+
       // `?` toggles the keyboard-shortcut cheat sheet.
       if (e.key === "?") {
         e.preventDefault();

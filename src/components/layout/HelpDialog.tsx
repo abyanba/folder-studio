@@ -34,6 +34,7 @@ const SHORTCUTS: Array<[action: string, alternatives: string[][]]> = [
   ["Duplicate element", [["Alt", "drag"]]],
   ["Edit text in place", [["Double-click"]]],
   ["Cancel drag / exit editing", [["Esc"]]],
+  ["Focus panel search", [["/"]]],
   ["This cheat sheet", [["?"]]],
 ];
 

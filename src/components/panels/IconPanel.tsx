@@ -214,6 +214,7 @@ function IconLibrary() {
           placeholder="Search icons…"
           className="h-7 flex-1 px-2 text-xs"
           aria-label="Search icons"
+          data-panel-search
         />
         <ColorField
           value={iconDefaults.color}
