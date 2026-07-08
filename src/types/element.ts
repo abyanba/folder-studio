@@ -72,6 +72,8 @@ export interface ShapeElement extends BaseElement {
   };
   borderRadius: number;
   dropShadow?: DropShadow;
+  /** Inner shadow, cast inside the shape's own outline (independent of dropShadow). */
+  innerShadow?: DropShadow;
 }
 
 export type TextAlign = "left" | "center" | "right";
@@ -126,6 +128,8 @@ export interface IconElement extends BaseElement {
   iconCacheKey: string;
   color: ColorValue;
   dropShadow?: DropShadow;
+  /** Inner shadow, cast inside the icon's own alpha (independent of dropShadow). */
+  innerShadow?: DropShadow;
 }
 
 export interface DrawElement extends BaseElement {

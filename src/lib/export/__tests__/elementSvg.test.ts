@@ -83,6 +83,25 @@ describe("buildShapeSvg", () => {
     const hex = buildShapeSvg(createShapeElement("hexagon"), 100, 100);
     expect(hex.match(/,/g)?.length).toBe(6);
   });
+
+  it("emits an inner-shadow filter scaled into the 100×100 viewBox", () => {
+    const el = createShapeElement("rect");
+    el.innerShadow = { x: 2, y: 4, blur: 5, color: "#123456", opacity: 0.4 };
+    // Element is 50×100 → px→viewBox scale is 2 in x, 1 in y.
+    const svg = buildShapeSvg(el, 50, 100);
+    expect(svg).toContain(`<filter id="sis${el.id}"`);
+    expect(svg).toContain(`filter="url(#sis${el.id})"`);
+    expect(svg).toContain('dx="4"'); // 2 * (100/50)
+    expect(svg).toContain('dy="4"'); // 4 * (100/100)
+    expect(svg).toContain('stdDeviation="10 5"'); // blur * (sx, sy)
+    expect(svg).toContain('flood-color="#123456"');
+    expect(svg).toContain('flood-opacity="0.4"');
+  });
+
+  it("omits the inner-shadow filter when unset", () => {
+    const svg = buildShapeSvg(createShapeElement("rect"), 100, 100);
+    expect(svg).not.toContain("<filter");
+  });
 });
 
 const iconEl = (color: Gradient | string) =>
@@ -121,6 +140,18 @@ describe("buildIconSvg", () => {
     const svg = buildIconSvg(el, strokeBody, 80, 80);
     expect(svg).toContain(`stroke="url(#giexp${el.id})"`);
     expect(svg).toContain('viewBox="0 0 24 24"');
+  });
+
+  it("wraps the body in an inner-shadow filter scaled into the icon viewBox", () => {
+    const el = iconEl("#000000");
+    el.innerShadow = { x: 0, y: 2, blur: 3, color: "#000000", opacity: 0.5 };
+    // 256 viewBox, 128px element → scale 2 in both axes.
+    const svg = buildIconSvg(el, fillBody, 128, 128);
+    expect(svg).toContain(`<filter id="iis${el.id}"`);
+    expect(svg).toContain(`<g filter="url(#iis${el.id})">`);
+    expect(svg).toContain('dy="4"'); // 2 * (256/128)
+    expect(svg).toContain('stdDeviation="6 6"'); // 3 * 2
+    expect(svg).toContain("<feComponentTransfer");
   });
 });
 

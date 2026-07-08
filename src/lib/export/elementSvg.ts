@@ -7,7 +7,7 @@
  */
 
 import { isGradient } from "@/types/gradient";
-import type { DrawElement, IconElement, ShapeElement } from "@/types/element";
+import type { DrawElement, DropShadow, IconElement, ShapeElement } from "@/types/element";
 import {
   gradientDefsUserSpace,
   gradientElement,
@@ -20,6 +20,39 @@ export interface IconBody {
   height?: number;
 }
 
+/** Trim trailing zeros so filter attrs stay compact. */
+const n = (v: number): string => Number(v.toFixed(3)).toString();
+
+/**
+ * An inner-shadow `<filter>` clipped to the source's own alpha, so the shadow
+ * falls *inside* the shape/icon outline. Offsets and blur arrive in element
+ * pixels and are scaled into the SVG's user space by (`sx`, `sy`) — the two
+ * builders use viewBoxes (100×100 shapes, vw×vh icons) stretched to the element
+ * box, so x and y can scale differently.
+ *
+ * Recipe: invert SourceAlpha (outside becomes opaque), blur + offset it, flood
+ * the shadow color through that inverted mask, then clip the result back inside
+ * SourceGraphic and paint it over the original.
+ */
+export function innerShadowFilter(id: string, s: DropShadow, sx: number, sy: number): string {
+  const dx = n(s.x * sx);
+  const dy = n(s.y * sy);
+  const bx = n(Math.max(0, s.blur) * sx);
+  const by = n(Math.max(0, s.blur) * sy);
+  const op = n(s.opacity ?? 1);
+  return (
+    `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">` +
+    `<feComponentTransfer in="SourceAlpha"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
+    `<feGaussianBlur stdDeviation="${bx} ${by}"/>` +
+    `<feOffset dx="${dx}" dy="${dy}" result="o"/>` +
+    `<feFlood flood-color="${s.color}" flood-opacity="${op}"/>` +
+    `<feComposite in2="o" operator="in"/>` +
+    `<feComposite in2="SourceGraphic" operator="in" result="sh"/>` +
+    `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge>` +
+    `</filter>`
+  );
+}
+
 /** Build the SVG for an icon element, applying its solid/gradient color. */
 export function buildIconSvg(
   el: IconElement,
@@ -30,7 +63,7 @@ export function buildIconSvg(
   const vw = iconBody.width ?? 256;
   const vh = iconBody.height ?? 256;
   let body = iconBody.body ?? "";
-  let defs = "";
+  let defsInner = "";
   const color = el.color;
   if (isGradient(color)) {
     const id = "giexp" + el.id;
@@ -38,10 +71,16 @@ export function buildIconSvg(
     body = isStroke
       ? body.replace(/stroke="currentColor"/g, `stroke="url(#${id})"`)
       : body.replace(/fill="currentColor"/g, `fill="url(#${id})"`);
-    defs = `<defs>${gradientElement(id, color)}</defs>`;
+    defsInner += gradientElement(id, color);
   } else {
     body = body.replace(/currentColor/g, color || "#ffffff");
   }
+  if (el.innerShadow && ew > 0 && eh > 0) {
+    const fid = "iis" + el.id;
+    defsInner += innerShadowFilter(fid, el.innerShadow, vw / ew, vh / eh);
+    body = `<g filter="url(#${fid})">${body}</g>`;
+  }
+  const defs = defsInner ? `<defs>${defsInner}</defs>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${vw} ${vh}">${defs}${body}</svg>`;
 }
 
@@ -114,7 +153,14 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
     clipAttr = ` clip-path="url(#${clipId})"`;
   }
 
-  const inner = `${shapeGeometry(el, off)} ${common}${linejoinAttr}${poAttr}${clipAttr}/>`;
+  let filterAttr = "";
+  if (el.innerShadow && ew > 0 && eh > 0) {
+    const fid = "sis" + el.id;
+    defs += innerShadowFilter(fid, el.innerShadow, 100 / ew, 100 / eh);
+    filterAttr = ` filter="url(#${fid})"`;
+  }
+
+  const inner = `${shapeGeometry(el, off)} ${common}${linejoinAttr}${poAttr}${clipAttr}${filterAttr}/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 100 100" preserveAspectRatio="none">${defs}${inner}</svg>`;
 }

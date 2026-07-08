@@ -20,21 +20,36 @@ export const DEFAULT_SHADOW: DropShadow = {
   opacity: 0.5,
 };
 
+/** Inner shadows read best cast slightly down from the top edge, no side offset. */
+export const DEFAULT_INNER_SHADOW: DropShadow = {
+  x: 0,
+  y: 3,
+  blur: 4,
+  color: "#000000",
+  opacity: 0.5,
+};
+
 export function ShadowControls({
   shadow,
   onChange,
+  title = "Shadow",
+  defaultShadow = DEFAULT_SHADOW,
 }: {
   shadow: DropShadow | undefined;
   onChange: (shadow: DropShadow | null) => void;
+  /** Section heading — also names the toggle for a11y (default "Shadow"). */
+  title?: string;
+  /** Seed applied when the switch is turned on (default the outer drop shadow). */
+  defaultShadow?: DropShadow;
 }) {
   return (
     <PanelSection
-      title="Shadow"
+      title={title}
       action={
         <Switch
           checked={Boolean(shadow)}
-          onCheckedChange={(v) => onChange(v ? { ...DEFAULT_SHADOW } : null)}
-          aria-label="Toggle shadow"
+          onCheckedChange={(v) => onChange(v ? { ...defaultShadow } : null)}
+          aria-label={`Toggle ${title.toLowerCase()}`}
         />
       }
     >
