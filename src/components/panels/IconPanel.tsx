@@ -89,7 +89,7 @@ function IconGlyph({
   );
 }
 
-function SelectedIconEditor({ el }: { el: IconElement }) {
+export function SelectedIconEditor({ el }: { el: IconElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
   const clear = useSelectionStore((s) => s.clear);
   useIconCacheVersion();

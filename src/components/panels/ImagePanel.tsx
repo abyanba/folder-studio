@@ -91,7 +91,7 @@ export function UploadButton({ label = "Upload images" }: { label?: string }) {
   );
 }
 
-function SelectedImageEditor({ el }: { el: ImageElement }) {
+export function SelectedImageEditor({ el }: { el: ImageElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
   const setBlendPreview = useUiStore((s) => s.setBlendPreview);
 
