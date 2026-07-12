@@ -18,7 +18,7 @@ import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import type { DropShadow, FolderElement, TextElement } from "@/types/element";
-import { buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
+import { buildBaseShapeOverlaySvg, buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
@@ -193,7 +193,10 @@ function baseMarkup(doc: FolderDocument): string {
     const dh = FH * zm;
     const dx = -(dw - FW) * bpx;
     const dy = -(dh - FH) * bpy;
-    return `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"${op}/>`;
+    const img = `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"/>`;
+    // Folder-structure shading over the image (same builder as the editor).
+    const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
+    return `<g${op}>${img}${overlay ? fillBase(overlay) : ""}</g>`;
   }
   return `<g${op}>${fillBase(buildBaseShapeSvg(doc))}</g>`;
 }

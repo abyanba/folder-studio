@@ -63,18 +63,83 @@ function fgDefs(cs: ShapeColorState): string {
 
 const SVG_OPEN = '<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">';
 
-/** Legacy-style linear/radial defs for the complex generators (angle-90 convention). */
-function complexDefs(id: string, cs: ShapeColorState): string {
+/** Legacy-style linear/radial gradient element for the complex generators (angle-90 convention). */
+function complexGradient(id: string, cs: ShapeColorState): string {
   const stops = [...cs.stops].sort((a, b) => a.pos - b.pos);
   const ss = stops
     .map((s) => `<stop offset="${Math.round(s.pos * 100)}%" stop-color="${getHex(s.hue, s.sat, s.bri)}"/>`)
     .join("");
   if (cs.gradType === "linear") {
     const r = ((cs.gradAngle - 90) * Math.PI) / 180;
-    return `<defs><linearGradient id="${id}" x1="${(50 - Math.cos(r) * 50).toFixed(1)}%" y1="${(50 - Math.sin(r) * 50).toFixed(1)}%" x2="${(50 + Math.cos(r) * 50).toFixed(1)}%" y2="${(50 + Math.sin(r) * 50).toFixed(1)}%">${ss}</linearGradient></defs>`;
+    return `<linearGradient id="${id}" x1="${(50 - Math.cos(r) * 50).toFixed(1)}%" y1="${(50 - Math.sin(r) * 50).toFixed(1)}%" x2="${(50 + Math.cos(r) * 50).toFixed(1)}%" y2="${(50 + Math.sin(r) * 50).toFixed(1)}%">${ss}</linearGradient>`;
   }
-  return `<defs><radialGradient id="${id}" cx="50%" cy="50%" r="50%">${ss}</radialGradient></defs>`;
+  return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%">${ss}</radialGradient>`;
 }
+
+function complexDefs(id: string, cs: ShapeColorState): string {
+  return `<defs>${complexGradient(id, cs)}</defs>`;
+}
+
+/**
+ * Windows folder color model, calibrated by pixel-sampling the official Win11
+ * folder .ico set (Default/Green/Gray/Aqua at 256px; see docs/BACKLOG.md P2).
+ * Measured relationships, all reproduced within a few percent:
+ * - Front: diagonal gradient (light stop at offset 0.2344 → base at 1). The
+ *   light stop brightens v ×(1.22 + (1−s)×0.18) and desaturates ×0.70; when v
+ *   clamps at 1 the overflow turns into extra desaturation — this clamp
+ *   compensation is why the official yellow folder stays light and clean.
+ * - The light stop's hue drifts up to 26° toward yellow (48°), damped within
+ *   60° of it (official green 185°→157°; yellow stays put).
+ * - Back panel (tab + top strip + bottom rim): one near-vertical gradient,
+ *   darker and more saturated than base. How hard it darkens depends on how
+ *   much darkening the saturation boost absorbs (chroma-weighted): yellow's
+ *   tab keeps v≈1 and darkens via saturation alone; green/gray/aqua drop v
+ *   ×0.79 (top) → ×0.58 (rim). Rim saturation is uniformly ×0.91 of the tab's.
+ * - Shine: a light line along the front's entire top edge — a white stroke
+ *   fading left→right (α 0.32→0.04) — present in every official variant.
+ */
+const WIN_T = "M7.5293 46.3813V209.387C7.5293 216.354 13.1771 222.002 20.144 222.002H235.856C242.823 222.002 248.47 216.354 248.47 209.387V72.1068C248.47 65.1399 242.823 59.4921 235.856 59.4921H122.637C117.732 59.4921 113.291 56.6298 110.725 52.45C106.05 44.8336 97.6208 33.7666 88.1058 33.7666H20.1243C13.1574 33.7666 7.5293 39.4144 7.5293 46.3813Z";
+const WIN_B = "M248.47 76.97V205.152C248.47 212.119 242.823 217.767 235.856 217.767H20.144C13.1771 217.767 7.5293 212.119 7.5293 205.152V89.7409C7.5293 82.774 13.1585 77.1262 20.1254 77.1262H83.8484C105.293 77.1262 102.297 64.3542 116.962 64.3548C156.973 64.3567 211.551 64.3557 235.877 64.3552C242.844 64.355 248.47 70.0029 248.47 76.97Z";
+/** The front panel's top contour (left corner → tab swoop → right corner) as an open path. */
+const WIN_B_TOP = "M7.5293 89.7409C7.5293 82.774 13.1585 77.1262 20.1254 77.1262H83.8484C105.293 77.1262 102.297 64.3542 116.962 64.3548C156.973 64.3567 211.551 64.3557 235.877 64.3552C242.844 64.355 248.47 70.0029 248.47 76.97";
+
+/** Rotate `h` toward yellow (48°) by up to 26°×`strength`, damped within 60°. */
+function hueTowardYellow(h: number, strength: number): number {
+  const delta = ((48 - h + 540) % 360) - 180;
+  const shift = Math.max(-1, Math.min(1, delta / 60)) * 26 * strength;
+  return (h + shift + 360) % 360;
+}
+
+/** The front gradient's light stop for a solid base color. */
+function windowsFrontLight(h: number, s: number, v: number): string {
+  let s2 = s * 0.7;
+  let v2 = v * (1.22 + (1 - s) * 0.18);
+  if (v2 > 1) {
+    s2 = Math.max(0, s2 - (v2 - 1) * 0.55);
+    v2 = 1;
+  }
+  return getHex(hueTowardYellow(h, 1), s2, v2);
+}
+
+/** Back-panel gradient endpoints (tab top → bottom rim) for a base color. */
+function windowsBack(h: number, s: number, v: number, shiftHue: boolean): { top: string; bottom: string } {
+  const s2 = Math.min(1, s * 1.16);
+  // Chroma the saturation boost absorbed; the rest becomes value darkening.
+  const absorbed = (s2 - s) / 0.16;
+  return {
+    top: getHex(shiftHue ? hueTowardYellow(h, 0.8) : h, s2, v * (1 - 0.21 * (1 - absorbed))),
+    bottom: getHex(h, Math.min(1, s2 * 0.91), v * (1 - 0.42 * (1 - absorbed))),
+  };
+}
+
+/** Back-panel gradient def on its measured near-vertical axis (rim flat past 0.85). */
+function windowsBackGradient(top: string, bottom: string): string {
+  return `<linearGradient id="wbg" x1="24" y1="34" x2="80" y2="209" gradientUnits="userSpaceOnUse"><stop stop-color="${top}"/><stop offset="0.85" stop-color="${bottom}"/></linearGradient>`;
+}
+
+/** Shine defs (white L→R fade + clip to the front panel) and the stroked edge. */
+const WIN_SHINE_DEFS = `<linearGradient id="wsh" x1="7.5293" y1="0" x2="248.47" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0.32"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/></linearGradient><clipPath id="wfc"><path d="${WIN_B}"/></clipPath>`;
+const WIN_SHINE = `<path d="${WIN_B_TOP}" fill="none" stroke="url(#wsh)" stroke-width="7" clip-path="url(#wfc)"/>`;
 
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
@@ -131,18 +196,22 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultHsv: [43, 0.81, 1],
     defaultClip: true,
     buildSvg: (cs) => {
-      const T = "M7.5293 46.3813V209.387C7.5293 216.354 13.1771 222.002 20.144 222.002H235.856C242.823 222.002 248.47 216.354 248.47 209.387V72.1068C248.47 65.1399 242.823 59.4921 235.856 59.4921H122.637C117.732 59.4921 113.291 56.6298 110.725 52.45C106.05 44.8336 97.6208 33.7666 88.1058 33.7666H20.1243C13.1574 33.7666 7.5293 39.4144 7.5293 46.3813Z";
-      const B = "M248.47 76.97V205.152C248.47 212.119 242.823 217.767 235.856 217.767H20.144C13.1771 217.767 7.5293 212.119 7.5293 205.152V89.7409C7.5293 82.774 13.1585 77.1262 20.1254 77.1262H83.8484C105.293 77.1262 102.297 64.3542 116.962 64.3548C156.973 64.3567 211.551 64.3557 235.877 64.3552C242.844 64.355 248.47 70.0029 248.47 76.97Z";
       if (cs.mode === "solid") {
         const base = getHex(cs.hue, cs.sat, cs.bri);
-        const light = getHex(cs.hue, Math.max(0, cs.sat * 0.6), Math.min(1, cs.bri + 0.27));
-        return `${SVG_OPEN}<path d="${T}" fill="${base}"/><defs><linearGradient id="wg" x1="7.5293" y1="33.7666" x2="271.437" y2="180.773" gradientUnits="userSpaceOnUse"><stop offset="0.234375" stop-color="${light}"/><stop offset="1" stop-color="${base}"/></linearGradient></defs><path d="${B}" fill="url(#wg)"/></svg>`;
+        const light = windowsFrontLight(cs.hue, cs.sat, cs.bri);
+        const back = windowsBack(cs.hue, cs.sat, cs.bri, true);
+        const front = `<linearGradient id="wg" x1="7.5293" y1="33.7666" x2="271.437" y2="180.773" gradientUnits="userSpaceOnUse"><stop offset="0.234375" stop-color="${light}"/><stop offset="1" stop-color="${base}"/></linearGradient>`;
+        return `${SVG_OPEN}<defs>${windowsBackGradient(back.top, back.bottom)}${front}${WIN_SHINE_DEFS}</defs><path d="${WIN_T}" fill="url(#wbg)"/><path d="${WIN_B}" fill="url(#wg)"/>${WIN_SHINE}</svg>`;
       }
+      // Gradient fill: the user's gradient paints the front verbatim; the back
+      // panel derives from the deepest stop (the official Aqua derives its blue
+      // tab from the gradient's dark end, not the light one).
       const stops = [...cs.stops].sort((a, b) => a.pos - b.pos);
-      const tc = getHex(stops[0].hue, stops[0].sat, stops[0].bri);
-      return `${SVG_OPEN}<path d="${T}" fill="${tc}"/>${complexDefs("wg", cs)}<path d="${B}" fill="url(#wg)"/></svg>`;
+      const last = stops[stops.length - 1];
+      const back = windowsBack(last.hue, last.sat, last.bri, false);
+      return `${SVG_OPEN}<defs>${complexGradient("wg", cs)}${windowsBackGradient(back.top, back.bottom)}${WIN_SHINE_DEFS}</defs><path d="${WIN_T}" fill="url(#wbg)"/><path d="${WIN_B}" fill="url(#wg)"/>${WIN_SHINE}</svg>`;
     },
-    mask: '<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.5293 46.3813V209.387C7.5293 216.354 13.1771 222.002 20.144 222.002H235.856C242.823 222.002 248.47 216.354 248.47 209.387V72.1068C248.47 65.1399 242.823 59.4921 235.856 59.4921H122.637C117.732 59.4921 113.291 56.6298 110.725 52.45C106.05 44.8336 97.6208 33.7666 88.1058 33.7666H20.1243C13.1574 33.7666 7.5293 39.4144 7.5293 46.3813Z" fill="white"/><path d="M248.47 76.97V205.152C248.47 212.119 242.823 217.767 235.856 217.767H20.144C13.1771 217.767 7.5293 212.119 7.5293 205.152V89.7409C7.5293 82.774 13.1585 77.1262 20.1254 77.1262H83.8484C105.293 77.1262 102.297 64.3542 116.962 64.3548C156.973 64.3567 211.551 64.3557 235.877 64.3552C242.844 64.355 248.47 70.0029 248.47 76.97Z" fill="white"/></svg>',
+    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="${WIN_T}" fill="white"/><path d="${WIN_B}" fill="white"/></svg>`,
   },
   {
     id: "macos",
@@ -292,4 +361,21 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
 /** The white silhouette mask SVG for a base shape (used for clip-to-folder). */
 export function getBaseShapeMask(baseShapeId: string): string {
   return findShape(baseShapeId).mask;
+}
+
+/**
+ * Shading overlay drawn on top of an image folder fill so the folder's
+ * structure survives the image: the back panel / tab / bottom rim darken (the
+ * region of the back not covered by the front) and the front keeps its
+ * top-edge shine — the same cues the color algorithm paints. `null` for shapes
+ * without an overlay treatment. Consumed by the editor (`FolderBase`), the
+ * raster export (`renderCanvas`) and the vector export (`svgExport`) alike.
+ */
+export function buildBaseShapeOverlaySvg(baseShapeId: string): string | null {
+  if (findShape(baseShapeId).id !== "windows") return null;
+  const defs =
+    `<linearGradient id="wvg" x1="24" y1="34" x2="80" y2="209" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.18"/><stop offset="0.85" stop-color="#000000" stop-opacity="0.4"/></linearGradient>` +
+    `<mask id="wvm"><path d="${WIN_T}" fill="white"/><path d="${WIN_B}" fill="black"/></mask>` +
+    WIN_SHINE_DEFS;
+  return `${SVG_OPEN}<defs>${defs}</defs><rect width="256" height="256" fill="url(#wvg)" mask="url(#wvm)"/>${WIN_SHINE}</svg>`;
 }

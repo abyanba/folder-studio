@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BASE_SHAPES,
+  buildBaseShapeOverlaySvg,
   buildBaseShapeSvg,
   getBaseShapeMask,
   toShapeColorState,
@@ -64,17 +65,35 @@ describe("buildBaseShapeSvg — simple (template) shapes", () => {
 });
 
 describe("buildBaseShapeSvg — complex (generator) shapes", () => {
-  it("windows solid fill emits a base color and a wg gradient", () => {
+  it("windows solid fill emits front + back gradients and the shine", () => {
     const svg = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: "#ff0000" }));
-    expect(svg).toContain('fill="#ff0000"');
-    expect(svg).toContain('id="wg"');
+    // Base color is the front gradient's deep stop.
+    expect(svg).toContain('offset="1" stop-color="#ff0000"');
     expect(svg).toContain("url(#wg)");
+    // Back panel has its own darker gradient (tab / top strip / bottom rim).
+    expect(svg).toContain("url(#wbg)");
+    // Top-edge shine: white stroke fading left→right, clipped to the front.
+    expect(svg).toContain("url(#wsh)");
+    expect(svg).toContain('clip-path="url(#wfc)"');
   });
 
-  it("windows gradient fill routes through complexDefs", () => {
+  it("windows back panel is darker than the base color", () => {
+    // Teal base #0098a5 → official-style back darkens hard (low sat headroom).
+    const svg = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: "#0098a5" }));
+    const back = /id="wbg"[^>]*><stop stop-color="(#[0-9a-f]{6})"/.exec(svg);
+    expect(back).not.toBeNull();
+    // The tab top's HSV value (max RGB channel) must be visibly darker than
+    // the base's (0xa5), no matter where the hue shift puts the max channel.
+    const channels = [1, 3, 5].map((i) => parseInt(back![1].slice(i, i + 2), 16));
+    expect(Math.max(...channels)).toBeLessThan(0xa5 * 0.85);
+  });
+
+  it("windows gradient fill keeps the user's gradient on the front and derives the back from the deepest stop", () => {
     const svg = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: gradient }));
     expect(svg).toContain('<linearGradient id="wg"');
     expect(svg).toContain("url(#wg)");
+    expect(svg).toContain("url(#wbg)");
+    expect(svg).toContain("url(#wsh)");
   });
 
   it("file-folder solid renders its layered paths", () => {
@@ -94,6 +113,23 @@ describe("unknown base shape falls back to the first (classic)", () => {
   it("getBaseShapeMask returns a white silhouette and falls back for unknowns", () => {
     expect(getBaseShapeMask("classic")).toContain('fill="white"');
     expect(getBaseShapeMask("nope")).toBe(getBaseShapeMask("classic"));
+  });
+});
+
+describe("buildBaseShapeOverlaySvg — image-fill shading overlay", () => {
+  it("windows gets a shading mask (back minus front) plus the shine", () => {
+    const svg = buildBaseShapeOverlaySvg("windows");
+    expect(svg).not.toBeNull();
+    expect(svg).toContain('mask="url(#wvm)"');
+    expect(svg).toContain('stroke="url(#wsh)"');
+    // Shading is a black gradient, not a flat fill.
+    expect(svg).toContain('stop-color="#000000"');
+  });
+
+  it("shapes without an overlay treatment return null", () => {
+    expect(buildBaseShapeOverlaySvg("classic")).toBeNull();
+    expect(buildBaseShapeOverlaySvg("macos")).toBeNull();
+    expect(buildBaseShapeOverlaySvg("does-not-exist")).toBeNull();
   });
 });
 

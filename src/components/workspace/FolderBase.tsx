@@ -8,12 +8,16 @@ import { memo } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH } from "@/lib/constants";
 import type { FolderDocument } from "@/types/document";
-import { buildBaseShapeSvg, getBaseShapeMask } from "@/lib/export/baseShapes";
+import {
+  buildBaseShapeOverlaySvg,
+  buildBaseShapeSvg,
+  getBaseShapeMask,
+} from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 
-/** Make the 256×256 export SVG fill the editor's FW×FH box (editor-only tweak). */
-function responsiveBaseSvg(doc: FolderDocument): string {
-  return buildBaseShapeSvg(doc).replace(
+/** Make a 256×256 export SVG fill the editor's FW×FH box (editor-only tweak). */
+function responsive(svg: string): string {
+  return svg.replace(
     /<svg([^>]*)>/,
     '<svg$1 preserveAspectRatio="none" style="width:100%;height:100%;display:block">',
   );
@@ -39,7 +43,28 @@ function FolderBaseImpl({ doc }: { doc: FolderDocument }) {
       maskRepeat: "no-repeat",
       pointerEvents: "none",
     };
-    return <div style={style} />;
+    // The shading overlay keeps the folder's structure (tab/back separation,
+    // top-edge shine) visible over the image — same builder as both exports.
+    const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
+    return (
+      <>
+        <div style={style} />
+        {overlay && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: FW,
+              height: FH,
+              pointerEvents: "none",
+              opacity: doc.folderOpacity ?? 1,
+            }}
+            dangerouslySetInnerHTML={{ __html: responsive(overlay) }}
+          />
+        )}
+      </>
+    );
   }
 
   // Inline SVG (not <img src=dataURL>) so a folder-color drag diffs DOM
@@ -56,7 +81,7 @@ function FolderBaseImpl({ doc }: { doc: FolderDocument }) {
         pointerEvents: "none",
         opacity: doc.folderOpacity ?? 1,
       }}
-      dangerouslySetInnerHTML={{ __html: responsiveBaseSvg(doc) }}
+      dangerouslySetInnerHTML={{ __html: responsive(buildBaseShapeSvg(doc)) }}
     />
   );
 }

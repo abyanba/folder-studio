@@ -20,7 +20,7 @@ import { getHex, hexA } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
+import { buildBaseShapeOverlaySvg, buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
@@ -104,6 +104,12 @@ async function recolorCanvas(
       const dx = -(dw - size) * bpx;
       const dy = -(dh - size) * bpy;
       ctx.drawImage(bi, dx, dy, dw, dh);
+      // Folder-structure shading over the image (same builder as the editor).
+      const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
+      if (overlay) {
+        const oi = await loadImage(toSvgDataUrl(overlay));
+        if (oi) ctx.drawImage(oi, 0, 0, size, size);
+      }
     } else {
       skipped.push("Folder background");
     }

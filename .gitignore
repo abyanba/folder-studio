@@ -28,6 +28,7 @@ docs/*
 *.svg
 *.ico
 *.zip
+windows-folder/*
 
 # AI / agent tooling — kept local, never pushed.
 # This is a static site (visitors just open the GitHub Pages URL), so no
