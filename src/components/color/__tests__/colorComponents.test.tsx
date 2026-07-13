@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SliderField } from "@/components/controls/SliderField";
 import { ColorField } from "@/components/color/ColorField";
@@ -109,5 +109,69 @@ describe("ColorField", () => {
     expect(screen.queryByRole("tab", { name: "Gradient" })).toBeNull();
     // Solid picker + format input render.
     expect(screen.getByRole("textbox", { name: "Color value" })).toBeInTheDocument();
+  });
+});
+
+describe("ColorField eyedropper session", () => {
+  let resolveOpen: ((r: { sRGBHex: string }) => void) | undefined;
+  let openSignal: AbortSignal | undefined;
+
+  beforeEach(() => {
+    resolveOpen = undefined;
+    openSignal = undefined;
+    window.EyeDropper = class {
+      open(options?: { signal?: AbortSignal }) {
+        openSignal = options?.signal;
+        return new Promise<{ sRGBHex: string }>((resolve, reject) => {
+          resolveOpen = resolve;
+          options?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("aborted", "AbortError")),
+          );
+        });
+      }
+    };
+    return () => {
+      delete window.EyeDropper;
+    };
+  });
+
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  it("keeps the popover open while a capture is pending, then applies the pick", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ColorField value="#00ff00" onChange={onChange} ariaLabel="Fill color" />);
+    await user.click(screen.getByRole("button", { name: "Fill color" }));
+
+    await user.click(screen.getByRole("button", { name: "Pick color from screen" }));
+    await act(tick); // deferred open() has now been called
+    expect(resolveOpen).toBeDefined();
+
+    // The native overlay steals focus/clicks — Radix would normally dismiss.
+    fireEvent.pointerDown(document.body);
+    fireEvent.focusIn(document.body);
+    expect(screen.getByRole("textbox", { name: "Color value" })).toBeInTheDocument();
+
+    resolveOpen!({ sRGBHex: "#ABCDEF" });
+    await act(tick);
+    expect(onChange).toHaveBeenCalledWith("#abcdef");
+    // Still open after the pick.
+    expect(screen.getByRole("textbox", { name: "Color value" })).toBeInTheDocument();
+  });
+
+  it("aborts the native capture if the owner unmounts mid-session", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ColorField value="#00ff00" onChange={() => {}} ariaLabel="Fill color" />,
+    );
+    await user.click(screen.getByRole("button", { name: "Fill color" }));
+    await user.click(screen.getByRole("button", { name: "Pick color from screen" }));
+    await act(tick);
+    expect(openSignal).toBeDefined();
+    expect(openSignal!.aborted).toBe(false);
+
+    unmount();
+    expect(openSignal!.aborted).toBe(true);
+    await act(tick); // let the rejection + session teardown settle
   });
 });

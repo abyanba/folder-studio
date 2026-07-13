@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getHex, gradientToCss, hexToHsv } from "@/lib/color";
 import { createId } from "@/lib/id";
 import { isGradient, type ColorValue, type Gradient, type GradientStop } from "@/types/gradient";
+import { isEyeDropperSessionActive } from "./EyeDropperButton";
 import { GradientEditor } from "./GradientEditor";
 import { PresetRow } from "./PresetRow";
 import { SolidColorPicker } from "./SolidColorPicker";
@@ -71,7 +72,23 @@ export function ColorField({
         )}
         style={{ background: grad ? gradientToCss(grad) : (value as string) }}
       />
-      <PopoverContent className="w-72 space-y-3 p-3" align="start">
+      <PopoverContent
+        className="w-72 space-y-3 p-3"
+        align="start"
+        // While the eyedropper's native overlay owns the screen, the popover
+        // must NOT dismiss: unmounting the capture's owner orphans Chrome's
+        // modal capture window and freezes all browser input (Windows).
+        onInteractOutside={(e) => {
+          if (isEyeDropperSessionActive()) e.preventDefault();
+        }}
+        onFocusOutside={(e) => {
+          if (isEyeDropperSessionActive()) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Esc cancels the eyedropper itself, not the popover.
+          if (isEyeDropperSessionActive()) e.preventDefault();
+        }}
+      >
         {allowGradient && (
           <Tabs
             value={mode}
