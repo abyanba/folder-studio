@@ -28,8 +28,14 @@ import type { ColorValue } from "@/types/gradient";
 import type { FolderElement } from "@/types/element";
 import type {
   FolderDocument,
+  FolderState,
   IconDefaults,
+  MacColorProfile,
+  MacGradientAlgo,
   TextureSettings,
+  WindowsColorProfile,
+  WindowsGradientAlgo,
+  WindowsImageMode,
 } from "@/types/document";
 import { createEmptyDocument } from "@/types/document";
 
@@ -112,12 +118,43 @@ export interface DocumentStore {
   ) => void;
   /** Patch the folder fill (color and/or fill mode) in one undo entry. */
   setFolderFill: (
-    patch: Partial<Pick<FolderDocument, "folderColor" | "folderFillMode" | "folderBgImage">>,
+    patch: Partial<
+      Pick<
+        FolderDocument,
+        | "folderColor"
+        | "folderFillMode"
+        | "folderBgImage"
+        | "folderBgImageColor"
+        | "folderBgImageColor2"
+      >
+    >,
   ) => void;
   setFolderOpacity: (opacity: number) => void;
   setFolderBgImage: (src: string | null) => void;
   setFolderBg: (patch: Partial<Pick<FolderDocument, "folderBgZoom" | "folderBgX" | "folderBgY">>) => void;
+  /** Patch the image color-overlay (tint color and/or strength). */
+  setFolderBgOverlay: (
+    patch: Partial<Pick<FolderDocument, "folderBgOverlayColor" | "folderBgOverlayOpacity">>,
+  ) => void;
   setClipToFolder: (clip: boolean) => void;
+  /** Set the Windows custom tab color, solid or gradient (`null` = Auto). */
+  setFolderBackColor: (color: ColorValue | null) => void;
+  /** Switch the folder fullness variant (empty vs paper-peek contents). */
+  setFolderState: (state: FolderState) => void;
+  /** Set the "with contents" paper color, solid or gradient (`null` = white). */
+  setFolderPaperColor: (color: ColorValue | null) => void;
+  /** TEMPORARY tweak: pick the Windows gradient-fill color treatment. */
+  setWindowsGradientAlgo: (algo: WindowsGradientAlgo) => void;
+  /** TEMPORARY tweak: pick the macOS solid-fill color profile. */
+  setMacColorProfile: (profile: MacColorProfile) => void;
+  /** TEMPORARY tweak: pick the macOS gradient-fill color treatment. */
+  setMacGradientAlgo: (algo: MacGradientAlgo) => void;
+  /** TEMPORARY tweak: pick the Windows solid-fill color profile. */
+  setWindowsColorProfile: (profile: WindowsColorProfile) => void;
+  /** Pick how an image fill maps onto the macOS folder (full vs front-only). */
+  setMacImageMode: (mode: WindowsImageMode) => void;
+  /** Pick how an image fill maps onto the Windows folder (full vs front-only). */
+  setWindowsImageMode: (mode: WindowsImageMode) => void;
   setTexture: (patch: Partial<TextureSettings>) => void;
   setIconDefaults: (patch: Partial<IconDefaults>) => void;
 
@@ -436,6 +473,17 @@ export const useDocumentStore = create<DocumentStore>()(
       setFolderBgImage: (src) => set((s) => ({ doc: { ...s.doc, folderBgImage: src } })),
       setFolderBg: (patch) => set((s) => ({ doc: { ...s.doc, ...patch } })),
       setClipToFolder: (clip) => set((s) => ({ doc: { ...s.doc, clipToFolder: clip } })),
+      setFolderBgOverlay: (patch) => set((s) => ({ doc: { ...s.doc, ...patch } })),
+      setFolderBackColor: (color) => set((s) => ({ doc: { ...s.doc, folderBackColor: color } })),
+      setFolderState: (state) => set((s) => ({ doc: { ...s.doc, folderState: state } })),
+      setFolderPaperColor: (color) => set((s) => ({ doc: { ...s.doc, folderPaperColor: color } })),
+      setWindowsGradientAlgo: (algo) => set((s) => ({ doc: { ...s.doc, windowsGradientAlgo: algo } })),
+      setMacColorProfile: (profile) => set((s) => ({ doc: { ...s.doc, macColorProfile: profile } })),
+      setMacGradientAlgo: (algo) => set((s) => ({ doc: { ...s.doc, macGradientAlgo: algo } })),
+      setWindowsColorProfile: (profile) =>
+        set((s) => ({ doc: { ...s.doc, windowsColorProfile: profile } })),
+      setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),
+      setWindowsImageMode: (mode) => set((s) => ({ doc: { ...s.doc, windowsImageMode: mode } })),
       setTexture: (patch) => set((s) => ({ doc: { ...s.doc, texture: { ...s.doc.texture, ...patch } } })),
       setIconDefaults: (patch) =>
         set((s) => ({ doc: { ...s.doc, iconDefaults: { ...s.doc.iconDefaults, ...patch } } })),

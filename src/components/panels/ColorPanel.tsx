@@ -9,23 +9,41 @@
  */
 
 import { useRef, type ChangeEvent } from "react";
-import { ImagePlus, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ImagePlus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GradientEditor } from "@/components/color/GradientEditor";
 import { PresetRow } from "@/components/color/PresetRow";
 import { SolidColorPicker } from "@/components/color/SolidColorPicker";
-import { gradientFromHex } from "@/components/color/ColorField";
+import { ColorField, gradientFromHex } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
+import {
+  MAC_COLOR_PROFILES,
+  macDerivedTabColor,
+  WINDOWS_GRADIENT_ALGOS,
+  WINDOWS_IMAGE_MODES,
+  windowsDerivedTabColor,
+  windowsImageModeName,
+} from "@/lib/export/baseShapes";
+import { Switch } from "@/components/ui/switch";
 import { getHex } from "@/lib/color";
+import { dominantImageColors } from "@/lib/imageColor";
 import { computeImagePan } from "@/lib/imagePan";
 import {
   beginDocPreview,
   endDocPreview,
   useDocumentStore,
 } from "@/store/documentStore";
+import { useUiStore } from "@/store/uiStore";
 import { isGradient, type GradientStop } from "@/types/gradient";
+import type { WindowsImageMode } from "@/types/document";
 import { notify } from "@/store/toastStore";
 import { importImageFile } from "@/lib/importImage";
 import { PanelHeader } from "./PanelHeader";
@@ -87,6 +105,255 @@ function ImageCropPreview() {
   );
 }
 
+/**
+ * A "Color profile" dropdown with hover live-preview. Shared by all four folder
+ * profile pickers (Windows/macOS × solid/gradient); each supplies its options,
+ * current value, commit setter, and preview setter.
+ */
+function ProfileDropdown<T extends string>({
+  value,
+  options,
+  onSelect,
+  onPreview,
+}: {
+  value: T;
+  options: ReadonlyArray<{ id: T; name: string }>;
+  onSelect: (id: T) => void;
+  onPreview: (id: T | null) => void;
+}) {
+  const name = options.find((o) => o.id === value)?.name ?? value;
+  return (
+    <PanelSection title="Color profile">
+      <DropdownMenu onOpenChange={(open) => !open && onPreview(null)}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-7 w-full justify-between text-xs">
+            {name}
+            <ChevronDown className="size-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="start">
+          {options.map((opt) => (
+            <DropdownMenuItem
+              key={opt.id}
+              className="text-xs"
+              onMouseEnter={() => onPreview(opt.id)}
+              onMouseLeave={() => onPreview(null)}
+              onSelect={() => {
+                onPreview(null);
+                onSelect(opt.id);
+              }}
+            >
+              {opt.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </PanelSection>
+  );
+}
+
+/** Windows gradient-fill color profile (tab/back + shine treatment). */
+function WindowsGradientProfile() {
+  const algo = useDocumentStore((s) => s.doc.windowsGradientAlgo);
+  const setAlgo = useDocumentStore((s) => s.setWindowsGradientAlgo);
+  const setPreview = useUiStore((s) => s.setWindowsGradientPreview);
+  return (
+    <ProfileDropdown value={algo} options={WINDOWS_GRADIENT_ALGOS} onSelect={setAlgo} onPreview={setPreview} />
+  );
+}
+
+/** Windows solid-fill color profile (authentic vs popped vs flat, etc.). */
+function WindowsSolidProfile() {
+  const profile = useDocumentStore((s) => s.doc.windowsColorProfile);
+  const setProfile = useDocumentStore((s) => s.setWindowsColorProfile);
+  const setPreview = useUiStore((s) => s.setWindowsColorProfilePreview);
+  return (
+    <ProfileDropdown value={profile} options={MAC_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
+  );
+}
+
+/** macOS solid-fill color profile (authentic vs popped vs flat, etc.). */
+function MacColorProfile() {
+  const profile = useDocumentStore((s) => s.doc.macColorProfile);
+  const setProfile = useDocumentStore((s) => s.setMacColorProfile);
+  const setPreview = useUiStore((s) => s.setMacColorProfilePreview);
+  return (
+    <ProfileDropdown value={profile} options={MAC_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
+  );
+}
+
+/** macOS gradient-fill color profile (front + tab treatment). */
+function MacGradientProfile() {
+  const algo = useDocumentStore((s) => s.doc.macGradientAlgo);
+  const setAlgo = useDocumentStore((s) => s.setMacGradientAlgo);
+  const setPreview = useUiStore((s) => s.setMacGradientPreview);
+  return (
+    <ProfileDropdown value={algo} options={WINDOWS_GRADIENT_ALGOS} onSelect={setAlgo} onPreview={setPreview} />
+  );
+}
+
+/**
+ * Windows-only: whether an image fill spans the whole folder or just the front
+ * panel (with an adaptive tab/back derived from the image).
+ */
+function ImageSpan() {
+  const baseShape = useDocumentStore((s) => s.doc.baseShape);
+  const isMac = baseShape === "macos";
+  const mode = useDocumentStore((s) => (isMac ? s.doc.macImageMode : s.doc.windowsImageMode));
+  const setWinMode = useDocumentStore((s) => s.setWindowsImageMode);
+  const setMacMode = useDocumentStore((s) => s.setMacImageMode);
+  const setMode = isMac ? setMacMode : setWinMode;
+  const bgImage = useDocumentStore((s) => s.doc.folderBgImage);
+  const bgColor = useDocumentStore((s) => s.doc.folderBgImageColor);
+  const setFolderFill = useDocumentStore((s) => s.setFolderFill);
+
+  const pick = (m: WindowsImageMode) => {
+    // Front mode needs the adaptive color(s); compute for images captured before
+    // the palette was stored.
+    if (m === "front" && !bgColor && bgImage) {
+      dominantImageColors(bgImage).then(({ primary, secondary }) =>
+        setFolderFill({ folderBgImageColor: primary, folderBgImageColor2: secondary }),
+      );
+    }
+    setMode(m);
+  };
+
+  return (
+    <PanelSection title="Image span">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-7 w-full justify-between text-xs">
+            {windowsImageModeName(mode)}
+            <ChevronDown className="size-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="start">
+          {WINDOWS_IMAGE_MODES.map((opt) => (
+            <DropdownMenuItem key={opt.id} className="text-xs" onSelect={() => pick(opt.id)}>
+              {opt.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </PanelSection>
+  );
+}
+
+/** Solid color tint over the background image, with an opacity slider. */
+function ImageOverlayControls() {
+  const color = useDocumentStore((s) => s.doc.folderBgOverlayColor);
+  const opacity = useDocumentStore((s) => s.doc.folderBgOverlayOpacity);
+  const setOverlay = useDocumentStore((s) => s.setFolderBgOverlay);
+  return (
+    <PanelSection title="Overlay">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Tint color</span>
+        <ColorField
+          value={color}
+          onChange={(v) => setOverlay({ folderBgOverlayColor: v as string })}
+          ariaLabel="Overlay color"
+        />
+      </div>
+      <SliderField
+        label="Overlay opacity"
+        value={opacity}
+        min={0}
+        max={1}
+        step={0.05}
+        onChange={(v) => setOverlay({ folderBgOverlayOpacity: v })}
+        format={(v) => `${Math.round(v * 100)}%`}
+      />
+    </PanelSection>
+  );
+}
+
+/**
+ * Color the TAB/back independently from the front (solid or gradient), for the
+ * Windows and macOS shapes. Auto (default) derives it from the front. Disabled
+ * in full-image mode, where the image covers the tab.
+ */
+function BackTabColor() {
+  const doc = useDocumentStore((s) => s.doc);
+  const setBackColor = useDocumentStore((s) => s.setFolderBackColor);
+  const backColor = doc.folderBackColor;
+  const custom = backColor != null;
+  const isMac = doc.baseShape === "macos";
+  const imageMode = isMac ? doc.macImageMode : doc.windowsImageMode;
+  const disabled = doc.folderFillMode === "image" && imageMode === "full";
+  const derived = isMac ? macDerivedTabColor(doc) : windowsDerivedTabColor(doc);
+  return (
+    <PanelSection
+      title="Back (tab)"
+      action={
+        <Switch
+          size="sm"
+          checked={custom}
+          disabled={disabled}
+          aria-label="Custom back color"
+          onCheckedChange={(on) => setBackColor(on ? derived : null)}
+        />
+      }
+    >
+      {disabled ? (
+        <p className="text-[11px] text-muted-foreground">
+          Set Image span to “Front only” to color the tab.
+        </p>
+      ) : custom ? (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Tab color</span>
+          <ColorField
+            value={backColor}
+            onChange={setBackColor}
+            allowGradient
+            linearOnly
+            ariaLabel="Back tab color"
+          />
+        </div>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">Auto — derived from the front.</p>
+      )}
+    </PanelSection>
+  );
+}
+
+/**
+ * Recolor the "with contents" paper sheet independently (windows/macOS). White by
+ * default (regardless of folder color); Custom accepts a solid or linear gradient.
+ */
+function PaperColorSection() {
+  const paperColor = useDocumentStore((s) => s.doc.folderPaperColor);
+  const setPaperColor = useDocumentStore((s) => s.setFolderPaperColor);
+  const custom = paperColor != null;
+  return (
+    <PanelSection
+      title="Paper"
+      action={
+        <Switch
+          size="sm"
+          checked={custom}
+          aria-label="Custom paper color"
+          onCheckedChange={(on) => setPaperColor(on ? "#ffffff" : null)}
+        />
+      }
+    >
+      {custom ? (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Paper color</span>
+          <ColorField
+            value={paperColor}
+            onChange={setPaperColor}
+            allowGradient
+            linearOnly
+            ariaLabel="Paper color"
+          />
+        </div>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">White — independent of the folder color.</p>
+      )}
+    </PanelSection>
+  );
+}
+
 export function ColorPanel() {
   const doc = useDocumentStore((s) => s.doc);
   const setFolderColor = useDocumentStore((s) => s.setFolderColor);
@@ -127,8 +394,16 @@ export function ColorPanel() {
     const file = e.target.files?.[0];
     if (file) {
       importImageFile(file)
-        .then(({ dataUrl, scaled }) => {
-          setFolderFill({ folderBgImage: dataUrl, folderFillMode: "image" });
+        .then(async ({ dataUrl, scaled }) => {
+          // Capture the adaptive palette up front so the front-only image mode
+          // has it ready (and the SVG export, which can't sample pixels).
+          const { primary, secondary } = await dominantImageColors(dataUrl);
+          setFolderFill({
+            folderBgImage: dataUrl,
+            folderFillMode: "image",
+            folderBgImageColor: primary,
+            folderBgImageColor2: secondary,
+          });
           if (scaled) notify.info("Image resized to 1024px for performance");
         })
         .catch((err) =>
@@ -169,6 +444,8 @@ export function ColorPanel() {
         {mode === "solid" && (
           <>
             <SolidColorPicker hex={hex} onChange={setFolderColor} />
+            {doc.baseShape === "windows" && <WindowsSolidProfile />}
+            {doc.baseShape === "macos" && <MacColorProfile />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -180,6 +457,8 @@ export function ColorPanel() {
         {mode === "gradient" && grad && (
           <>
             <GradientEditor value={grad} onChange={setFolderColor} />
+            {doc.baseShape === "windows" && <WindowsGradientProfile />}
+            {doc.baseShape === "macos" && <MacGradientProfile />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -189,6 +468,7 @@ export function ColorPanel() {
         )}
 
         {mode === "image" && (
+          <>
           <PanelSection title="Background image">
             {doc.folderBgImage ? (
               <div className="space-y-2.5">
@@ -250,7 +530,16 @@ export function ColorPanel() {
               onChange={onUpload}
             />
           </PanelSection>
+          {(doc.baseShape === "windows" || doc.baseShape === "macos") && doc.folderBgImage && (
+            <ImageSpan />
+          )}
+          {doc.folderBgImage && <ImageOverlayControls />}
+          </>
         )}
+
+        {(doc.baseShape === "windows" || doc.baseShape === "macos") && <BackTabColor />}
+        {(doc.baseShape === "windows" || doc.baseShape === "macos") &&
+          doc.folderState === "contents" && <PaperColorSection />}
       </div>
     </div>
   );

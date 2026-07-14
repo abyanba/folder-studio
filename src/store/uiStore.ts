@@ -6,6 +6,12 @@
 import { create } from "zustand";
 import type { DragState } from "@/types/interaction";
 import type { BlendMode } from "@/types/element";
+import type {
+  MacColorProfile,
+  MacGradientAlgo,
+  WindowsColorProfile,
+  WindowsGradientAlgo,
+} from "@/types/document";
 import type { ColorValue } from "@/types/gradient";
 import type { ControlPoint, Point } from "@/lib/smoothing";
 import type { CurrentDraw } from "@/lib/draw";
@@ -27,6 +33,14 @@ export interface UiStore {
   drag: DragState | null;
   /** Blend mode being hovered in the image panel — live-previewed on the selected image. */
   blendPreview: BlendMode | null;
+  /** Windows gradient color profile being hovered — live-previewed on the folder base. */
+  windowsGradientPreview: WindowsGradientAlgo | null;
+  /** macOS solid color profile being hovered — live-previewed on the folder base. */
+  macColorProfilePreview: MacColorProfile | null;
+  /** macOS gradient color profile being hovered — live-previewed on the folder base. */
+  macGradientPreview: MacGradientAlgo | null;
+  /** Windows solid color profile being hovered — live-previewed on the folder base. */
+  windowsColorProfilePreview: WindowsColorProfile | null;
   /** Logos panel: mono (tinted simple-icons) vs full-color artwork. */
   logoMode: "mono" | "color";
   /** Tint for mono logos (legacy `logoColor`). */
@@ -58,6 +72,10 @@ export interface UiStore {
   setContextMenu: (menu: ContextMenuState | null) => void;
   setDrag: (drag: DragState | null) => void;
   setBlendPreview: (mode: BlendMode | null) => void;
+  setWindowsGradientPreview: (algo: WindowsGradientAlgo | null) => void;
+  setMacColorProfilePreview: (profile: MacColorProfile | null) => void;
+  setMacGradientPreview: (algo: MacGradientAlgo | null) => void;
+  setWindowsColorProfilePreview: (profile: WindowsColorProfile | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
   setCanvasLight: (light: boolean) => void;
@@ -84,6 +102,10 @@ export const useUiStore = create<UiStore>()((set) => ({
   contextMenu: null,
   drag: null,
   blendPreview: null,
+  windowsGradientPreview: null,
+  macColorProfilePreview: null,
+  macGradientPreview: null,
+  windowsColorProfilePreview: null,
   logoMode: "mono",
   logoColor: "#ffffff",
   canvasLight: false,
@@ -105,6 +127,10 @@ export const useUiStore = create<UiStore>()((set) => ({
   setContextMenu: (menu) => set({ contextMenu: menu }),
   setDrag: (drag) => set({ drag }),
   setBlendPreview: (mode) => set({ blendPreview: mode }),
+  setWindowsGradientPreview: (algo) => set({ windowsGradientPreview: algo }),
+  setMacColorProfilePreview: (profile) => set({ macColorProfilePreview: profile }),
+  setMacGradientPreview: (algo) => set({ macGradientPreview: algo }),
+  setWindowsColorProfilePreview: (profile) => set({ windowsColorProfilePreview: profile }),
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
   setCanvasLight: (light) => set({ canvasLight: light }),

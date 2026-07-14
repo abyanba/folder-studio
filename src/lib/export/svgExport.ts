@@ -18,7 +18,17 @@ import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import type { DropShadow, FolderElement, TextElement } from "@/types/element";
-import { buildBaseShapeOverlaySvg, buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
+import {
+  buildBaseShapeOverlaySvg,
+  buildBaseShapePaperSvg,
+  buildBaseShapeSvg,
+  buildFrontImageBackSvg,
+  buildFrontImageOverlaySvg,
+  buildImageColorOverlaySvg,
+  getBaseShapeMask,
+  getFrontMask,
+  isFrontImage,
+} from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
@@ -31,6 +41,12 @@ export interface SvgExportDeps {
   measure?: (el: TextElement) => MeasureText;
   /** Optional `@font-face` CSS (data-URL fonts) to embed for a self-contained file. */
   fontFaceCss?: string;
+  /**
+   * Natural pixel size of `folderBgImage`, so an image fill can preserve its
+   * aspect ratio (matching the editor's `background-size: <zoom>%` with an auto
+   * height). Absent ⇒ the image is treated as square.
+   */
+  bgImageSize?: { w: number; h: number };
 }
 
 export interface SvgExportResult {
@@ -183,20 +199,45 @@ function elementMarkup(
 }
 
 /** Base folder markup: cropped background image, or the colored base shape. */
-function baseMarkup(doc: FolderDocument): string {
+function baseMarkup(doc: FolderDocument, bgRatio: number): string {
   const op = doc.folderOpacity != null && doc.folderOpacity !== 1 ? ` opacity="${num(doc.folderOpacity)}"` : "";
   if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const zm = doc.folderBgZoom || 1;
     const bpx = (doc.folderBgX ?? 50) / 100;
     const bpy = (doc.folderBgY ?? 50) / 100;
+    // Mirror CSS `background-size: <zoom>%` (width set, height auto): the width
+    // is zoom×workspace and the height follows the image's aspect ratio, so a
+    // non-square photo isn't squashed into the square canvas.
     const dw = FW * zm;
-    const dh = FH * zm;
+    const dh = dw * bgRatio;
     const dx = -(dw - FW) * bpx;
     const dy = -(dh - FH) * bpy;
     const img = `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"/>`;
+    // Color tint over the image (masked to the folder), below the structure.
+    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
+    const tint = tintSvg ? fillBase(tintSvg) : "";
+    // Paper peek on top — the image, tint and shading never affect it.
+    const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+    const paper = paperSvg ? fillBase(paperSvg) : "";
+    if (isFrontImage(doc)) {
+      // Front only: adaptive back, then the image clipped to the front panel,
+      // then the tint, then the structure overlay. The front mask is embedded as
+      // an inner <svg> (same pattern as clip-to-folder).
+      const back = fillBase(
+        buildFrontImageBackSvg(
+          doc.baseShape,
+          doc.folderBgImageColor ?? "#888888",
+          doc.folderBackColor,
+          doc.folderBgImageColor2,
+        ),
+      );
+      const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape))}</svg></mask>`;
+      const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape));
+      return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)">${img}</g>${tint}${shine}${paper}</g>`;
+    }
     // Folder-structure shading over the image (same builder as the editor).
     const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
-    return `<g${op}>${img}${overlay ? fillBase(overlay) : ""}</g>`;
+    return `<g${op}>${img}${tint}${overlay ? fillBase(overlay) : ""}${paper}</g>`;
   }
   return `<g${op}>${fillBase(buildBaseShapeSvg(doc))}</g>`;
 }
@@ -213,7 +254,8 @@ export function buildExportSvg(
 ): SvgExportResult {
   const skipped: string[] = [];
   const defs: string[] = [];
-  const body: string[] = [baseMarkup(doc)];
+  const bgRatio = deps.bgImageSize && deps.bgImageSize.w > 0 ? deps.bgImageSize.h / deps.bgImageSize.w : 1;
+  const body: string[] = [baseMarkup(doc, bgRatio)];
 
   const emit = (el: FolderElement): void => {
     if (el.visible === false) return;
@@ -234,7 +276,7 @@ export function buildExportSvg(
     const mask = getBaseShapeMask(doc.baseShape);
     if (mask) {
       defs.push(
-        `<mask id="folderclip"><svg x="0" y="0" width="${FW}" height="${FH}">${mask}</svg></mask>`,
+        `<mask id="folderclip"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(mask)}</svg></mask>`,
       );
       content = `<g mask="url(#folderclip)">${content}</g>`;
     }

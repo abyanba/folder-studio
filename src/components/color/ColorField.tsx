@@ -42,12 +42,15 @@ export function ColorField({
   value,
   onChange,
   allowGradient = false,
+  linearOnly = false,
   ariaLabel = "Color",
   className,
 }: {
   value: ColorValue;
   onChange: (value: ColorValue) => void;
   allowGradient?: boolean;
+  /** Restrict the gradient tab to linear (hides the Radial option), e.g. the Windows back tab. */
+  linearOnly?: boolean;
   ariaLabel?: string;
   className?: string;
 }) {
@@ -57,7 +60,7 @@ export function ColorField({
 
   const pickGradientStops = (stops: GradientStop[]) =>
     onChange({
-      kind: grad?.kind ?? "linear",
+      kind: linearOnly ? "linear" : (grad?.kind ?? "linear"),
       angle: grad?.angle ?? 90,
       stops,
     });
@@ -109,7 +112,7 @@ export function ColorField({
         )}
 
         {grad ? (
-          <GradientEditor value={grad} onChange={onChange} />
+          <GradientEditor value={grad} onChange={onChange} linearOnly={linearOnly} />
         ) : (
           <SolidColorPicker hex={hex} onChange={onChange} />
         )}

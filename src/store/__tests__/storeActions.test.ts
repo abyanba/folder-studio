@@ -121,6 +121,12 @@ describe("documentStore folder setters", () => {
     store().setFolderBgImage("data:x");
     store().setFolderBg({ folderBgZoom: 2 });
     store().setClipToFolder(false);
+    store().setWindowsGradientAlgo("echo");
+    store().setWindowsImageMode("front");
+    store().setFolderBgOverlay({ folderBgOverlayColor: "#112233", folderBgOverlayOpacity: 0.4 });
+    store().setFolderBackColor("#3a7bd5");
+    store().setFolderState("contents");
+    store().setFolderPaperColor("#7ec8ff");
     store().setIconDefaults({ stroke: 2 });
     store().setFolderColor("#123456");
     const doc = store().doc;
@@ -129,6 +135,13 @@ describe("documentStore folder setters", () => {
     expect(doc.folderBgImage).toBe("data:x");
     expect(doc.folderBgZoom).toBe(2);
     expect(doc.clipToFolder).toBe(false);
+    expect(doc.windowsGradientAlgo).toBe("echo");
+    expect(doc.windowsImageMode).toBe("front");
+    expect(doc.folderBgOverlayColor).toBe("#112233");
+    expect(doc.folderBgOverlayOpacity).toBe(0.4);
+    expect(doc.folderBackColor).toBe("#3a7bd5");
+    expect(doc.folderState).toBe("contents");
+    expect(doc.folderPaperColor).toBe("#7ec8ff");
     expect(doc.iconDefaults.stroke).toBe(2);
     expect(doc.folderColor).toBe("#123456");
 

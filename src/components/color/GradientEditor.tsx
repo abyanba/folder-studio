@@ -40,9 +40,12 @@ export function interpolateStop(stops: GradientStop[], pos: number): Omit<Gradie
 export function GradientEditor({
   value,
   onChange,
+  linearOnly = false,
 }: {
   value: Gradient;
   onChange: (gradient: Gradient) => void;
+  /** Hide the Linear/Radial toggle and pin the gradient to linear (e.g. the Windows back tab). */
+  linearOnly?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const sorted = [...value.stops].sort((a, b) => a.pos - b.pos);
@@ -108,23 +111,26 @@ export function GradientEditor({
       </div>
 
       <div className="flex items-center gap-1.5">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          value={value.kind}
-          onValueChange={(v) => {
-            if (v) onChange({ ...value, kind: v as Gradient["kind"] });
-          }}
-          className="flex-1"
-        >
-          <ToggleGroupItem value="linear" className="flex-1 text-xs">
-            Linear
-          </ToggleGroupItem>
-          <ToggleGroupItem value="radial" className="flex-1 text-xs">
-            Radial
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {!linearOnly && (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={value.kind}
+            onValueChange={(v) => {
+              if (v) onChange({ ...value, kind: v as Gradient["kind"] });
+            }}
+            className="flex-1"
+          >
+            <ToggleGroupItem value="linear" className="flex-1 text-xs">
+              Linear
+            </ToggleGroupItem>
+            <ToggleGroupItem value="radial" className="flex-1 text-xs">
+              Radial
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
+        {linearOnly && <div className="flex-1" />}
         <Button
           variant="outline"
           size="icon"
@@ -156,7 +162,7 @@ export function GradientEditor({
         </Button>
       </div>
 
-      {value.kind === "linear" && (
+      {(linearOnly || value.kind === "linear") && (
         <SliderField
           label="Angle"
           value={Math.round(value.angle)}

@@ -20,7 +20,17 @@ import { getHex, hexA } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildBaseShapeOverlaySvg, buildBaseShapeSvg, getBaseShapeMask } from "./baseShapes";
+import {
+  buildBaseShapeOverlaySvg,
+  buildBaseShapePaperSvg,
+  buildBaseShapeSvg,
+  buildFrontImageBackSvg,
+  buildFrontImageOverlaySvg,
+  buildImageColorOverlaySvg,
+  getBaseShapeMask,
+  getFrontMask,
+  isFrontImage,
+} from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
@@ -87,6 +97,7 @@ async function recolorCanvas(
   doc: FolderDocument,
   size: number,
   loadImage: ImageLoader,
+  createCanvas: CanvasFactory,
   skipped: string[],
 ): Promise<void> {
   const ctx = canvas.getContext("2d");
@@ -99,16 +110,68 @@ async function recolorCanvas(
       const zm = doc.folderBgZoom || 1;
       const bpx = (doc.folderBgX ?? 50) / 100;
       const bpy = (doc.folderBgY ?? 50) / 100;
+      // Mirror the editor's CSS `background-size: <zoom>%` (width set, height
+      // auto): width is zoom×canvas and height follows the image's aspect ratio,
+      // so a non-square photo isn't squashed into the square canvas.
+      const natW = bi.naturalWidth || size;
+      const natH = bi.naturalHeight || size;
       const dw = size * zm;
-      const dh = size * zm;
+      const dh = dw * (natH / natW);
       const dx = -(dw - size) * bpx;
       const dy = -(dh - size) * bpy;
-      ctx.drawImage(bi, dx, dy, dw, dh);
-      // Folder-structure shading over the image (same builder as the editor).
-      const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
-      if (overlay) {
-        const oi = await loadImage(toSvgDataUrl(overlay));
-        if (oi) ctx.drawImage(oi, 0, 0, size, size);
+      // Color tint over the image (masked to the folder), below the structure.
+      const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
+      const tintImg = tint ? await loadImage(toSvgDataUrl(tint)) : null;
+      if (isFrontImage(doc)) {
+        // Compose the front-only base at full alpha on a temp canvas, then draw
+        // it once at folderOpacity: image masked to the front, adaptive back
+        // painted behind it, tint over that, structure overlay on top.
+        const tmp = createCanvas(size, size);
+        const tctx = tmp.getContext("2d");
+        if (tctx) {
+          tctx.drawImage(bi, dx, dy, dw, dh);
+          const fm = await loadImage(toSvgDataUrl(getFrontMask(doc.baseShape)));
+          if (fm) {
+            tctx.globalCompositeOperation = "destination-in";
+            tctx.drawImage(fm, 0, 0, size, size);
+          }
+          const back = await loadImage(
+            toSvgDataUrl(
+              buildFrontImageBackSvg(
+                doc.baseShape,
+                doc.folderBgImageColor ?? "#888888",
+                doc.folderBackColor,
+                doc.folderBgImageColor2,
+              ),
+            ),
+          );
+          if (back) {
+            tctx.globalCompositeOperation = "destination-over";
+            tctx.drawImage(back, 0, 0, size, size);
+          }
+          tctx.globalCompositeOperation = "source-over";
+          if (tintImg) tctx.drawImage(tintImg, 0, 0, size, size);
+          const shine = await loadImage(toSvgDataUrl(buildFrontImageOverlaySvg(doc.baseShape)));
+          if (shine) tctx.drawImage(shine, 0, 0, size, size);
+          // Paper peek on top — the image never affects it (self-clipped).
+          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+          const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
+          if (paper) tctx.drawImage(paper, 0, 0, size, size);
+          ctx.drawImage(tmp, 0, 0);
+        }
+      } else {
+        ctx.drawImage(bi, dx, dy, dw, dh);
+        if (tintImg) ctx.drawImage(tintImg, 0, 0, size, size);
+        // Folder-structure shading over the image (same builder as the editor).
+        const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
+        if (overlay) {
+          const oi = await loadImage(toSvgDataUrl(overlay));
+          if (oi) ctx.drawImage(oi, 0, 0, size, size);
+        }
+        // Paper peek on top — the image never affects it (self-clipped).
+        const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+        const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
+        if (paper) ctx.drawImage(paper, 0, 0, size, size);
       }
     } else {
       skipped.push("Folder background");
@@ -396,7 +459,7 @@ export async function buildExportCanvas(
   if (deps.prepare) await deps.prepare(doc);
 
   const canvas = createCanvas(size, size);
-  await recolorCanvas(canvas, doc, size, loadImage, skipped);
+  await recolorCanvas(canvas, doc, size, loadImage, createCanvas, skipped);
   const ctx = canvas.getContext("2d");
   if (!ctx) return { canvas, skipped };
 

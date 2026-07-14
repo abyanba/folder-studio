@@ -52,6 +52,23 @@ function makeMeasure(): (el: TextElement) => MeasureText {
   };
 }
 
+/**
+ * Natural pixel size of the folder background image (when the fill is an image),
+ * so the vector SVG export can preserve its aspect ratio like the editor does.
+ * Resolves `undefined` on non-image fills or a decode failure (the SVG then
+ * treats the image as square, its prior behavior).
+ */
+function measureBgImage(doc: FolderDocument): Promise<{ w: number; h: number } | undefined> {
+  if (doc.folderFillMode !== "image" || !doc.folderBgImage) return Promise.resolve(undefined);
+  const src = doc.folderBgImage;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve(undefined);
+    img.src = src;
+  });
+}
+
 /** Read a rendered canvas back as raw RGBA pixels for ICO packing. */
 function icoPixels(canvas: HTMLCanvasElement, size: number): Uint8ClampedArray {
   const ctx = canvas.getContext("2d");
@@ -82,10 +99,12 @@ export async function exportSvg(
   if (deps.prepare) await deps.prepare(doc);
   const fontFaceCss = await collectFontFaceCss(doc);
   const measure = makeMeasure();
+  const bgImageSize = await measureBgImage(doc);
   const { svg, skipped } = buildExportSvg(doc, size, {
     getIconBody: deps.getIconBody,
     measure,
     fontFaceCss,
+    bgImageSize,
   });
   return { blob: new Blob([svg], { type: "image/svg+xml" }), skipped };
 }
@@ -170,7 +189,12 @@ export async function batchExportZip(
   // SVG is vector: measure + inlined fonts are computed once, shared across sizes.
   const wantSvg = formats.includes("svg");
   const svgDeps = wantSvg
-    ? { getIconBody: deps.getIconBody, measure: makeMeasure(), fontFaceCss: await collectFontFaceCss(doc) }
+    ? {
+        getIconBody: deps.getIconBody,
+        measure: makeMeasure(),
+        fontFaceCss: await collectFontFaceCss(doc),
+        bgImageSize: await measureBgImage(doc),
+      }
     : null;
   for (const size of sorted) {
     const result = await buildExportCanvas(doc, size, deps);

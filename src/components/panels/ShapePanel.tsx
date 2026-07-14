@@ -9,6 +9,8 @@ import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { getHex } from "@/lib/color";
 import { useDocumentStore } from "@/store/documentStore";
 import { cn } from "@/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { PanelSection } from "@/components/controls/PanelSection";
 import { PanelHeader } from "./PanelHeader";
 
 /** Grayscale preview: fake a neutral solid fill through each shape's builder. */
@@ -33,6 +35,33 @@ function thumbnailUrl(shape: BaseShapeDef): string {
 }
 
 const THUMBS = new Map(BASE_SHAPES.map((s) => [s.id, thumbnailUrl(s)]));
+
+/** Switch the folder between empty and the paper-peek contents variant (windows/macOS). */
+function FolderStateControl() {
+  const folderState = useDocumentStore((s) => s.doc.folderState);
+  const setFolderState = useDocumentStore((s) => s.setFolderState);
+  return (
+    <PanelSection title="Folder state" className="px-3 pb-3">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={folderState}
+        onValueChange={(v) => {
+          if (v) setFolderState(v as "empty" | "contents");
+        }}
+        className="w-full"
+      >
+        <ToggleGroupItem value="empty" className="flex-1 text-xs">
+          Empty
+        </ToggleGroupItem>
+        <ToggleGroupItem value="contents" className="flex-1 text-xs">
+          Contents
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </PanelSection>
+  );
+}
 
 export function ShapePanel() {
   const baseShape = useDocumentStore((s) => s.doc.baseShape);
@@ -79,6 +108,7 @@ export function ShapePanel() {
           );
         })}
       </div>
+      {(baseShape === "windows" || baseShape === "macos") && <FolderStateControl />}
     </div>
   );
 }
