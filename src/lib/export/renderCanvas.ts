@@ -195,11 +195,9 @@ function renderText(
   const fontSizePx = el.fontSize * sx;
   ctx.font = `${el.fontStyle === "italic" ? "italic " : ""}${el.fontWeight} ${fontSizePx}px "${el.fontFamily}"`;
 
-  // Clip to the text box so overflow is hidden, matching the editor (EXP-04).
+  // No clip: the box is a transform/selection frame, so text overflows it
+  // freely — matching the editor and the SVG export.
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(-ew / 2, -eh / 2, ew, eh);
-  ctx.clip();
 
   const sortedStops = isGradient(el.color)
     ? [...el.color.stops].sort((a, b) => a.pos - b.pos)

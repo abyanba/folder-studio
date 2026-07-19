@@ -63,15 +63,19 @@ function TextContent({ el }: { el: TextElement }) {
     textAlign: el.align,
     letterSpacing: `${el.letterSpacing}px`,
     lineHeight: el.lineHeight,
-    display: "flex",
+    // NOT flex: a flex container puts its text in an anonymous flex item, which
+    // `background-clip: text` has no text of its own to clip to — gradient text
+    // then paints nothing at all. Block + `align-content` centers the same way
+    // (horizontal alignment already comes from `textAlign` above).
+    display: "block",
     // Vertical anchor is ALWAYS center — the export centers text in the box, so
     // keying this off horizontal align top-anchored left/right text (EXP-03).
-    alignItems: "center",
-    justifyContent:
-      el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
+    alignContent: "center",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
-    overflow: "hidden",
+    // The box is a transform/selection frame, not a clip — glyphs overflow it
+    // freely (like the draw tool / Figma). Mirrored by both export paths.
+    overflow: "visible",
     outline: "none",
     cursor: editing ? "text" : "grab",
     userSelect: editing ? "text" : "none",
@@ -90,9 +94,18 @@ function TextContent({ el }: { el: TextElement }) {
         ? `${el.stroke.width * (el.stroke.position === "center" ? 1 : 2)}px ${el.stroke.color}`
         : "unset",
     paintOrder: el.stroke?.position === "outside" ? "stroke fill" : "fill stroke",
-    textShadow: el.shadow
-      ? `${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)}`
-      : "none",
+    // `text-shadow` paints in the text layer, which is ABOVE the background
+    // layer — and gradient text lives in the background (background-clip:text),
+    // so the shadow landed on top of the glyphs. `filter: drop-shadow` applies
+    // to the element's finished rendering instead, keeping it behind either way.
+    textShadow:
+      el.shadow && !grad
+        ? `${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)}`
+        : "none",
+    filter:
+      el.shadow && grad
+        ? `drop-shadow(${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)})`
+        : undefined,
   };
   return (
     <div

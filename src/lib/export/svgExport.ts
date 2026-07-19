@@ -158,12 +158,9 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
     (el.underline ? ` text-decoration="underline"` : "");
 
   const inner = `<text text-anchor="${anchor}" dominant-baseline="central" fill="${fill}"${strokeAttrs}${shadow} ${styleAttrs}>${tspans}</text>`;
-  // A clip keeps overflow hidden like the editor's box (EXP-04).
-  const clipId = `tc${el.id}`;
-  defs.push(
-    `<clipPath id="${clipId}"><rect x="${num(-ew / 2)}" y="${num(-eh / 2)}" width="${num(ew)}" height="${num(eh)}"/></clipPath>`,
-  );
-  return wrap(el, ew, eh, `<g clip-path="url(#${clipId})">${inner}</g>`);
+  // No clip: the box is a transform/selection frame, so text overflows it freely
+  // — matching the editor's `overflow: visible` and the canvas export.
+  return wrap(el, ew, eh, inner);
 }
 
 /** One element as SVG markup, or null when its icon body isn't loaded (skipped). */
