@@ -21,6 +21,18 @@ const key = (init: KeyboardEventInit) =>
   window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, ...init }));
 const keyUp = (init: KeyboardEventInit) =>
   window.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, ...init }));
+/**
+ * Ctrl+V is handled on the `paste` event, not keydown — only a real paste
+ * exposes the system clipboard, and handling both would paste copied elements
+ * AND a pasted image on one press. With no clipboardData (as here) the handler
+ * falls through to the editor's own element clipboard.
+ */
+const paste = (dataTransfer?: DataTransfer) =>
+  window.dispatchEvent(
+    Object.assign(new Event("paste", { bubbles: true, cancelable: true }), {
+      clipboardData: dataTransfer ?? null,
+    }),
+  );
 
 beforeEach(() => {
   useDocumentStore.getState().reset();
@@ -136,7 +148,7 @@ describe("duplicate and clipboard", () => {
     useSelectionStore.getState().setMany([a, b]);
 
     key({ key: "c", ctrlKey: true });
-    key({ key: "v", ctrlKey: true });
+    paste();
 
     const els = useDocumentStore.getState().doc.elements;
     expect(els).toHaveLength(4);
@@ -151,7 +163,7 @@ describe("duplicate and clipboard", () => {
     // Note: module-scoped clipboard may carry state between tests; rely on a
     // fresh check only when nothing was copied in this test run order.
     const count = useDocumentStore.getState().doc.elements.length;
-    key({ key: "v", ctrlKey: true });
+    paste();
     expect(useDocumentStore.getState().doc.elements.length).toBeGreaterThanOrEqual(count);
   });
 });
@@ -175,8 +187,8 @@ describe("fluency keys (Phase 7)", () => {
     const x0 = useDocumentStore.getState().doc.elements[0].x;
 
     key({ key: "c", ctrlKey: true });
-    key({ key: "v", ctrlKey: true });
-    key({ key: "v", ctrlKey: true });
+    paste();
+    paste();
 
     const els = useDocumentStore.getState().doc.elements;
     expect(els).toHaveLength(3);

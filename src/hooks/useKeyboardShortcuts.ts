@@ -18,6 +18,7 @@ import { useUiStore } from "@/store/uiStore";
 import { isInteractionActive } from "@/hooks/useInteraction";
 import { commitShapePoints } from "@/hooks/useDrawTool";
 import { copySelection, hasClipboard, pasteClipboard, selectAll } from "@/lib/clipboard";
+import { addImageFiles, pastedImageFiles } from "@/lib/pasteImage";
 
 const ARROW_KEYS = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright"]);
 /** A run of arrow nudges commits after this idle gap (or on key release). */
@@ -165,13 +166,10 @@ export function useKeyboardShortcuts(): void {
         copySelection();
         return;
       }
-      if (mod && k === "v") {
-        if (hasClipboard()) {
-          e.preventDefault();
-          pasteClipboard();
-        }
-        return;
-      }
+      // Ctrl/Cmd+V is NOT handled here — it's handled in the `paste` listener
+      // below, which is the only place that can see the system clipboard. Doing
+      // both would paste copied elements AND a pasted image on the same press.
+      if (mod && k === "v") return;
       // Z-order on the primary selection: [ sends back one, ] brings forward one.
       if ((k === "[" || k === "]") && sel.selectedId) {
         e.preventDefault();
@@ -205,11 +203,36 @@ export function useKeyboardShortcuts(): void {
       if (nudging && ARROW_KEYS.has(e.key.toLowerCase())) commitNudge();
     };
 
+    /**
+     * The single Ctrl/Cmd+V handler, since only a real `paste` event exposes the
+     * system clipboard. An external image/SVG wins; otherwise this falls through
+     * to pasting elements copied inside the editor.
+     */
+    const onPaste = (e: ClipboardEvent) => {
+      // Editing text, or focus in a field: let the browser paste normally.
+      if (useUiStore.getState().editingTextId) return;
+      if (isFormTarget(e.target)) return;
+      if (e.defaultPrevented) return;
+
+      const files = e.clipboardData ? pastedImageFiles(e.clipboardData) : [];
+      if (files.length) {
+        e.preventDefault();
+        void addImageFiles(files);
+        return;
+      }
+      if (hasClipboard()) {
+        e.preventDefault();
+        pasteClipboard();
+      }
+    };
+
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("paste", onPaste);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("paste", onPaste);
       commitNudge(); // flush any open nudge on unmount
     };
   }, []);

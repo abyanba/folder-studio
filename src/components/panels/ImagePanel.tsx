@@ -20,8 +20,7 @@ import { TransformFields } from "@/components/controls/TransformFields";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
-import { notify } from "@/store/toastStore";
-import { importImageFile } from "@/lib/importImage";
+import { addImageFiles } from "@/lib/pasteImage";
 import type { BlendMode, ImageElement } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
 
@@ -49,23 +48,11 @@ function blendLabel(mode: BlendMode): string {
 
 export function UploadButton({ label = "Upload images" }: { label?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const addImage = useDocumentStore((s) => s.addImage);
-  const select = useSelectionStore((s) => s.select);
 
   const onFiles = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    files.forEach((file) => {
-      // Downscale oversized uploads before they enter the document (PF-08).
-      importImageFile(file)
-        .then(({ dataUrl, width, height, scaled }) => {
-          const id = addImage(dataUrl, width, height);
-          select(id);
-          if (scaled) notify.info("Image resized to 1024px for performance");
-        })
-        .catch((err) =>
-          notify.error(`Couldn't load ${file.name}`, err instanceof Error ? err.message : undefined),
-        );
-    });
+    // Same pipeline as a clipboard paste: downscale oversized uploads (PF-08)
+    // and sanitize SVGs.
+    void addImageFiles(Array.from(e.target.files ?? []));
     e.target.value = "";
   };
 
