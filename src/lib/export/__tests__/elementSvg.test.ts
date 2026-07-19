@@ -28,7 +28,20 @@ describe("buildShapeSvg", () => {
     expect(svg).toContain('rx="12"');
     expect(svg).toContain('stroke-width="4"'); // center → sw as-is
     expect(svg).not.toContain("paint-order");
-    expect(svg).toContain('x="0"');
+    // A center stroke straddles the outline, so the geometry is inset by half
+    // the width to keep the stroke's outer edge on the viewBox edge. Without
+    // this the outer half was clipped away — glaring on thick borders.
+    expect(svg).toContain('x="2"');
+    expect(svg).toContain('width="96"');
+  });
+
+  it("keeps a thick center stroke inside the viewBox", () => {
+    const el = createShapeElement("rect");
+    el.stroke = { color: "#000000", enabled: true, width: 20, position: "center" };
+    const svg = buildShapeSvg(el, 100, 100);
+    // Geometry inset 10, stroke ±10 ⇒ outer edge exactly at 0, nothing clipped.
+    expect(svg).toContain('x="10"');
+    expect(svg).toContain('stroke-width="20"');
   });
 
   it("doubles stroke width and orders fill-under-stroke for inside strokes", () => {

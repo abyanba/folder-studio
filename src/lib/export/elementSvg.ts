@@ -121,7 +121,15 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
   const sw = el.stroke.enabled ? el.stroke.width : 0;
   const sp = el.stroke.position;
   const actualSW = sp === "center" ? sw : sw * 2;
-  const off = sp === "outside" ? sw : 0;
+  // Inward inset of the geometry, chosen so the stroke's OUTER edge lands on the
+  // viewBox edge in every mode — the shape SVG is rasterized at exactly the
+  // element box, so anything past that edge is cut off (very visible once the
+  // border is thick). "outside" strokes ±sw about a geometry inset by sw;
+  // "inside" is clipped to its own outline; "center" strokes ±sw/2, so it needs
+  // an sw/2 inset — without it, half the border width was being clipped away.
+  // Clamped to 50 (the viewBox half-extent) so a border thicker than the shape
+  // degenerates to all-stroke instead of inverting the geometry.
+  const off = Math.min(50, sp === "outside" ? sw : sp === "center" ? sw / 2 : 0);
   const paintOrder = sp === "inside" ? "fill stroke" : sp === "outside" ? "stroke fill" : "";
   const poAttr = paintOrder ? ` paint-order="${paintOrder}"` : "";
   const linejoinAttr = el.shapeType === "rect" || el.shapeType === "ellipse" ? "" : ` stroke-linejoin="round"`;
