@@ -37,6 +37,11 @@ function svgHtml(el: FolderElement, w: number, h: number): string | null {
 function TextContent({ el }: { el: TextElement }) {
   const editing = useUiStore((s) => s.editingTextId === el.id);
   const divRef = useRef<HTMLDivElement>(null);
+  // Live-preview of a hovered font (text panel) on the selected text element,
+  // mirroring the image panel's blend-mode preview.
+  const isSelected = useSelectionStore((s) => s.selectedId === el.id);
+  const fontPreview = useUiStore((s) => s.fontPreview);
+  const fontFamily = isSelected && fontPreview ? fontPreview : el.fontFamily;
 
   // contentEditable alone doesn't take focus — without this, entering edit
   // mode leaves keystrokes going nowhere. Select-all so typing replaces the
@@ -55,7 +60,7 @@ function TextContent({ el }: { el: TextElement }) {
   const style: CSSProperties = {
     width: "100%",
     height: "100%",
-    fontFamily: el.fontFamily,
+    fontFamily,
     fontSize: el.fontSize,
     fontWeight: el.fontWeight,
     fontStyle: el.fontStyle,

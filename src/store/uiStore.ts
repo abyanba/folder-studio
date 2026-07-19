@@ -33,6 +33,8 @@ export interface UiStore {
   drag: DragState | null;
   /** Blend mode being hovered in the image panel — live-previewed on the selected image. */
   blendPreview: BlendMode | null;
+  /** Font family being hovered in the text panel — live-previewed on the selected text. */
+  fontPreview: string | null;
   /** Windows gradient color profile being hovered — live-previewed on the folder base. */
   windowsGradientPreview: WindowsGradientAlgo | null;
   /** macOS solid color profile being hovered — live-previewed on the folder base. */
@@ -72,6 +74,7 @@ export interface UiStore {
   setContextMenu: (menu: ContextMenuState | null) => void;
   setDrag: (drag: DragState | null) => void;
   setBlendPreview: (mode: BlendMode | null) => void;
+  setFontPreview: (font: string | null) => void;
   setWindowsGradientPreview: (algo: WindowsGradientAlgo | null) => void;
   setMacColorProfilePreview: (profile: MacColorProfile | null) => void;
   setMacGradientPreview: (algo: MacGradientAlgo | null) => void;
@@ -102,6 +105,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   contextMenu: null,
   drag: null,
   blendPreview: null,
+  fontPreview: null,
   windowsGradientPreview: null,
   macColorProfilePreview: null,
   macGradientPreview: null,
@@ -127,6 +131,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setContextMenu: (menu) => set({ contextMenu: menu }),
   setDrag: (drag) => set({ drag }),
   setBlendPreview: (mode) => set({ blendPreview: mode }),
+  setFontPreview: (font) => set({ fontPreview: font }),
   setWindowsGradientPreview: (algo) => set({ windowsGradientPreview: algo }),
   setMacColorProfilePreview: (profile) => set({ macColorProfilePreview: profile }),
   setMacGradientPreview: (algo) => set({ macGradientPreview: algo }),

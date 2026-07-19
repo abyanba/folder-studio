@@ -33,6 +33,7 @@ import {
   useDocumentStore,
 } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
+import { useUiStore } from "@/store/uiStore";
 import type { TextAlign, TextElement } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
 
@@ -119,6 +120,7 @@ function FitButton({ label, onClick }: { label?: string; onClick: () => void }) 
 
 function SelectedTextEditor({ el }: { el: TextElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
+  const setFontPreview = useUiStore((s) => s.setFontPreview);
 
   return (
     <div className="space-y-4">
@@ -129,7 +131,13 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
       <PanelSection title="Typography">
         <Select
           value={el.fontFamily}
-          onValueChange={(v) => updateElement(el.id, { fontFamily: v })}
+          onValueChange={(v) => {
+            setFontPreview(null);
+            updateElement(el.id, { fontFamily: v });
+          }}
+          onOpenChange={(open) => {
+            if (!open) setFontPreview(null);
+          }}
         >
           <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Font family">
             <SelectValue />
@@ -138,7 +146,18 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
               recenter on the selected font and shift up/down as you browse. */}
           <SelectContent position="popper" side="bottom" sideOffset={4}>
             {FONTS.map((f) => (
-              <SelectItem key={f} value={f} className="text-xs" style={{ fontFamily: f }}>
+              <SelectItem
+                key={f}
+                value={f}
+                className="text-xs"
+                style={{ fontFamily: f }}
+                // Live-preview the hovered font on the canvas (uiStore.fontPreview),
+                // same as the image panel's blend-mode hover. Keyboard focus
+                // previews too, so arrowing through the list works the same.
+                onPointerEnter={() => setFontPreview(f)}
+                onPointerLeave={() => setFontPreview(null)}
+                onFocus={() => setFontPreview(f)}
+              >
                 {f}
               </SelectItem>
             ))}
