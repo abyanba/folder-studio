@@ -116,23 +116,48 @@ function shapeGeometry(el: ShapeElement, off: number): string {
   return `<rect x="${off}" y="${off}" width="${100 - off * 2}" height="${100 - off * 2}" rx="${rad}" ry="${rad}"`;
 }
 
+/**
+ * How far a shape's stroke reaches OUTSIDE its element box, in viewBox units
+ * (the shape viewBox is 100 wide). Stroke alignment follows the usual vector-
+ * editor meaning, with the shape's path sitting exactly on the element box:
+ *
+ *   outside — stroke sits wholly outside the path; the box grows by `width`.
+ *   center  — stroke straddles the path; the box grows by `width / 2`.
+ *   inside  — stroke sits wholly inside the path; the box is unchanged.
+ *
+ * The element box is the *fill* boundary, so an outside stroke genuinely paints
+ * beyond it (a 5×5 square with a 2-wide outside stroke covers 9×9, its white
+ * core still 5×5). Callers must size/offset the SVG by this much or the extra
+ * ring is cropped — see {@link shapeStrokePadPx}.
+ */
+export function shapeStrokeOverflow(el: ShapeElement): number {
+  if (!el.stroke.enabled || el.stroke.width <= 0) return 0;
+  if (el.stroke.position === "outside") return el.stroke.width;
+  if (el.stroke.position === "center") return el.stroke.width / 2;
+  return 0;
+}
+
+/** {@link shapeStrokeOverflow} converted to element pixels on each axis. */
+export function shapeStrokePadPx(
+  el: ShapeElement,
+  ew: number,
+  eh: number,
+): { px: number; py: number } {
+  const ov = shapeStrokeOverflow(el) / 100;
+  return { px: ew * ov, py: eh * ov };
+}
+
 /** Build the SVG for a shape element (rect/ellipse/triangle/star/hexagon). */
 export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string {
   const sw = el.stroke.enabled ? el.stroke.width : 0;
   const sp = el.stroke.position;
-  const actualSW = sp === "center" ? sw : sw * 2;
-  // Inward inset of the geometry, chosen so the stroke's OUTER edge lands on the
-  // viewBox edge in every mode — the shape SVG is rasterized at exactly the
-  // element box, so anything past that edge is cut off (very visible once the
-  // border is thick). "outside" strokes ±sw about a geometry inset by sw;
-  // "inside" is clipped to its own outline; "center" strokes ±sw/2, so it needs
-  // an sw/2 inset — without it, half the border width was being clipped away.
-  // Clamped to 50 (the viewBox half-extent) so a border thicker than the shape
-  // degenerates to all-stroke instead of inverting the geometry.
-  const off = Math.min(50, sp === "outside" ? sw : sp === "center" ? sw / 2 : 0);
-  const paintOrder = sp === "inside" ? "fill stroke" : sp === "outside" ? "stroke fill" : "";
-  const poAttr = paintOrder ? ` paint-order="${paintOrder}"` : "";
   const linejoinAttr = el.shapeType === "rect" || el.shapeType === "ellipse" ? "" : ` stroke-linejoin="round"`;
+
+  // The viewBox grows by the outward reach of the stroke so the ring isn't
+  // cropped; the geometry itself always sits on the 0..100 box.
+  const ov = shapeStrokeOverflow(el);
+  const vbMin = -ov;
+  const vbSize = 100 + ov * 2;
 
   let defs = "";
   let fillStr: string;
@@ -140,37 +165,51 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
     fillStr = "none";
   } else if (isGradient(el.fill.color)) {
     const id = "gfx" + el.id;
-    defs = `<defs>${gradientElement(id, el.fill.color)}</defs>`;
+    defs += gradientElement(id, el.fill.color);
     fillStr = `url(#${id})`;
   } else {
     fillStr = el.fill.color;
   }
-  const strokeC = el.stroke.enabled ? el.stroke.color : "none";
 
-  const common = `fill="${fillStr}" stroke="${strokeC}" stroke-width="${actualSW}"`;
+  // Fill and stroke are painted as SEPARATE elements rather than one element
+  // with a paint-order trick. Half-width games only look right when an opaque
+  // fill happens to cover the stroke's inner half — an unfilled shape with an
+  // outside stroke would show a double-width straddling ring instead.
+  const fillEl = el.fill.enabled ? `${shapeGeometry(el, 0)} fill="${fillStr}"/>` : "";
 
-  // "inside" doubles the stroke width (centered on the true outline) then relies
-  // on a clip-path of that same outline to discard the outer half. Clipping to
-  // the shape itself (rather than just the viewBox edge) keeps the stroke fully
-  // interior for every shape type, not just rects that happen to touch all four
-  // viewBox edges.
-  let clipAttr = "";
-  if (sp === "inside" && sw > 0) {
-    const clipId = "gsclip" + el.id;
-    defs += `<clipPath id="${clipId}">${shapeGeometry(el, 0)}/></clipPath>`;
-    clipAttr = ` clip-path="url(#${clipId})"`;
+  let strokeEl = "";
+  if (sw > 0 && el.stroke.enabled) {
+    // "outside"/"inside" stroke a double-width band centred on the path and then
+    // discard the half that falls on the wrong side, which is what makes the
+    // visible band exactly `sw` wide on the intended side.
+    const bandW = sp === "center" ? sw : sw * 2;
+    let clipAttr = "";
+    if (sp === "inside") {
+      const clipId = "gsclip" + el.id;
+      defs += `<clipPath id="${clipId}">${shapeGeometry(el, 0)}/></clipPath>`;
+      clipAttr = ` clip-path="url(#${clipId})"`;
+    } else if (sp === "outside") {
+      const maskId = "gsmask" + el.id;
+      defs +=
+        `<mask id="${maskId}" maskUnits="userSpaceOnUse" x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}">` +
+        `<rect x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}" fill="#fff"/>` +
+        `${shapeGeometry(el, 0)} fill="#000"/></mask>`;
+      clipAttr = ` mask="url(#${maskId})"`;
+    }
+    strokeEl = `${shapeGeometry(el, 0)} fill="none" stroke="${el.stroke.color}" stroke-width="${bandW}"${linejoinAttr}${clipAttr}/>`;
   }
 
-  let filterAttr = "";
+  let groupOpen = "<g>";
   if (el.innerShadow && ew > 0 && eh > 0) {
     const fid = "sis" + el.id;
     defs += innerShadowFilter(fid, el.innerShadow, 100 / ew, 100 / eh);
-    filterAttr = ` filter="url(#${fid})"`;
+    groupOpen = `<g filter="url(#${fid})">`;
   }
 
-  const inner = `${shapeGeometry(el, off)} ${common}${linejoinAttr}${poAttr}${clipAttr}${filterAttr}/>`;
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 100 100" preserveAspectRatio="none">${defs}${inner}</svg>`;
+  const defsBlock = defs ? `<defs>${defs}</defs>` : "";
+  const w = Math.ceil(ew * (vbSize / 100));
+  const h = Math.ceil(eh * (vbSize / 100));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${vbMin} ${vbMin} ${vbSize} ${vbSize}" preserveAspectRatio="none">${defsBlock}${groupOpen}${fillEl}${strokeEl}</g></svg>`;
 }
 
 /** Build the SVG for a freehand draw element (its path in local viewBox space). */

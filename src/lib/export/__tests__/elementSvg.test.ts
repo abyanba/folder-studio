@@ -19,52 +19,76 @@ const gradient: Gradient = {
 };
 
 describe("buildShapeSvg", () => {
-  it("renders a rounded rect with center stroke and no paint-order", () => {
+  // The reference case, in element pixels: a 5x5 square with a 2-wide stroke.
+  // The path always sits ON the element box, so the fill core stays 5x5 for
+  // outside, and the box only grows by what the stroke adds beyond it.
+  const square = (position: "outside" | "center" | "inside") => {
+    const el = createShapeElement("rect");
+    el.borderRadius = 0;
+    // viewBox is 100 wide and the element is 5px, so width 40 == 2 element px.
+    el.stroke = { color: "#000000", enabled: true, width: 40, position };
+    return el;
+  };
+
+  it("grows the box by the full width for an outside stroke (5x5 -> 9x9)", () => {
+    const svg = buildShapeSvg(square("outside"), 5, 5);
+    // Overflow 40 units == 2px on each side ⇒ 5 + 2 + 2 = 9.
+    expect(svg).toContain('width="9" height="9"');
+    expect(svg).toContain('viewBox="-40 -40 180 180"');
+    // Band is double width, masked to the outside half ⇒ 2px of visible stroke.
+    expect(svg).toContain('stroke-width="80"');
+    expect(svg).toContain("mask=");
+    // Geometry stays on the box: the white core is untouched at 5x5.
+    expect(svg).toContain('x="0" y="0" width="100" height="100"');
+  });
+
+  it("grows the box by half the width for a center stroke (5x5 -> 7x7)", () => {
+    const svg = buildShapeSvg(square("center"), 5, 5);
+    // Overflow 20 units == 1px on each side ⇒ 5 + 1 + 1 = 7.
+    expect(svg).toContain('width="7" height="7"');
+    expect(svg).toContain('viewBox="-20 -20 140 140"');
+    expect(svg).toContain('stroke-width="40"'); // straddles: 1px in, 1px out
+    expect(svg).not.toContain("mask=");
+    expect(svg).not.toContain("clip-path=");
+  });
+
+  it("leaves the box unchanged for an inside stroke (5x5 stays 5x5)", () => {
+    const svg = buildShapeSvg(square("inside"), 5, 5);
+    expect(svg).toContain('width="5" height="5"');
+    expect(svg).toContain('viewBox="0 0 100 100"');
+    // Double width clipped to the shape ⇒ 2px eaten off the core, none outside.
+    expect(svg).toContain('stroke-width="80"');
+    expect(svg).toContain("clip-path=");
+  });
+
+  it("paints fill and stroke as separate elements, not via paint-order", () => {
     const el = createShapeElement("rect");
     el.borderRadius = 12;
     el.stroke = { color: "#000000", enabled: true, width: 4, position: "center" };
     const svg = buildShapeSvg(el, 100, 100);
-    expect(svg).toContain("<rect");
     expect(svg).toContain('rx="12"');
-    expect(svg).toContain('stroke-width="4"'); // center → sw as-is
     expect(svg).not.toContain("paint-order");
-    // A center stroke straddles the outline, so the geometry is inset by half
-    // the width to keep the stroke's outer edge on the viewBox edge. Without
-    // this the outer half was clipped away — glaring on thick borders.
-    expect(svg).toContain('x="2"');
-    expect(svg).toContain('width="96"');
+    // An unfilled shape must still show a correctly-sized outside stroke, which
+    // the old fill-covers-the-inner-half trick could not do.
+    el.fill.enabled = false;
+    el.stroke.position = "outside";
+    const unfilled = buildShapeSvg(el, 100, 100);
+    expect(unfilled).toContain("mask=");
+    expect(unfilled).not.toContain('fill="none" stroke="none"');
   });
 
-  it("keeps a thick center stroke inside the viewBox", () => {
-    const el = createShapeElement("rect");
-    el.stroke = { color: "#000000", enabled: true, width: 20, position: "center" };
-    const svg = buildShapeSvg(el, 100, 100);
-    // Geometry inset 10, stroke ±10 ⇒ outer edge exactly at 0, nothing clipped.
-    expect(svg).toContain('x="10"');
-    expect(svg).toContain('stroke-width="20"');
-  });
-
-  it("doubles stroke width and orders fill-under-stroke for inside strokes", () => {
-    const el = createShapeElement("rect");
-    el.stroke = { color: "#000000", enabled: true, width: 4, position: "inside" };
-    const svg = buildShapeSvg(el, 100, 100);
-    expect(svg).toContain('stroke-width="8"');
-    expect(svg).toContain('paint-order="fill stroke"');
-  });
-
-  it("insets the rect and orders stroke-under-fill for outside strokes", () => {
-    const el = createShapeElement("rect");
-    el.stroke = { color: "#000000", enabled: true, width: 4, position: "outside" };
-    const svg = buildShapeSvg(el, 100, 100);
-    expect(svg).toContain('paint-order="stroke fill"');
-    expect(svg).toContain('x="4"'); // off = sw
-    expect(svg).toContain('width="92"'); // 100 - 2*off
-  });
-
-  it("uses fill=none when fill is disabled", () => {
+  it("paints no fill when fill is disabled", () => {
     const el = createShapeElement("rect");
     el.fill = { color: "#8cf0a8", enabled: false };
-    expect(buildShapeSvg(el, 100, 100)).toContain('fill="none"');
+    // Nothing to paint at all with no stroke either — the old builder emitted a
+    // `fill="none"` no-op element here, which rendered identically.
+    expect(buildShapeSvg(el, 100, 100)).not.toContain("#8cf0a8");
+
+    // With a stroke it is stroke-only: the fill element is still absent.
+    el.stroke = { color: "#000000", enabled: true, width: 4, position: "inside" };
+    const stroked = buildShapeSvg(el, 100, 100);
+    expect(stroked).toContain('stroke="#000000"');
+    expect(stroked).not.toContain("#8cf0a8");
   });
 
   it("emits a gradient <defs> and url(#gfx...) for a gradient fill", () => {

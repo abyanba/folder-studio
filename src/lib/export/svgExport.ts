@@ -29,7 +29,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
@@ -131,9 +131,13 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
     fill = el.color;
   }
 
+  // Only an "outside" stroke paints under the fill (the fill covering the inner
+  // half is what halves the doubled band). A "center" stroke must paint OVER the
+  // fill or the fill eats its inner half and it exports as a half-width outside
+  // stroke — which is what it used to do, disagreeing with the editor.
   const strokeAttrs =
     el.stroke && el.stroke.width > 0
-      ? ` stroke="${el.stroke.color}" stroke-width="${num(el.stroke.width * (el.stroke.position === "center" ? 1 : 2))}" paint-order="${el.stroke.position === "inside" ? "fill" : "stroke"}"`
+      ? ` stroke="${el.stroke.color}" stroke-width="${num(el.stroke.width * (el.stroke.position === "center" ? 1 : 2))}" paint-order="${el.stroke.position === "outside" ? "stroke" : "fill"}"`
       : "";
   const shadow = el.shadow
     ? ((): string => {
@@ -182,7 +186,18 @@ function elementMarkup(
     if (!body) return null;
     return wrap(el, ew, eh, topLeft(buildIconSvg(el, body, ew, eh), ew, eh), ds.ref);
   }
-  if (el.type === "shape") return wrap(el, ew, eh, topLeft(buildShapeSvg(el, ew, eh), ew, eh), ds.ref);
+  if (el.type === "shape") {
+    // The shape SVG is inflated by however far an outside/center stroke reaches
+    // past the element box, so it starts that much above/left of the box corner.
+    const { px, py } = shapeStrokePadPx(el, ew, eh);
+    return wrap(
+      el,
+      ew,
+      eh,
+      topLeft(buildShapeSvg(el, ew, eh), ew + px * 2, eh + py * 2),
+      ds.ref,
+    );
+  }
   if (el.type === "draw") return wrap(el, ew, eh, topLeft(buildDrawSvg(el, ew, eh), ew, eh), ds.ref);
   // image
   const blend =

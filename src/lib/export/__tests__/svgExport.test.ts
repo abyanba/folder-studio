@@ -113,6 +113,22 @@ describe("buildExportSvg", () => {
     expect(skipped).toEqual([]);
   });
 
+  it("inflates a shape's placement by the reach of an outside stroke", () => {
+    const doc = createEmptyDocument();
+    const el = createShapeElement("rect", "Box");
+    el.width = 100;
+    el.height = 100;
+    el.stroke = { color: "#000000", enabled: true, width: 20, position: "outside" };
+    doc.elements = [el];
+    const { svg } = buildExportSvg(doc, 256, noIcon);
+    // Stroke reaches 20/100 of the box (20px) past each edge, so the nested svg
+    // is 140 wide and starts 20px above/left of the box — keeping it centred on
+    // the element. Without the inflation the extra ring would be cropped, and
+    // the raster export (which drawImages the same inflated box) would diverge.
+    expect(svg).toContain('width="140" height="140"');
+    expect(svg).toContain("translate(-70 -70)");
+  });
+
   it("renders an icon when its body is loaded, and skips it otherwise", () => {
     const doc = createEmptyDocument();
     doc.elements = [

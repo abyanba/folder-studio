@@ -31,7 +31,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
@@ -301,15 +301,18 @@ function renderText(
     ctx.lineJoin = "round";
     lines.forEach((line, li) => {
       const y = lineY(layout, li);
-      if (pf === "inside") {
-        fillLine(line, y);
-        ctx.save();
+      if (pf === "outside") {
+        // Stroke under the fill: the fill covering the inner half is what turns
+        // the doubled band into a `width`-wide band sitting outside the glyph.
         ctx.strokeText(line, tx, y);
-        ctx.restore();
+        fillLine(line, y);
       } else {
-        // "outside" and "center" both stroke-then-fill in the legacy renderer.
-        ctx.strokeText(line, tx, y);
+        // "center" straddles the glyph edge, so it paints OVER the fill — under
+        // it, the fill would eat the inner half and leave a half-width outside
+        // stroke instead (this used to match "outside", disagreeing with the
+        // editor). "inside" also paints over the fill.
         fillLine(line, y);
+        ctx.strokeText(line, tx, y);
       }
     });
   } else {
@@ -384,7 +387,10 @@ async function renderElement(
     else skipped.push(elementLabel(el));
   } else if (el.type === "shape") {
     const img = await loadImage(toSvgDataUrl(buildShapeSvg(el, ew, eh)));
-    if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+    // An outside/center stroke paints beyond the element box, so the SVG is
+    // bigger than the box and has to be drawn inflated by that same margin.
+    const { px, py } = shapeStrokePadPx(el, ew, eh);
+    if (img) ctx.drawImage(img, -ew / 2 - px, -eh / 2 - py, ew + px * 2, eh + py * 2);
     else skipped.push(elementLabel(el));
   } else {
     renderText(ctx, el, size, ew, eh);

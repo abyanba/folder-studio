@@ -11,7 +11,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
+import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "@/lib/export/elementSvg";
 import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
@@ -164,6 +164,8 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
         : null,
     [el, width, height, iconVersion],
   );
+  const svgPad =
+    el.type === "shape" ? shapeStrokePadPx(el, width, height) : { px: 0, py: 0 };
   // Live-preview of a hovered blend mode (image panel) on the selected image.
   const blendPreview = useUiStore((s) =>
     el.type === "image" ? s.blendPreview : null,
@@ -211,7 +213,17 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
   } else {
     content = svg ? (
       <div
-        style={{ width: "100%", height: "100%", pointerEvents: "none" }}
+        // A shape's outside/center stroke paints past the element box, so the
+        // injected SVG is inflated by that margin and hangs outside the box —
+        // the same inflation the two export paths apply.
+        style={{
+          position: "absolute",
+          left: -svgPad.px,
+          top: -svgPad.py,
+          width: `calc(100% + ${svgPad.px * 2}px)`,
+          height: `calc(100% + ${svgPad.py * 2}px)`,
+          pointerEvents: "none",
+        }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
     ) : el.type === "icon" && iconStatus(el.iconName, el.iconVariant) === "failed" ? (
