@@ -81,7 +81,9 @@ export function SliderField({
             max={max}
             step={step}
             aria-label={`${label} value`}
-            className="h-5 w-14 rounded border bg-transparent px-1 text-right text-xs font-medium tabular-nums outline-none focus:border-ring"
+            // Spinners are hidden: they overlapped the digits in this 14-unit
+            // readout, and the slider right below already steps the value.
+            className="h-5 w-14 rounded border bg-transparent px-1 text-right text-xs font-medium tabular-nums outline-none focus:border-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitDraft}
             onKeyDown={(e) => {

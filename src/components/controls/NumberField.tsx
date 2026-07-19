@@ -52,7 +52,8 @@ export function NumberField({
         min={min}
         max={max}
         step={step}
-        className="h-7 px-2 text-xs tabular-nums"
+        // Spinners hidden — they clipped the digits in these narrow fields.
+        className="h-7 px-2 text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
