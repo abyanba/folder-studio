@@ -47,14 +47,27 @@ function logoSvgHtml(body: { body: string; width?: number; height?: number }, ti
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}" style="width:100%;height:100%">${inner}</svg>`;
 }
 
-/** Build the SVG data-URL src for a color logo, or null if its body isn't cached. */
+/** Longest side a freshly added color logo gets, so every brand spawns alike. */
+const LOGO_SPAWN_SIZE = 96;
+
+/**
+ * Build the SVG data-URL src for a color logo, or null if its body isn't cached.
+ * `vw`/`vh` are the *spawn* box: the intrinsic sizes differ wildly per brand
+ * (facebook 666², x 24²), so they're normalized to a common longest side with
+ * the aspect ratio preserved.
+ */
 function colorLogoSrc(name: string): { src: string; vw: number; vh: number } | null {
   const body = getColorLogoBody(name);
   if (!body) return null;
-  const vw = body.width ?? 24;
-  const vh = body.height ?? 24;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${vw}" height="${vh}" viewBox="0 0 ${vw} ${vh}">${body.body}</svg>`;
-  return { src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, vw, vh };
+  const iw = body.width ?? 24;
+  const ih = body.height ?? 24;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${iw}" height="${ih}" viewBox="0 0 ${iw} ${ih}">${body.body}</svg>`;
+  const k = LOGO_SPAWN_SIZE / Math.max(iw, ih);
+  return {
+    src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    vw: Math.round(iw * k),
+    vh: Math.round(ih * k),
+  };
 }
 
 function LogoLibrary() {
@@ -180,14 +193,12 @@ function LogoLibrary() {
 
       <div className="grid grid-cols-3 gap-1.5">
         {names.map((name) => {
-          const colorBody = logoMode === "color" ? getColorLogoBody(name) : null;
-          const monoBody = getIconBody(name, "logo");
-          const body = colorBody ?? monoBody;
-          const tint = colorBody
-            ? undefined
-            : logoMode === "color"
-              ? (BRAND_COLORS[name] ?? "#ffffff")
-              : logoColor;
+          // Color bodies render as isolated <img> data-URLs (same as on canvas)
+          // — inlining many of them in one DOM let their internal ids/CSS
+          // collide, which is what made thumbnails show the wrong colors.
+          const colorSrc = logoMode === "color" ? colorLogoSrc(name)?.src : null;
+          const monoBody = colorSrc ? null : getIconBody(name, "logo");
+          const tint = logoMode === "color" ? (BRAND_COLORS[name] ?? "#ffffff") : logoColor;
           return (
             <button
               key={name}
@@ -196,10 +207,12 @@ function LogoLibrary() {
               className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-transparent bg-muted/40 p-2 transition-colors hover:border-border hover:bg-muted"
               onClick={() => addLogo(name)}
             >
-              {body ? (
+              {colorSrc ? (
+                <img src={colorSrc} alt="" draggable={false} className="size-7 object-contain" />
+              ) : monoBody ? (
                 <div
                   className="size-7"
-                  dangerouslySetInnerHTML={{ __html: logoSvgHtml(body, tint) }}
+                  dangerouslySetInnerHTML={{ __html: logoSvgHtml(monoBody, tint) }}
                 />
               ) : (
                 <div className="size-7 animate-pulse rounded bg-muted" />

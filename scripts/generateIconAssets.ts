@@ -140,13 +140,32 @@ async function fetchSvg(slug: string, variant: string): Promise<string | null> {
   return null;
 }
 
-function parseSvg(svg: string): BodyData {
+function parseSvg(svg: string, name: string): BodyData {
   const open = svg.match(/<svg[^>]*>/i);
   if (!open) throw new Error("no <svg> tag");
-  const body = svg.slice(svg.indexOf(open[0]) + open[0].length, svg.lastIndexOf("</svg>")).trim();
-  const vb = open[0].match(/viewBox="([\d.\s-]+)"/i)?.[1]?.split(/\s+/).map(Number);
+  let body = svg.slice(svg.indexOf(open[0]) + open[0].length, svg.lastIndexOf("</svg>")).trim();
+  if (!body) throw new Error("empty body");
+  // Consumers render the body in a `0 0 w h` viewBox, so a source viewBox with
+  // a non-zero origin used to render offset/half-clipped. Shift it back here.
+  const vb = open[0].match(/viewBox="([\d.\s,-]+)"/i)?.[1]?.split(/[\s,]+/).map(Number);
+  const [minX, minY] = [vb?.[0] ?? 0, vb?.[1] ?? 0];
   const width = vb?.[2] ?? Number(open[0].match(/width="([\d.]+)"/i)?.[1] ?? 24);
   const height = vb?.[3] ?? Number(open[0].match(/height="([\d.]+)"/i)?.[1] ?? 24);
+  if (minX || minY) body = `<g transform="translate(${-minX} ${-minY})">${body}</g>`;
+  // These bodies are rasterized as standalone `<img>` data-URLs, where external
+  // references never load — such a logo would ship as a blank.
+  if (/<image\b[^>]*href="https?:/i.test(body)) throw new Error("external <image> reference");
+  // Ids are global once several bodies are inlined into one document; namespace
+  // them per logo so `url(#a)` can't resolve to a different logo's gradient.
+  const ids = [...body.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  for (const id of new Set(ids)) {
+    const safe = id.replace(/[^\w-]/g, "");
+    const pfx = `${name.replace(/[^\w-]/g, "")}_${safe}`;
+    body = body
+      .replaceAll(` id="${id}"`, ` id="${pfx}"`)
+      .replaceAll(`url(#${id})`, `url(#${pfx})`)
+      .replaceAll(`href="#${id}"`, `href="#${pfx}"`);
+  }
   return { body, width, height };
 }
 
@@ -161,7 +180,11 @@ async function generateColorLogos(names: string[]): Promise<void> {
       failed.push(`${name} (slug: ${slug})`);
       continue;
     }
-    bodies[name] = parseSvg(svg);
+    try {
+      bodies[name] = parseSvg(svg, name);
+    } catch (e) {
+      failed.push(`${name} (slug: ${slug}) — ${(e as Error).message}`);
+    }
   }
   if (failed.length) {
     throw new Error(`thesvg logos failed to fetch: ${failed.join(", ")}`);
