@@ -19,6 +19,17 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    /**
+     * The default `threads` pool silently DROPS test files here — successive
+     * runs reported 42, 47, 49 and 50 of the 50 files, all exiting 0, so a run
+     * could "pass" having skipped a fifth of the suite and coverage thresholds
+     * would swing several points between runs for no code change.
+     *
+     * `forks` is stable across repeated runs and keeps file parallelism, so it
+     * costs nothing but a little process startup. Do not switch back without
+     * checking `Test Files N passed (N)` is the same N several runs running.
+     */
+    pool: "forks",
     coverage: {
       provider: "v8",
       include: ["src/**"],
