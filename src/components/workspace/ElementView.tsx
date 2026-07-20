@@ -75,7 +75,17 @@ function TextContent({ el }: { el: TextElement }) {
     display: "block",
     // Vertical anchor is ALWAYS center — the export centers text in the box, so
     // keying this off horizontal align top-anchored left/right text (EXP-03).
-    alignContent: "center",
+    // `unsafe` is load-bearing: plain `center` is *safe* centering, which falls
+    // back to start (top) alignment as soon as the line box is taller than the
+    // element box (e.g. fontSize 42 x lineHeight 1.3 = 54.6 in a 34.3 box). The
+    // canvas/SVG exports center unconditionally, so safe centering silently
+    // dropped the editor's text half a line lower than the export put it —
+    // invisible until `clip` started cutting at the box edge.
+    // ponytail: relies on the `unsafe` box-alignment keyword (Chrome/Safari 16+/
+    // Firefox). Somewhere without it drops the declaration and top-anchors ALL
+    // text; swap to an explicit translateY of (boxH - contentH) / 2 if that
+    // ever matters.
+    alignContent: "unsafe center",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     // The box is a transform/selection frame, not a clip — glyphs overflow it
