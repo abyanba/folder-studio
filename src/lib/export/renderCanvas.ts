@@ -35,7 +35,6 @@ import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./e
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
-import { buildPatternSvg } from "./patterns";
 import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLayout";
 import { toSvgDataUrl } from "./svgDataUrl";
 import { computeTrimBounds, computeTrimTransform } from "./trim";
@@ -404,49 +403,6 @@ async function renderElement(
   ctx.restore();
 }
 
-/** Composite the pattern pattern over the current canvas, clipped to content. */
-async function renderPattern(
-  ctx: CanvasRenderingContext2D,
-  doc: FolderDocument,
-  size: number,
-  loadImage: ImageLoader,
-  createCanvas: CanvasFactory,
-): Promise<void> {
-  const texSvg = buildPatternSvg(doc.pattern);
-  if (!texSvg) return;
-  const tImg = await loadImage(toSvgDataUrl(texSvg));
-  if (!tImg) return;
-  const exportScale = size / FW;
-  const nW = tImg.naturalWidth || 10;
-  const nH = tImg.naturalHeight || 10;
-  const tileW = Math.max(1, Math.round(nW * doc.pattern.scale * exportScale));
-  const tileH = Math.max(1, Math.round(nH * doc.pattern.scale * exportScale));
-  const tile = createCanvas(tileW, tileH);
-  const tctx = tile.getContext("2d");
-  if (!tctx) return;
-  tctx.drawImage(tImg, 0, 0, tileW, tileH);
-
-  const pattern = ctx.createPattern(tile, "repeat");
-  if (!pattern) return;
-  ctx.save();
-  ctx.globalCompositeOperation = "source-atop";
-  ctx.globalAlpha = doc.pattern.opacity;
-  ctx.fillStyle = pattern;
-  const rot = doc.pattern.rotation || 0;
-  if (rot) {
-    // Match the editor's PatternOverlay: the tiled pattern rotates about the
-    // folder center, with enough overdraw (its 220% layer) to keep the rotated
-    // tiling covering every corner of the canvas.
-    ctx.translate(size / 2, size / 2);
-    ctx.rotate((rot * Math.PI) / 180);
-    const over = size * 1.2;
-    ctx.fillRect(-over, -over, over * 2, over * 2);
-  } else {
-    ctx.fillRect(0, 0, size, size);
-  }
-  ctx.restore();
-}
-
 /**
  * Render `doc` to a `size`×`size` canvas: base recolor, elements below the
  * pattern layer, pattern, elements above it, optional clip-to-folder mask, and
@@ -478,8 +434,6 @@ export async function buildExportCanvas(
     if (el.visible === false) continue;
     await renderElement(ctx, el, size, deps, loadImage, skipped);
   }
-
-  await renderPattern(ctx, doc, size, loadImage, createCanvas);
 
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];

@@ -1,5 +1,5 @@
 /**
- * 5e behaviors: layer-order application incl. the pattern pseudo-row,
+ * 5e behaviors: layer-order application,
  * legacy gallery-snapshot migration, gallery persistence, and undoable
  * multi-select editing.
  */
@@ -32,9 +32,7 @@ describe("applyLayerOrder", () => {
     const a = s.addShape("rect");
     const b = s.addShape("ellipse");
     const c = s.addShape("star");
-    useDocumentStore.setState((st) => ({
-      doc: { ...st.doc, pattern: { ...st.doc.pattern, id: "dots" }, patternLayerZ: 1 },
-    }));
+    useDocumentStore.setState((st) => ({ doc: { ...st.doc, patternLayerZ: 1 } }));
     return [a, b, c]; // bottom → top
   }
 
@@ -65,11 +63,11 @@ describe("applyLayerOrder", () => {
     expect(useDocumentStore.getState().doc.elements.map((e) => e.id)).toEqual(before);
   });
 
-  it("renders rows top-first with the pattern pseudo-row", () => {
+  it("renders rows top-first", () => {
     const [a, , c] = seed();
     render(<LayersPanel />);
-    const labels = screen.getAllByText(/Shape \d|Polka Dots/).map((n) => n.textContent);
-    expect(labels).toEqual(["Shape 3", "Shape 2", "Polka Dots", "Shape 1"]);
+    const labels = screen.getAllByText(/Shape \d/).map((n) => n.textContent);
+    expect(labels).toEqual(["Shape 3", "Shape 2", "Shape 1"]);
     expect(a).toBeTruthy();
     expect(c).toBeTruthy();
   });
@@ -177,10 +175,6 @@ describe("normalizeLegacySnapshot", () => {
     const g = doc.folderColor as Gradient;
     expect(g.kind).toBe("radial");
     expect(g.stops.map((s) => s.id)).toEqual(["0", "1"]);
-
-    expect(doc.pattern.id).toBe("dots");
-    expect(doc.pattern.opacity).toBe(0.5);
-    expect(doc.pattern.scale).toBe(2);
 
     expect(doc.elements).toHaveLength(2);
     const shape = doc.elements[0] as ShapeElement;

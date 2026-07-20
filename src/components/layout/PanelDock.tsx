@@ -10,7 +10,6 @@ import { useUiStore } from "@/store/uiStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { ShapePanel } from "@/components/panels/ShapePanel";
 import { ColorPanel } from "@/components/panels/ColorPanel";
-import { PatternPanel } from "@/components/panels/PatternPanel";
 import { ImagePanel } from "@/components/panels/ImagePanel";
 import { TextPanel } from "@/components/panels/TextPanel";
 import { ShapesPanel } from "@/components/panels/ShapesPanel";
@@ -24,7 +23,6 @@ import { MultiSelectPanel } from "@/components/panels/MultiSelectPanel";
 const PANELS: Record<string, ComponentType> = {
   shape: ShapePanel,
   color: ColorPanel,
-  pattern: PatternPanel,
   image: ImagePanel,
   text: TextPanel,
   shapes: ShapesPanel,

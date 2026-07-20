@@ -17,7 +17,6 @@ import { useUiStore } from "@/store/uiStore";
 import { useInteraction } from "@/hooks/useInteraction";
 import type { LiveOverride } from "@/hooks/useInteraction";
 import { FolderBase } from "./FolderBase";
-import { PatternOverlay } from "./PatternOverlay";
 import { ElementView } from "./ElementView";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
@@ -117,7 +116,6 @@ export function Workspace() {
             <FolderBase doc={doc} />
             <div style={contentRect}>
               {doc.elements.slice(0, tz).map(renderEl)}
-              {doc.pattern.id !== "none" && <PatternOverlay pattern={doc.pattern} maskUrl={maskUrl} />}
               {doc.elements.slice(tz).map(renderEl)}
             </div>
           </div>

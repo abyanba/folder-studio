@@ -286,9 +286,6 @@ export function buildExportSvg(
 
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) emit(doc.elements[i]);
-  if (doc.pattern && doc.pattern.id !== "none") {
-    skipped.push("Pattern (raster export only)");
-  }
   for (let i = tz; i < doc.elements.length; i++) emit(doc.elements[i]);
 
   let content = body.join("");

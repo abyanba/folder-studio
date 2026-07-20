@@ -215,13 +215,6 @@ describe("buildExportSvg", () => {
     expect(svg).toContain('width="380" height="380" href=');
   });
 
-  it("surfaces the pattern layer as a skipped label", () => {
-    const doc = createEmptyDocument();
-    doc.pattern = { ...doc.pattern, id: "dots" };
-    const { skipped } = buildExportSvg(doc, 256, noIcon);
-    expect(skipped).toContain("Pattern (raster export only)");
-  });
-
   it("omits hidden elements", () => {
     const doc = createEmptyDocument();
     const s = createShapeElement("rect", "R");

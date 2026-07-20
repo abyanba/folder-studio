@@ -46,7 +46,6 @@ export function buildSampleDocument(): FolderDocument {
   doc.baseShape = "windows";
   doc.folderColor = baseGradient;
   doc.clipToFolder = true;
-  doc.pattern = { ...doc.pattern, id: "dots", color: "#ffffff", opacity: 0.4, scale: 1, seed: 7 };
 
   const shape = createShapeElement("star", "Star");
   shape.x = 10;
@@ -92,6 +91,6 @@ export function buildSampleDocument(): FolderDocument {
   image.y = 120;
 
   doc.elements = [shape, image, draw, text, icon];
-  doc.patternLayerZ = 2; // pattern sits above shape+image, below draw/text/icon
+  doc.patternLayerZ = 2; // reserved pattern slot; nothing renders into it today
   return doc;
 }

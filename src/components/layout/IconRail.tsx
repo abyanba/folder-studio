@@ -7,7 +7,6 @@ import type { ComponentType } from "react";
 import {
   Award,
   Folder,
-  Grid3x3,
   Image,
   Images,
   Layers,
@@ -31,7 +30,6 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   shapes: Shapes,
   text: Type,
   draw: Pencil,
-  pattern: Grid3x3,
   layers: Layers,
   gallery: Images,
 };

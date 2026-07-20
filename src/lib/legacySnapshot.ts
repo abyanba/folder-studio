@@ -195,18 +195,21 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
 
   if (isNewFormat(sn)) {
     const snap = sn as Partial<FolderDocument>;
-    // Deep-merge nested objects so a future field added to `pattern`/`iconDefaults`
-    // loads its default instead of `undefined` on an older snapshot (ST-08).
-    // `pattern` was called `texture` on disk before the rename — snapshots saved
-    // then are still in users' galleries, so both spellings are read.
+    // Deep-merge nested objects so a future field added to `iconDefaults` loads
+    // its default instead of `undefined` on an older snapshot (ST-08).
+    // Snapshots may still carry `pattern`/`texture` settings from before the
+    // pattern feature was removed; they are ignored rather than migrated.
     const merged: FolderDocument = {
       ...doc,
       ...snap,
-      pattern: { ...doc.pattern, ...sn.texture, ...snap.pattern },
       patternLayerZ: Number(snap.patternLayerZ ?? sn.textureLayerZ ?? 0),
       iconDefaults: { ...doc.iconDefaults, ...snap.iconDefaults },
       v: doc.v,
     };
+    // `...snap` would otherwise carry the retired `pattern`/`texture` objects
+    // through onto the live document and straight back into the next save.
+    delete (merged as Partial<Record<"pattern" | "texture", unknown>>).pattern;
+    delete (merged as Partial<Record<"pattern" | "texture", unknown>>).texture;
     reseedIds(maxIdSuffix(merged.elements.map((e) => e.id)));
     return merged;
   }
@@ -233,14 +236,6 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
     );
   }
 
-  doc.pattern = {
-    ...doc.pattern,
-    // Pre-rename legacy snapshots spell these `texture*`.
-    id: typeof sn.texture === "string" ? sn.texture : "none",
-    opacity: Number(sn.textureOpacity ?? 0.35),
-    scale: Number(sn.textureScale ?? 1),
-    color: typeof sn.textureColor === "string" ? sn.textureColor : "#ffffff",
-  };
   doc.iconDefaults = {
     stroke: Number(sn.iconStroke ?? 1.5),
     color: normalizeColor(sn.iconColor, "#ffffff"),
@@ -250,7 +245,7 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
   doc.elements = rawElements
     .map((e, i) => normalizeElement(e, i))
     .filter((e): e is FolderElement => e !== null);
-  // Legacy snapshots don't persist patternLayerZ; default to pattern-below-all.
+  // Legacy snapshots don't persist patternLayerZ; default to bottom-of-stack.
   doc.patternLayerZ = 0;
 
   reseedIds(maxIdSuffix(doc.elements.map((e) => e.id)));

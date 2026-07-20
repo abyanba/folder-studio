@@ -12,7 +12,6 @@ import type { ColorValue } from "./gradient";
 import type { FolderElement } from "./element";
 
 export type BaseShapeId = string;
-export type PatternId = string;
 
 /**
  * Color profile for a *gradient*-filled Windows folder — how the tab/back and
@@ -77,18 +76,6 @@ export const DEFAULT_WINDOWS_IMAGE_MODE: WindowsImageMode = "full";
 export type FolderState = "empty" | "contents";
 export const DEFAULT_FOLDER_STATE: FolderState = "empty";
 
-export interface PatternSettings {
-  id: PatternId;
-  opacity: number;
-  scale: number;
-  rotation: number;
-  color: string;
-  /** `"transparent"` or a hex string. */
-  bg: string;
-  /** Deterministic seed for randomized patterns (dots, confetti, …). */
-  seed: number;
-}
-
 export interface IconDefaults {
   stroke: number;
   /** Default color applied to newly added icons (gradient-capable). */
@@ -152,12 +139,16 @@ export interface FolderDocument {
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
   macImageMode: WindowsImageMode;
-  pattern: PatternSettings;
   iconDefaults: IconDefaults;
   elements: FolderElement[];
   /**
    * Z-position of the pattern layer within `elements`, counted from the top.
    * Kept in sync when elements are added/removed/reordered.
+   *
+   * The pattern feature itself was removed (the 33 hand-written motifs and the
+   * scatter seed); this slot is deliberately kept so the Hero Patterns work can
+   * drop a layer back in without re-deriving the ordering plumbing. Inert while
+   * nothing renders into it.
    */
   patternLayerZ: number;
 }
@@ -187,15 +178,6 @@ export function createEmptyDocument(): FolderDocument {
     windowsColorProfile: DEFAULT_WINDOWS_COLOR_PROFILE,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
-    pattern: {
-      id: "none",
-      opacity: 0.35,
-      scale: 1,
-      rotation: 0,
-      color: "#ffffff",
-      bg: "transparent",
-      seed: 0,
-    },
     iconDefaults: { stroke: 1.5, color: "#ffffff" },
     elements: [],
     patternLayerZ: 0,

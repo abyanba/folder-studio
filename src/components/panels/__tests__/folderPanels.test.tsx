@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ShapePanel } from "@/components/panels/ShapePanel";
-import { PatternPanel } from "@/components/panels/PatternPanel";
 import { ColorPanel } from "@/components/panels/ColorPanel";
 import { useDocumentStore } from "@/store/documentStore";
 import { useUiStore } from "@/store/uiStore";
@@ -188,32 +187,6 @@ describe("ColorPanel fill modes", () => {
     const doc = useDocumentStore.getState().doc;
     expect(doc.folderBgImage).toBe("data:image/png;base64,x");
     expect(doc.folderFillMode).toBe("color");
-  });
-});
-
-describe("PatternPanel", () => {
-  it("selects a pattern, then opens adjust on second click", async () => {
-    const user = userEvent.setup();
-    render(<PatternPanel />);
-
-    await user.click(screen.getByRole("button", { name: "Polka Dots" }));
-    expect(useDocumentStore.getState().doc.pattern.id).toBe("dots");
-
-    await user.click(screen.getByRole("button", { name: "Polka Dots" }));
-    expect(screen.getByText("Adjust Pattern")).toBeInTheDocument();
-
-    // Scatter pattern → randomize toggles a non-zero seed, reroll changes it.
-    await user.click(screen.getByRole("button", { name: /Randomize/i }));
-    const seed1 = useDocumentStore.getState().doc.pattern.seed;
-    expect(seed1).not.toBe(0);
-  });
-
-  it("search filters the grid", async () => {
-    const user = userEvent.setup();
-    render(<PatternPanel />);
-    await user.type(screen.getByRole("textbox", { name: "Search patterns" }), "zig");
-    expect(screen.getByRole("button", { name: "Zigzag" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Polka Dots" })).toBeNull();
   });
 });
 
