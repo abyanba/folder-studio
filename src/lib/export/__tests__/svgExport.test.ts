@@ -192,6 +192,21 @@ describe("buildExportSvg", () => {
     expect(svg).toContain('mask="url(#patmask)"');
   });
 
+  it("maps the tile onto the scaled cell so a scaled pattern isn't drawn at natural size", () => {
+    // Regression: without a viewBox the tile SVG keeps its own width/height and
+    // paints at natural size in the corner of a larger cell — a quarter-size
+    // motif with three quarters empty. Invisible at scale 1, where the cell and
+    // the tile happen to be the same size, so this asserts at scale 2.
+    const doc = createEmptyDocument();
+    doc.pattern = { ...doc.pattern, id: "dots", scale: 2 };
+    const body = { svg: '<svg width="32" height="64" viewBox="0 0 32 64"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 32, h: 64, defaultScale: 1 };
+    const { svg } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
+    expect(svg).toContain('<pattern id="pat" patternUnits="userSpaceOnUse" width="64" height="128"');
+    // The cell is 64x128 and the tile's own space is 32x64, so the wrapper must
+    // carry that viewBox for the motif to fill the cell.
+    expect(svg).toContain('width="64" height="128" viewBox="0 0 32 64"');
+  });
+
   it("rotates the pattern via patternTransform rather than an overdraw layer", () => {
     const doc = createEmptyDocument();
     doc.pattern = { ...doc.pattern, id: "dots", rotation: 45 };

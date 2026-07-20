@@ -311,7 +311,12 @@ export function buildExportSvg(
     const tileSvg = buildPatternSvg(doc.pattern, patternBody);
     defs.push(
       `<pattern id="pat" patternUnits="userSpaceOnUse" width="${num(t.w)}" height="${num(t.h)}"${transform}>` +
-        `<svg x="0" y="0" width="${num(t.w)}" height="${num(t.h)}" preserveAspectRatio="none">${tileSvg}</svg>` +
+        // The viewBox is load-bearing: the tile SVG carries its own natural
+        // width/height, so without a coordinate system to map onto the scaled
+        // cell it just paints at natural size in the corner. Only visible once
+        // the effective scale differs from 1, which is why it needs a test at
+        // scale != 1 rather than the default.
+        `<svg x="0" y="0" width="${num(t.w)}" height="${num(t.h)}" viewBox="0 0 ${num(patternBody.w)} ${num(patternBody.h)}" preserveAspectRatio="none">${tileSvg}</svg>` +
         `</pattern>`,
     );
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
