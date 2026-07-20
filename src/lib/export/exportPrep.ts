@@ -10,6 +10,7 @@
 import type { FolderDocument } from "@/types/document";
 import type { TextElement } from "@/types/element";
 import { hydrateDocumentIcons } from "@/lib/iconHydration";
+import { loadPatternBodies } from "@/lib/patternBodies";
 
 /** Load every font family used by visible text so `fillText` never falls back. */
 async function ensureFonts(doc: FolderDocument): Promise<void> {
@@ -32,5 +33,11 @@ async function ensureFonts(doc: FolderDocument): Promise<void> {
 }
 
 export async function prepareDocumentAssets(doc: FolderDocument): Promise<void> {
-  await Promise.all([hydrateDocumentIcons(doc), ensureFonts(doc)]);
+  await Promise.all([
+    hydrateDocumentIcons(doc),
+    ensureFonts(doc),
+    // The pattern bodies are a lazy chunk; without this an export started
+    // before the editor had ever shown a pattern would rasterize without it.
+    doc.pattern.id !== "none" ? loadPatternBodies() : Promise.resolve(),
+  ]);
 }

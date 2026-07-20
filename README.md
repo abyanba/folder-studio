@@ -14,7 +14,7 @@ A browser-based folder icon creator. Design custom folder icons with colors, gra
 - **Text** — full typography: 20 bundled font families, size/spacing/line-height with auto-fit, stroke, shadow, gradient fill
 - **Draw** — freehand pen, line, and arc tools with Chaikin smoothing, plus an eraser
 - **Shapes** — rectangle, ellipse, triangle, star, hexagon with fill/stroke/shadow controls
-- **Pattern** — 30+ pattern overlays with opacity/scale/rotation and seeded randomization
+- **Pattern** — 43 Hero Patterns overlays with foreground/background color + opacity, scale, rotation, and a whole-folder or front-panel-only span
 - **Layers** — drag-to-reorder (pattern layer included), visibility, lock, rename
 - **Multi-select** — marquee or shift-click, then edit shared properties at once
 - **Gallery** — save and restore design snapshots (localStorage; designs from the legacy app still load)
@@ -42,11 +42,21 @@ npm test                # Vitest + React Testing Library
 npm run test:coverage   # coverage-gated test run (CI uses this)
 npm run build           # type-check + production build into dist/
 npx oxlint src scripts  # lint
-npm run generate:icons  # re-bake icon/logo assets into src/data/generated/
+npm run generate:icons     # re-bake icon/logo assets into src/data/generated/
+npm run generate:patterns  # re-bake the Hero Patterns catalog
 ```
 
 ## Deployment
 
 Pushes to `main` run CI (lint, tests with coverage thresholds, build) and deploy `dist/` to GitHub Pages via GitHub Actions — see `.github/workflows/ci.yml`.
+
+## Credits
+
+Pattern artwork is [Hero Patterns](https://heropatterns.com/) © Steve Schoger,
+used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The tiles
+are recolored and rescaled by this app; the originals are unmodified in shape.
+
+Icons are [Phosphor](https://phosphoricons.com/) (MIT). Brand logos come from
+[simple-icons](https://simpleicons.org/) (CC0) and [thesvg](https://thesvg.org/).
 
 The previous single-file version of the app is archived at [`/legacy.html`](https://abyanba.github.io/folder-studio/legacy.html) (`public/legacy.html` in the repo).

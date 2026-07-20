@@ -9,8 +9,9 @@ import { useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY, CDW, CDH } from "@/lib/constants";
 import type { FolderElement } from "@/types/element";
-import { getBaseShapeMask } from "@/lib/export/baseShapes";
+import { getBaseShapeMask, getFrontMask } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
+import { isFrontPattern } from "@/lib/export/patterns";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
@@ -18,6 +19,7 @@ import { useInteraction } from "@/hooks/useInteraction";
 import type { LiveOverride } from "@/hooks/useInteraction";
 import { FolderBase } from "./FolderBase";
 import { ElementView } from "./ElementView";
+import { PatternOverlay } from "./PatternOverlay";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
 import { ElementContextMenu } from "./ElementContextMenu";
@@ -51,6 +53,15 @@ export function Workspace() {
   // Pure function of the base shape — don't rebuild the mask data URL every
   // drag frame (PF-03).
   const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
+  // A front-span pattern is confined to the front panel instead of the whole
+  // silhouette — the same mask an image fill uses for its front-only mode.
+  const patternMaskUrl = useMemo(
+    () =>
+      isFrontPattern(doc.baseShape, doc.pattern)
+        ? toSvgDataUrl(getFrontMask(doc.baseShape))
+        : toSvgDataUrl(getBaseShapeMask(doc.baseShape)),
+    [doc.baseShape, doc.pattern],
+  );
 
   const renderEl = (el: FolderElement) =>
     el.visible === false && !selectedIds.includes(el.id) ? null : (
@@ -116,6 +127,9 @@ export function Workspace() {
             <FolderBase doc={doc} />
             <div style={contentRect}>
               {doc.elements.slice(0, tz).map(renderEl)}
+              {doc.pattern.id !== "none" && (
+                <PatternOverlay pattern={doc.pattern} maskUrl={patternMaskUrl} />
+              )}
               {doc.elements.slice(tz).map(renderEl)}
             </div>
           </div>

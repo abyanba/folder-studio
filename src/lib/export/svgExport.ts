@@ -8,15 +8,18 @@
  * `deps`, so no canvas/network here. The browser wiring (measuring text for
  * wrap, inlining fonts) lives in `exporters.ts` / `svgFonts.ts`.
  *
- * Known gaps vs the raster export, surfaced in `skipped`: the pattern layer
- * (its source-atop-over-painted-pixels compositing has no clean SVG form) and
- * auto-trim (the SVG keeps the full workspace frame — vector output is
- * resolution-independent, so tight cropping matters less).
+ * The pattern layer IS included here (a `<pattern>` tile behind the folder
+ * mask) — the pre-rework implementation couldn't be, because its
+ * source-atop-over-painted-pixels compositing had no clean SVG form.
+ *
+ * Known gap vs the raster export: auto-trim (the SVG keeps the full workspace
+ * frame — vector output is resolution-independent, so cropping matters less).
  */
 
 import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
+import type { PatternBody } from "@/data/generated/patternBodies";
 import type { DropShadow, FolderElement, TextElement } from "@/types/element";
 import {
   buildBaseShapeOverlaySvg,
@@ -33,10 +36,17 @@ import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./e
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
+import { buildPatternSvg, isFrontPattern, patternTileSize } from "./patterns";
 import type { MeasureText } from "./textLayout";
 
 export interface SvgExportDeps {
   getIconBody: (name: string, variant: string) => IconBody | null;
+  /**
+   * Baked body for `doc.pattern.id`. Injected (rather than imported) so this
+   * module stays pure and free of the ~130KB generated chunk; browser callers
+   * pass `getPatternBody` after `loadPatternBodies` has resolved.
+   */
+  getPatternBody?: (id: string) => PatternBody | null;
   /** Optional text-measurer for word-wrap parity with the raster export. */
   measure?: (el: TextElement) => MeasureText;
   /** Optional `@font-face` CSS (data-URL fonts) to embed for a self-contained file. */
@@ -286,6 +296,33 @@ export function buildExportSvg(
 
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) emit(doc.elements[i]);
+
+  // The pattern layer is true vector here: a <pattern> tile referenced by a
+  // full-frame rect, masked to the folder (or just its front panel). The old
+  // raster-only implementation composited with source-atop, which had no clean
+  // SVG form; a plain background rect inside the tile does.
+  const patternBody = doc.pattern.id !== "none" ? deps.getPatternBody?.(doc.pattern.id) : null;
+  if (patternBody) {
+    const t = patternTileSize(doc.pattern, patternBody);
+    const rot = doc.pattern.rotation || 0;
+    // patternTransform rotates the tiling itself — no overdraw layer needed,
+    // unlike the canvas path fighting createPattern.
+    const transform = rot ? ` patternTransform="rotate(${num(rot)} ${num(FW / 2)} ${num(FH / 2)})"` : "";
+    const tileSvg = buildPatternSvg(doc.pattern, patternBody);
+    defs.push(
+      `<pattern id="pat" patternUnits="userSpaceOnUse" width="${num(t.w)}" height="${num(t.h)}"${transform}>` +
+        `<svg x="0" y="0" width="${num(t.w)}" height="${num(t.h)}" preserveAspectRatio="none">${tileSvg}</svg>` +
+        `</pattern>`,
+    );
+    const patMask = isFrontPattern(doc.baseShape, doc.pattern)
+      ? getFrontMask(doc.baseShape)
+      : getBaseShapeMask(doc.baseShape);
+    defs.push(
+      `<mask id="patmask"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(patMask)}</svg></mask>`,
+    );
+    body.push(`<rect width="${FW}" height="${FH}" fill="url(#pat)" mask="url(#patmask)"/>`);
+  }
+
   for (let i = tz; i < doc.elements.length; i++) emit(doc.elements[i]);
 
   let content = body.join("");

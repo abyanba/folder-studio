@@ -76,6 +76,29 @@ export const DEFAULT_WINDOWS_IMAGE_MODE: WindowsImageMode = "full";
 export type FolderState = "empty" | "contents";
 export const DEFAULT_FOLDER_STATE: FolderState = "empty";
 
+/** Whole folder, or just the front panel — mirrors an image fill's span. */
+export type PatternSpan = WindowsImageMode;
+
+export interface PatternSettings {
+  /** `hero-patterns` key from `PATTERN_CATALOG`, or `"none"`. */
+  id: string;
+  fgColor: string;
+  /** 0-1, baked into the tile's `fill-opacity`. */
+  fgOpacity: number;
+  /** `"transparent"` or a hex string. */
+  bgColor: string;
+  /** 0-1, ignored when `bgColor` is `"transparent"`. */
+  bgOpacity: number;
+  /** Multiplies the pattern's baked `defaultScale` — 1 is the tuned default. */
+  scale: number;
+  rotation: number;
+  /**
+   * Front-only spans just the folder's front panel, like an image fill. Only
+   * windows/macOS have a front/back split; other shapes always render full.
+   */
+  span: PatternSpan;
+}
+
 export interface IconDefaults {
   stroke: number;
   /** Default color applied to newly added icons (gradient-capable). */
@@ -139,16 +162,12 @@ export interface FolderDocument {
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
   macImageMode: WindowsImageMode;
+  pattern: PatternSettings;
   iconDefaults: IconDefaults;
   elements: FolderElement[];
   /**
    * Z-position of the pattern layer within `elements`, counted from the top.
    * Kept in sync when elements are added/removed/reordered.
-   *
-   * The pattern feature itself was removed (the 33 hand-written motifs and the
-   * scatter seed); this slot is deliberately kept so the Hero Patterns work can
-   * drop a layer back in without re-deriving the ordering plumbing. Inert while
-   * nothing renders into it.
    */
   patternLayerZ: number;
 }
@@ -178,6 +197,16 @@ export function createEmptyDocument(): FolderDocument {
     windowsColorProfile: DEFAULT_WINDOWS_COLOR_PROFILE,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
+    pattern: {
+      id: "none",
+      fgColor: "#ffffff",
+      fgOpacity: 0.4,
+      bgColor: "transparent",
+      bgOpacity: 1,
+      scale: 1,
+      rotation: 0,
+      span: DEFAULT_WINDOWS_IMAGE_MODE,
+    },
     iconDefaults: { stroke: 1.5, color: "#ffffff" },
     elements: [],
     patternLayerZ: 0,

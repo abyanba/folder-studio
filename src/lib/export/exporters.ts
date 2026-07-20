@@ -16,6 +16,7 @@ import type { IcoImage } from "./ico";
 import { encodeIcns, isIcnsSize } from "./icns";
 import type { IcnsImage } from "./icns";
 import { buildExportSvg } from "./svgExport";
+import { getPatternBody } from "@/lib/patternBodies";
 import type { MeasureText } from "./textLayout";
 import { collectFontFaceCss } from "./svgFonts";
 
@@ -102,6 +103,7 @@ export async function exportSvg(
   const bgImageSize = await measureBgImage(doc);
   const { svg, skipped } = buildExportSvg(doc, size, {
     getIconBody: deps.getIconBody,
+    getPatternBody,
     measure,
     fontFaceCss,
     bgImageSize,
@@ -191,6 +193,7 @@ export async function batchExportZip(
   const svgDeps = wantSvg
     ? {
         getIconBody: deps.getIconBody,
+        getPatternBody,
         measure: makeMeasure(),
         fontFaceCss: await collectFontFaceCss(doc),
         bgImageSize: await measureBgImage(doc),

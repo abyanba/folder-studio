@@ -11,6 +11,7 @@ import { useState, type MouseEvent } from "react";
 import { ChevronRight, Eye, EyeOff, GripVertical, Lock, LockOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -31,6 +32,7 @@ import { isGradient } from "@/types/gradient";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
+import { PATTERN_CATALOG } from "@/data/patterns";
 import type { FolderElement } from "@/types/element";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
@@ -237,6 +239,29 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
   );
 }
 
+function PatternRow({ patternId }: { patternId: string }) {
+  const setActivePanel = useUiStore((s) => s.setActivePanel);
+  const name = PATTERN_CATALOG.find((p) => p.key === patternId)?.name ?? patternId;
+  return (
+    <div
+      className="group flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border/60 bg-muted/20 px-1.5 text-xs hover:bg-muted/50"
+      onClick={() => setActivePanel("pattern")}
+    >
+      <SortableItemHandle
+        className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground"
+        aria-label="Reorder pattern layer"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="size-3.5" />
+      </SortableItemHandle>
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">{name}</span>
+      <Badge variant="outline" className="h-4 px-1 text-[9px] uppercase">
+        base
+      </Badge>
+    </div>
+  );
+}
+
 export function LayersPanel() {
   const doc = useDocumentStore((s) => s.doc);
   const applyLayerOrder = useDocumentStore((s) => s.applyLayerOrder);
@@ -244,8 +269,11 @@ export function LayersPanel() {
   const selectedCount = useSelectionStore((s) => s.selectedIds.length);
   const [groupOpen, setGroupOpen] = useState(true);
 
+  const hasPattern = doc.pattern.id !== "none";
+  const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   const topFirst = [...doc.elements].reverse();
   const keys: string[] = topFirst.map((e) => e.id);
+  if (hasPattern) keys.splice(doc.elements.length - tz, 0, PATTERN_KEY);
   const byId = new Map(doc.elements.map((e) => [e.id, e]));
 
   return (
@@ -265,7 +293,11 @@ export function LayersPanel() {
             <SortableContent className="flex flex-col gap-1">
               {keys.map((key) => (
                 <SortableItem key={key} value={key}>
-                  <ElementRow el={byId.get(key)!} displayKeys={keys} />
+                  {key === PATTERN_KEY ? (
+                    <PatternRow patternId={doc.pattern.id} />
+                  ) : (
+                    <ElementRow el={byId.get(key)!} displayKeys={keys} />
+                  )}
                 </SortableItem>
               ))}
             </SortableContent>

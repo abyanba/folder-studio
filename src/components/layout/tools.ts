@@ -20,6 +20,7 @@ export const TOOLS: ToolDef[] = [
   { id: "shapes", label: "Shapes" },
   { id: "text", label: "Text" },
   { id: "draw", label: "Free Draw", isTool: true },
+  { id: "pattern", label: "Pattern" },
   { id: "layers", label: "Layers" },
   { id: "gallery", label: "Gallery" },
 ];

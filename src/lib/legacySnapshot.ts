@@ -24,6 +24,7 @@ import type {
 import type { ColorValue, Gradient, GradientStop } from "@/types/gradient";
 import { maxIdSuffix, reseedIds } from "./id";
 import { notify } from "@/store/toastStore";
+import { PATTERN_CATALOG } from "@/data/patterns";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Legacy = Record<string, any>;
@@ -185,6 +186,17 @@ function normalizeElement(e: Legacy, index: number): FolderElement | null {
   return null;
 }
 
+/**
+ * Snapshots predate the Hero Patterns rework, so they can name one of the 33
+ * retired hand-written motifs (`"dots"`, `"stars"`, …). Those ids resolve to no
+ * body — the folder would render pattern-less while the panel showed a motif
+ * that isn't in the picker — so anything unknown falls back to "none".
+ */
+function normalizePatternId(id: unknown): string {
+  if (typeof id !== "string" || !id || id === "none") return "none";
+  return PATTERN_CATALOG.some((p) => p.key === id) ? id : "none";
+}
+
 function isNewFormat(snap: Legacy): boolean {
   return "folderColor" in snap && Array.isArray(snap.elements);
 }
@@ -226,8 +238,8 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
     const snap = sn as Partial<FolderDocument>;
     // Deep-merge nested objects so a future field added to `iconDefaults` loads
     // its default instead of `undefined` on an older snapshot (ST-08).
-    // Snapshots may still carry `pattern`/`texture` settings from before the
-    // pattern feature was removed; they are ignored rather than migrated.
+    // `pattern` is deep-merged so a snapshot predating a field (or the whole
+    // Hero Patterns rework) loads that field's default instead of `undefined`.
     // Elements are validated individually — the legacy path already did this,
     // but new-format snapshots used to pass straight through, so one corrupt
     // element could blank or crash the whole design instead of being skipped.
@@ -243,14 +255,18 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
       ...doc,
       ...snap,
       elements,
+      pattern: {
+        ...doc.pattern,
+        ...snap.pattern,
+        id: normalizePatternId(snap.pattern?.id),
+      },
       patternLayerZ: Number(snap.patternLayerZ ?? sn.textureLayerZ ?? 0),
       iconDefaults: { ...doc.iconDefaults, ...snap.iconDefaults },
       v: doc.v,
     };
-    // `...snap` would otherwise carry the retired `pattern`/`texture` objects
-    // through onto the live document and straight back into the next save.
-    delete (merged as Partial<Record<"pattern" | "texture", unknown>>).pattern;
-    delete (merged as Partial<Record<"pattern" | "texture", unknown>>).texture;
+    // The pre-rework `texture` object would otherwise ride `...snap` onto the
+    // live document and back into the next save; its motif ids are long gone.
+    delete (merged as Partial<Record<"texture", unknown>>).texture;
     reseedIds(maxIdSuffix(merged.elements.map((e) => e.id)));
     return merged;
   }

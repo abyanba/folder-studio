@@ -180,6 +180,34 @@ describe("buildExportSvg", () => {
     );
   });
 
+  it("renders the pattern layer as a real <pattern>, masked to the folder", () => {
+    const doc = createEmptyDocument();
+    doc.pattern = { ...doc.pattern, id: "dots", fgColor: "#ffffff" };
+    const body = { svg: '<svg width="10" height="10"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 10, h: 10, defaultScale: 1 };
+    const { svg, skipped } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
+    // The old implementation could only surface this as a skipped layer.
+    expect(skipped).not.toContain("Pattern (raster export only)");
+    expect(svg).toContain('<pattern id="pat"');
+    expect(svg).toContain('fill="url(#pat)"');
+    expect(svg).toContain('mask="url(#patmask)"');
+  });
+
+  it("rotates the pattern via patternTransform rather than an overdraw layer", () => {
+    const doc = createEmptyDocument();
+    doc.pattern = { ...doc.pattern, id: "dots", rotation: 45 };
+    const body = { svg: '<svg width="10" height="10"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 10, h: 10, defaultScale: 1 };
+    const { svg } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
+    expect(svg).toContain("patternTransform=\"rotate(45 190 190)\"");
+  });
+
+  it("omits the pattern layer entirely when none is selected", () => {
+    const { svg } = buildExportSvg(createEmptyDocument(), 256, {
+      ...noIcon,
+      getPatternBody: () => null,
+    });
+    expect(svg).not.toContain('<pattern id="pat"');
+  });
+
   it("emits a folder mask when clip-to-folder is on", () => {
     const doc = createEmptyDocument();
     doc.clipToFolder = true;

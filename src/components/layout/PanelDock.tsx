@@ -16,6 +16,7 @@ import { ShapesPanel } from "@/components/panels/ShapesPanel";
 import { IconPanel } from "@/components/panels/IconPanel";
 import { LogosPanel } from "@/components/panels/LogosPanel";
 import { DrawPanel } from "@/components/panels/DrawPanel";
+import { PatternPanel } from "@/components/panels/PatternPanel";
 import { LayersPanel } from "@/components/panels/LayersPanel";
 import { GalleryPanel } from "@/components/panels/GalleryPanel";
 import { MultiSelectPanel } from "@/components/panels/MultiSelectPanel";
@@ -29,6 +30,7 @@ const PANELS: Record<string, ComponentType> = {
   icon: IconPanel,
   logos: LogosPanel,
   draw: DrawPanel,
+  pattern: PatternPanel,
   layers: LayersPanel,
   gallery: GalleryPanel,
 };
