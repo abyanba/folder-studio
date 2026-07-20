@@ -20,6 +20,7 @@ import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import type { PatternBody } from "@/data/generated/patternBodies";
+import { elementMaterial } from "@/types/element";
 import type { DropShadow, FolderElement, TextElement } from "@/types/element";
 import {
   buildBaseShapeOverlaySvg,
@@ -37,7 +38,7 @@ import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
 import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
-import { buildMaterialLayerSvg, isFrontMaterial } from "./materials";
+import { buildElementMaterialFilter, buildMaterialLayerSvg, isFrontMaterial } from "./materials";
 import type { MeasureText } from "./textLayout";
 
 export interface SvgExportDeps {
@@ -182,6 +183,22 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
       `<clipPath id="${id}"><rect x="${num(-ew / 2)}" y="${num(-eh / 2)}" width="${num(ew)}" height="${num(eh)}"/></clipPath>`,
     );
     inner = `<g clip-path="url(#${id})">${inner}</g>`;
+  }
+  // Text is the one element with no shared SVG builder, so the material filter
+  // is applied here rather than falling out of `withElementMaterial`. The wrap
+  // group's local space is workspace units, so the frequency needs no scaling.
+  const mat = elementMaterial(el);
+  if (mat) {
+    const id = `tm${el.id}`;
+    // Text sits in a box-centred space and overflows its box freely, so the
+    // region is the box doubled about the origin.
+    const filter = buildElementMaterialFilter(mat, id, 1, 1, {
+      x: -ew, y: -eh, w: ew * 2, h: eh * 2,
+    });
+    if (filter) {
+      defs.push(filter);
+      inner = `<g filter="url(#${id})">${inner}</g>`;
+    }
   }
   return wrap(el, ew, eh, inner);
 }

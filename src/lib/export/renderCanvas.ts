@@ -19,7 +19,8 @@ import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { getHex, hexA } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
-import type { FolderElement, TextElement } from "@/types/element";
+import { elementMaterial } from "@/types/element";
+import type { ElementMaterial, FolderElement, TextElement } from "@/types/element";
 import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
@@ -331,12 +332,73 @@ function renderText(
 }
 
 /** Draw a single non-text element (icon/image/draw/shape). */
+/** All-white mask, so the grain field covers the whole frame unclipped. */
+const FULL_FRAME_MASK =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="white"/></svg>';
+
+/**
+ * Text plus its surface material. Shape and icon get their material for free —
+ * the canvas rasterizes the very SVG string the editor injects, filter and all.
+ * Text is the one element with no shared SVG form (it is drawn with `fillText`),
+ * so the same result is rebuilt here from two scratch layers: the glyphs, and
+ * the grain intersected with the glyph alpha. Intersecting is what keeps the
+ * grain inside the letterforms instead of smearing it over the folder behind.
+ */
+async function renderTextMaterial(
+  ctx: CanvasRenderingContext2D,
+  el: TextElement,
+  size: number,
+  ew: number,
+  eh: number,
+  material: ElementMaterial,
+  createCanvas: CanvasFactory,
+  loadImage: ImageLoader,
+): Promise<void> {
+  const glyphs = createCanvas(size, size);
+  const grain = createCanvas(size, size);
+  const gctx = glyphs.getContext("2d");
+  const rctx = grain.getContext("2d");
+  const grainSvg = buildMaterialLayerSvg({ ...material, span: "full" }, FULL_FRAME_MASK);
+  const grainImg = grainSvg ? await loadImage(toSvgDataUrl(grainSvg)) : null;
+  if (!gctx || !rctx || !grainImg) {
+    // No scratch canvas or the grain failed to decode: draw plain text rather
+    // than dropping the element entirely.
+    renderText(ctx, el, size, ew, eh);
+    return;
+  }
+
+  // Inherit the caller's transform verbatim instead of recomputing it, so the
+  // scratch layers can't drift from where the element actually sits.
+  const t = ctx.getTransform();
+  gctx.setTransform(t);
+  renderText(gctx, el, size, ew, eh);
+
+  // Grain drawn under the element's own transform, so it rotates with the text
+  // exactly as the injected filter does in the editor and the vector export.
+  rctx.setTransform(t);
+  // ponytail: one grain tile centred on the element. Text overflowing more than
+  // half the canvas from its own centre would leave the excess unshaded — tile
+  // a 2x2 grid here if that ever shows up.
+  rctx.drawImage(grainImg, -size / 2, -size / 2, size, size);
+  rctx.setTransform(1, 0, 0, 1, 0, 0);
+  rctx.globalCompositeOperation = "destination-in";
+  rctx.drawImage(glyphs, 0, 0);
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(glyphs, 0, 0);
+  ctx.globalCompositeOperation = "soft-light";
+  ctx.drawImage(grain, 0, 0);
+  ctx.restore();
+}
+
 async function renderElement(
   ctx: CanvasRenderingContext2D,
   el: FolderElement,
   size: number,
   deps: RenderDeps,
   loadImage: ImageLoader,
+  createCanvas: CanvasFactory,
   skipped: string[],
 ): Promise<void> {
   const sx = size / FW;
@@ -400,7 +462,9 @@ async function renderElement(
     if (img) ctx.drawImage(img, -ew / 2 - px, -eh / 2 - py, ew + px * 2, eh + py * 2);
     else skipped.push(elementLabel(el));
   } else {
-    renderText(ctx, el, size, ew, eh);
+    const mat = elementMaterial(el);
+    if (mat) await renderTextMaterial(ctx, el, size, ew, eh, mat, createCanvas, loadImage);
+    else renderText(ctx, el, size, ew, eh);
   }
 
   ctx.restore();
@@ -489,7 +553,7 @@ export async function buildExportCanvas(
   for (let i = 0; i < tz; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage, skipped);
+    await renderElement(ctx, el, size, deps, loadImage, createCanvas, skipped);
   }
 
   await renderPattern(ctx, doc, size, loadImage);
@@ -497,7 +561,7 @@ export async function buildExportCanvas(
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage, skipped);
+    await renderElement(ctx, el, size, deps, loadImage, createCanvas, skipped);
   }
 
   if (doc.clipToFolder) {

@@ -13,6 +13,23 @@ import type { ColorValue } from "./gradient";
 
 export type ElementType = "shape" | "text" | "image" | "icon" | "draw";
 
+/**
+ * A surface material on one element. The folder-wide {@link MaterialSettings}
+ * is this plus a `span` — which is meaningless per element, since an element
+ * has no front/back split. Declared here rather than imported from
+ * `types/document` to keep the dependency one-way (document imports element).
+ */
+export interface ElementMaterial {
+  /** `MATERIALS` recipe id, or `"none"`. */
+  id: string;
+  /** 0-1 strength of the surface shading. */
+  intensity: number;
+  /** Multiplies the recipe's grain size — larger is coarser. */
+  scale: number;
+  /** Light/brush azimuth in degrees; only recipes listing `"angle"` use it. */
+  angle: number;
+}
+
 export interface BaseElement {
   id: string;
   x: number;
@@ -30,6 +47,13 @@ export interface BaseElement {
   scaleX: number;
   /** Vertical flip factor (±1). */
   scaleY: number;
+  /**
+   * Surface material shading this element's own pixels. Honoured for shape,
+   * text and icon (which covers mono logos) — read it through
+   * {@link elementMaterial}, never directly, so the unsupported types can't
+   * pick one up in one render path and not another.
+   */
+  material?: ElementMaterial;
 }
 
 export type StrokePosition = "center" | "inside" | "outside";
@@ -149,6 +173,19 @@ export type FolderElement =
   | ImageElement
   | IconElement
   | DrawElement;
+
+/** Element types that render a material. Images bring their own pixels, and a
+ *  draw stroke is a few px at export scale — grain wouldn't survive either. */
+export const MATERIAL_ELEMENT_TYPES: ElementType[] = ["shape", "text", "icon"];
+
+/**
+ * The material to shade `el` with, or undefined. The single gate every render
+ * path asks, so an unsupported type can never be materialed in one path only.
+ */
+export function elementMaterial(el: FolderElement): ElementMaterial | undefined {
+  if (!el.material || el.material.id === "none") return undefined;
+  return MATERIAL_ELEMENT_TYPES.includes(el.type) ? el.material : undefined;
+}
 
 export const isShape = (el: FolderElement): el is ShapeElement =>
   el.type === "shape";

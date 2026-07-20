@@ -10,8 +10,10 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
+import { elementMaterial } from "@/types/element";
 import type { FolderElement, TextElement } from "@/types/element";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "@/lib/export/elementSvg";
+import { buildElementMaterialFilter } from "@/lib/export/materials";
 import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
@@ -57,6 +59,32 @@ function TextContent({ el }: { el: TextElement }) {
     sel?.addRange(range);
   }, [editing]);
   const grad = isGradient(el.color) ? el.color : null;
+  // Shape and icon carry their material inside the SVG string this editor
+  // injects, so they need nothing here. Text has no SVG form, so the same
+  // filter is referenced from CSS and its def rendered alongside — a CSS
+  // `filter: url(#id)` on an HTML element resolves against the document, and
+  // its user space is the element's border box, i.e. workspace units, which is
+  // exactly what both export paths use.
+  const material = elementMaterial(el);
+  const materialId = `tmat-${el.id}`;
+  // Memoised: an unchanged filter string keeps React from replacing the <defs>
+  // node, which lets the browser reuse the rasterised grain instead of re-running
+  // the noise on every unrelated re-render (a drag frame, a selection change).
+  const materialFilter = useMemo(
+    () =>
+      material
+        ? buildElementMaterialFilter(material, materialId, 1, 1, {
+            // A CSS filter's user space is the border box with its origin at
+            // the top-left, so this is the same doubled box the SVG export
+            // uses, shifted out of centre-relative coordinates.
+            x: -el.width / 2,
+            y: -el.height / 2,
+            w: el.width * 2,
+            h: el.height * 2,
+          })
+        : null,
+    [material, materialId, el.width, el.height],
+  );
   const style: CSSProperties = {
     width: "100%",
     height: "100%",
@@ -118,12 +146,29 @@ function TextContent({ el }: { el: TextElement }) {
       el.shadow && !grad
         ? `${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)}`
         : "none",
+    // Both a gradient's drop-shadow and the material are `filter` values, so
+    // they compose into one list rather than one silently replacing the other.
     filter:
-      el.shadow && grad
-        ? `drop-shadow(${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)})`
-        : undefined,
+      [
+        el.shadow && grad
+          ? `drop-shadow(${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)})`
+          : null,
+        materialFilter ? `url(#${materialId})` : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined,
   };
   return (
+    <>
+      {materialFilter && (
+        <svg
+          aria-hidden
+          width="0"
+          height="0"
+          style={{ position: "absolute" }}
+          dangerouslySetInnerHTML={{ __html: `<defs>${materialFilter}</defs>` }}
+        />
+      )}
     <div
       ref={divRef}
       contentEditable={editing}
@@ -153,6 +198,7 @@ function TextContent({ el }: { el: TextElement }) {
     >
       {el.text}
     </div>
+    </>
   );
 }
 

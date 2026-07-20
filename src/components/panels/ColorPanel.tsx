@@ -23,6 +23,7 @@ import { PresetRow } from "@/components/color/PresetRow";
 import { SolidColorPicker } from "@/components/color/SolidColorPicker";
 import { ColorField, gradientFromHex } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
+import { FolderMaterialSection } from "@/components/controls/FolderMaterialSection";
 import { SliderField } from "@/components/controls/SliderField";
 import {
   MAC_COLOR_PROFILES,
@@ -536,6 +537,8 @@ export function ColorPanel() {
           {doc.folderBgImage && <ImageOverlayControls />}
           </>
         )}
+
+        <FolderMaterialSection />
 
         {(doc.baseShape === "windows" || doc.baseShape === "macos") && <BackTabColor />}
         {(doc.baseShape === "windows" || doc.baseShape === "macos") &&

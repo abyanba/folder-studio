@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
+import { MaterialControls } from "@/components/controls/MaterialControls";
 import { DEFAULT_INNER_SHADOW, ShadowControls } from "@/components/controls/ShadowControls";
 import { TransformFields } from "@/components/controls/TransformFields";
 import { ICON_CATEGORIES, ICON_NAMES } from "@/data/iconNames";
@@ -183,6 +184,8 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
         shadow={el.innerShadow}
         onChange={(shadow) => updateElement(el.id, { innerShadow: shadow ?? undefined })}
       />
+
+      <MaterialControls el={el} />
 
       <TransformFields el={el} />
     </div>

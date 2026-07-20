@@ -22,6 +22,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
+import { MaterialControls } from "@/components/controls/MaterialControls";
 import { ShadowControls } from "@/components/controls/ShadowControls";
 import { SliderField } from "@/components/controls/SliderField";
 import { StrokeControls } from "@/components/controls/StrokeControls";
@@ -312,6 +313,8 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
         shadow={el.shadow}
         onChange={(shadow) => updateElement(el.id, { shadow: shadow ?? undefined })}
       />
+
+      <MaterialControls el={el} />
 
       <TransformFields el={el} />
     </div>

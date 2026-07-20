@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
+import { MaterialControls } from "@/components/controls/MaterialControls";
 import { DEFAULT_INNER_SHADOW, ShadowControls } from "@/components/controls/ShadowControls";
 import { SliderField } from "@/components/controls/SliderField";
 import { TransformFields } from "@/components/controls/TransformFields";
@@ -194,6 +195,8 @@ function SelectedShapeEditor({ el }: { el: ShapeElement }) {
         shadow={el.innerShadow}
         onChange={(shadow) => updateElement(el.id, { innerShadow: shadow ?? undefined })}
       />
+
+      <MaterialControls el={el} />
 
       <TransformFields el={el} rotationMin={0} rotationMax={360} />
     </div>

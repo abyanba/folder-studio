@@ -7,11 +7,13 @@
  */
 
 import { isGradient } from "@/types/gradient";
+import { elementMaterial } from "@/types/element";
 import type { DrawElement, DropShadow, IconElement, ShapeElement } from "@/types/element";
 import {
   gradientDefsUserSpace,
   gradientElement,
 } from "./gradientSvg";
+import { materialRegion, withElementMaterial } from "./materials";
 
 /** Iconify icon body + intrinsic viewBox size. */
 export interface IconBody {
@@ -81,7 +83,18 @@ export function buildIconSvg(
     body = `<g filter="url(#${fid})">${body}</g>`;
   }
   const defs = defsInner ? `<defs>${defsInner}</defs>` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${vw} ${vh}">${defs}${body}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${vw} ${vh}">${defs}${body}</svg>`;
+  // Grain frequency is expressed in workspace units, so it is converted with
+  // the element's WORKSPACE size — using `ew` would make the grain finer at
+  // every export scale than it looks in the editor.
+  return withElementMaterial(
+    svg,
+    elementMaterial(el),
+    "im" + el.id,
+    (el.width || vw) / vw,
+    (el.height || vh) / vh,
+    materialRegion(vw, vh),
+  );
 }
 
 /**
@@ -209,7 +222,19 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
   const defsBlock = defs ? `<defs>${defs}</defs>` : "";
   const w = Math.ceil(ew * (vbSize / 100));
   const h = Math.ceil(eh * (vbSize / 100));
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${vbMin} ${vbMin} ${vbSize} ${vbSize}" preserveAspectRatio="none">${defsBlock}${groupOpen}${fillEl}${strokeEl}</g></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${vbMin} ${vbMin} ${vbSize} ${vbSize}" preserveAspectRatio="none">${defsBlock}${groupOpen}${fillEl}${strokeEl}</g></svg>`;
+  // See buildIconSvg: converted with the element's workspace size so the grain
+  // is scale-invariant across the editor and both exports.
+  return withElementMaterial(
+    svg,
+    elementMaterial(el),
+    "sm" + el.id,
+    (el.width || 100) / 100,
+    (el.height || 100) / 100,
+    // The shape viewBox grows with an outside stroke, so the region has to be
+    // the viewBox, not the 0..100 geometry box.
+    materialRegion(vbSize, vbSize, 0.15, vbMin, vbMin),
+  );
 }
 
 /** Build the SVG for a freehand draw element (its path in local viewBox space). */
