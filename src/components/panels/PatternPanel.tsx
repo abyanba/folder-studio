@@ -63,8 +63,8 @@ export function PatternPanel() {
             className="h-24 w-full rounded-lg border bg-muted/40"
             style={{
               backgroundImage: tileBackground(pattern.id, pattern),
-              backgroundColor:
-                pattern.bgColor !== "transparent" ? pattern.bgColor : undefined,
+              // The tile itself carries the background rect, so nothing to
+              // paint behind it here.
             }}
           />
 
@@ -90,24 +90,18 @@ export function PatternPanel() {
             </div>
           </PanelSection>
 
+          {/* No "clear" action: the background defaults to black at 0% and
+              transparency is just the opacity slider, so there's no separate
+              transparent state to enter or leave. */}
           <PanelSection title="Background">
             <div className="flex items-center gap-2">
-              {pattern.bgColor === "transparent" ? (
-                <button
-                  type="button"
-                  aria-label="Pattern background (transparent)"
-                  className="size-7 shrink-0 rounded-md border shadow-sm [background:repeating-conic-gradient(#8883_0%_25%,transparent_0%_50%)_0_0/8px_8px]"
-                  onClick={() => setPattern({ bgColor: "#000000" })}
-                />
-              ) : (
-                <ColorField
-                  value={pattern.bgColor}
-                  onChange={(v) => {
-                    if (typeof v === "string") setPattern({ bgColor: v });
-                  }}
-                  ariaLabel="Pattern background color"
-                />
-              )}
+              <ColorField
+                value={pattern.bgColor}
+                onChange={(v) => {
+                  if (typeof v === "string") setPattern({ bgColor: v });
+                }}
+                ariaLabel="Pattern background color"
+              />
               <SliderField
                 label="Opacity"
                 className="flex-1"
@@ -115,21 +109,10 @@ export function PatternPanel() {
                 min={0}
                 max={1}
                 step={0.05}
-                disabled={pattern.bgColor === "transparent"}
                 onChange={(v) => setPattern({ bgOpacity: v })}
                 format={(v) => `${Math.round(v * 100)}%`}
               />
             </div>
-            {pattern.bgColor !== "transparent" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-1 h-6 px-2 text-[11px]"
-                onClick={() => setPattern({ bgColor: "transparent" })}
-              >
-                Clear background
-              </Button>
-            )}
           </PanelSection>
 
           <SliderField

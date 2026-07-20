@@ -131,9 +131,11 @@ describe("ColorPanel fill modes", () => {
     render(<ColorPanel />);
 
     expect(screen.getByText("Image span")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Full folder/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Front only" }));
+    // Front-only is now the default, so the round trip is front → full → front.
     expect(useDocumentStore.getState().doc.windowsImageMode).toBe("front");
+    await user.click(screen.getByRole("button", { name: /Front only/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Full folder" }));
+    expect(useDocumentStore.getState().doc.windowsImageMode).toBe("full");
   });
 
   it("shows the image overlay controls and adjusts the tint opacity", async () => {

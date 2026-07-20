@@ -255,6 +255,10 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
       ...doc,
       ...snap,
       elements,
+      // The image-span default flipped to "front"; a snapshot predating the
+      // field was authored as full-span, so pin it rather than restyling it.
+      windowsImageMode: snap.windowsImageMode ?? "full",
+      macImageMode: snap.macImageMode ?? "full",
       pattern: {
         ...doc.pattern,
         ...snap.pattern,

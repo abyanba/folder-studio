@@ -30,8 +30,8 @@ describe("buildPatternSvg", () => {
     expect(svg).not.toContain("{{");
   });
 
-  it("omits the background rect when the background is transparent", () => {
-    const svg = buildPatternSvg(settings({ bgColor: "transparent" }), body);
+  it("omits the background rect at zero opacity — the default transparent state", () => {
+    const svg = buildPatternSvg(settings({ bgColor: "#000000", bgOpacity: 0 }), body);
     expect(svg).not.toContain("<rect");
   });
 

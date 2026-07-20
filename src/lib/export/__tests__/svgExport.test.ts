@@ -39,6 +39,7 @@ describe("buildExportSvg", () => {
     const doc = createEmptyDocument();
     doc.folderFillMode = "image";
     doc.folderBgImage = "data:image/png;base64,x";
+    doc.windowsImageMode = "full"; // front-only is the default now
     const { svg } = buildExportSvg(doc, 256, noIcon);
     expect(svg).toContain("<image");
     expect(svg).toContain("url(#wvm)"); // full-mode dark-back mask

@@ -20,6 +20,7 @@ import type { LiveOverride } from "@/hooks/useInteraction";
 import { FolderBase } from "./FolderBase";
 import { ElementView } from "./ElementView";
 import { PatternOverlay } from "./PatternOverlay";
+import { FolderStructureOverlay } from "./FolderStructureOverlay";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
 import { ElementContextMenu } from "./ElementContextMenu";
@@ -128,7 +129,12 @@ export function Workspace() {
             <div style={contentRect}>
               {doc.elements.slice(0, tz).map(renderEl)}
               {doc.pattern.id !== "none" && (
-                <PatternOverlay pattern={doc.pattern} maskUrl={patternMaskUrl} />
+                <>
+                  <PatternOverlay pattern={doc.pattern} maskUrl={patternMaskUrl} />
+                  {/* Structure back on top so the pattern doesn't flatten the
+                      folder — same treatment an image fill gets. */}
+                  <FolderStructureOverlay baseShape={doc.baseShape} />
+                </>
               )}
               {doc.elements.slice(tz).map(renderEl)}
             </div>

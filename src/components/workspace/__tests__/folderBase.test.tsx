@@ -43,6 +43,7 @@ describe("FolderBase", () => {
           folderFillMode: "image",
           folderBgImage: "data:image/png;base64,x",
           folderOpacity: 0.5,
+          windowsImageMode: "full",
         })}
       />,
     );

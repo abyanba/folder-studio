@@ -326,6 +326,10 @@ export function buildExportSvg(
       `<mask id="patmask"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(patMask)}</svg></mask>`,
     );
     body.push(`<rect width="${FW}" height="${FH}" fill="url(#pat)" mask="url(#patmask)"/>`);
+    // Highlights back on top of the pattern (shine / rim stripes). Not the full
+    // overlay — its vignette would double the colour base's own shading.
+    const structure = buildFrontImageOverlaySvg(doc.baseShape);
+    if (structure) body.push(`<svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(structure)}</svg>`);
   }
 
   for (let i = tz; i < doc.elements.length; i++) emit(doc.elements[i]);

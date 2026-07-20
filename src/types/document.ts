@@ -65,7 +65,13 @@ export const DEFAULT_WINDOWS_COLOR_PROFILE: WindowsColorProfile = "official";
  *           run through the finalized anchored back treatment.
  */
 export type WindowsImageMode = "full" | "front";
-export const DEFAULT_WINDOWS_IMAGE_MODE: WindowsImageMode = "full";
+/**
+ * Front-only is the default: spanning an image or pattern across the tab too
+ * tends to bury the folder silhouette, and the front panel is what reads as the
+ * icon. Snapshots saved before this field existed are pinned to "full" in
+ * `legacySnapshot` so old designs keep the look they were saved with.
+ */
+export const DEFAULT_WINDOWS_IMAGE_MODE: WindowsImageMode = "front";
 
 /**
  * Folder fullness variant:
@@ -85,9 +91,8 @@ export interface PatternSettings {
   fgColor: string;
   /** 0-1, baked into the tile's `fill-opacity`. */
   fgOpacity: number;
-  /** `"transparent"` or a hex string. */
   bgColor: string;
-  /** 0-1, ignored when `bgColor` is `"transparent"`. */
+  /** 0-1. Transparency is expressed here, so there is no "no background" state. */
   bgOpacity: number;
   /** Multiplies the pattern's baked `defaultScale` — 1 is the tuned default. */
   scale: number;
@@ -201,8 +206,8 @@ export function createEmptyDocument(): FolderDocument {
       id: "none",
       fgColor: "#ffffff",
       fgOpacity: 0.4,
-      bgColor: "transparent",
-      bgOpacity: 1,
+      bgColor: "#000000",
+      bgOpacity: 0,
       scale: 1,
       rotation: 0,
       span: DEFAULT_WINDOWS_IMAGE_MODE,

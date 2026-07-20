@@ -48,8 +48,9 @@ describe("snapshots saved before the Hero Patterns rework", () => {
       pattern: { id: "none" },
       elements: [],
     });
-    expect(doc.pattern.span).toBe("full");
-    expect(doc.pattern.bgColor).toBe("transparent");
+    expect(doc.pattern.span).toBe("front");
+    expect(doc.pattern.bgColor).toBe("#000000");
+    expect(doc.pattern.bgOpacity).toBe(0);
     expect(typeof doc.pattern.fgOpacity).toBe("number");
   });
 

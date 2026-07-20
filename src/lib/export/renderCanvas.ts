@@ -467,6 +467,16 @@ async function renderPattern(
     lctx.drawImage(mask, 0, 0, size, size);
   }
   ctx.drawImage(layer, 0, 0);
+
+  // Re-apply the folder's highlights over the pattern, or it buries them and the
+  // folder reads flat. Highlights only (`buildFrontImageOverlaySvg`) — the full
+  // overlay's darkening vignette is already baked into a colour base and would
+  // compound.
+  const structure = buildFrontImageOverlaySvg(doc.baseShape);
+  if (structure) {
+    const sImg = await loadImage(toSvgDataUrl(structure));
+    if (sImg) ctx.drawImage(sImg, 0, 0, size, size);
+  }
 }
 
 /**

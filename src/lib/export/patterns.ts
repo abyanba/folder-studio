@@ -34,7 +34,9 @@ export function buildPatternSvg(pattern: PatternSettings, body: PatternBody): st
     .split("{{FGO}}").join(String(clamp01(pattern.fgOpacity)));
 
   const bgOpacity = clamp01(pattern.bgOpacity);
-  if (pattern.bgColor === "transparent" || bgOpacity <= 0) return svg;
+  // A fully transparent background is the default, so skip the rect entirely
+  // rather than emitting a no-op one into every tile.
+  if (bgOpacity <= 0) return svg;
 
   // Inserted immediately after the opening tag so it paints BEHIND the motif —
   // the tile's own paths follow it in document order.
