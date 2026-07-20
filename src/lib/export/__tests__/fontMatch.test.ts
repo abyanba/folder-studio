@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { pickFace, weightDistance } from "@/lib/export/fontMatch";
+import { faceGroup, pickFace, weightDistance } from "@/lib/export/fontMatch";
 import type { FaceDescriptor } from "@/lib/export/fontMatch";
 
 const face = (family: string, weight: string, style = "normal"): FaceDescriptor => ({
@@ -75,5 +75,42 @@ describe("pickFace", () => {
   it("covers a variable font's whole range from one face", () => {
     const variable = face("Recursive", "300 1000");
     expect(pickFace([variable], face("Recursive", "900"))).toBe(variable);
+  });
+});
+
+describe("faceGroup", () => {
+  // @fontsource splits ONE weight across unicode-range subsets and lists them
+  // vietnamese, latin-ext, latin — with latin LAST. Embedding only the rule
+  // pickFace lands on shipped a font with no basic Latin glyphs, so every
+  // Latin character in every exported SVG fell back to a serif.
+  const subsets = [
+    { family: "Bungee", weight: "400", style: "normal", id: "vietnamese" },
+    { family: "Bungee", weight: "400", style: "normal", id: "latin-ext" },
+    { family: "Bungee", weight: "400", style: "normal", id: "latin" },
+  ];
+
+  it("returns every subset of the matched face, not just the first", () => {
+    const hit = pickFace(subsets, { family: "Bungee", weight: "600", style: "normal" })!;
+    expect(hit.id).toBe("vietnamese"); // first zero-distance rule wins…
+    expect(faceGroup(subsets, hit).map((f) => f.id)).toEqual([
+      "vietnamese",
+      "latin-ext",
+      "latin", // …but latin must travel with it or Latin text has no glyphs
+    ]);
+  });
+
+  it("does not drag in other weights or styles", () => {
+    const mixed = [
+      ...subsets,
+      { family: "Bungee", weight: "700", style: "normal", id: "other-weight" },
+      { family: "Bungee", weight: "400", style: "italic", id: "other-style" },
+      { family: "Inter", weight: "400", style: "normal", id: "other-family" },
+    ];
+    const hit = pickFace(mixed, { family: "Bungee", weight: "400", style: "normal" })!;
+    expect(faceGroup(mixed, hit).map((f) => f.id)).toEqual([
+      "vietnamese",
+      "latin-ext",
+      "latin",
+    ]);
   });
 });

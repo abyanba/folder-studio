@@ -11,7 +11,7 @@
  */
 
 import type { FolderDocument } from "@/types/document";
-import { pickFace } from "./fontMatch";
+import { faceGroup, pickFace } from "./fontMatch";
 import type { FaceDescriptor } from "./fontMatch";
 
 interface FaceKey {
@@ -39,13 +39,14 @@ function stripQuotes(s: string): string {
   return s.trim().replace(/^["']|["']$/g, "");
 }
 
-/** A font-face rule's declared descriptors. */
-function descriptorOf(rule: CSSFontFaceRule): FaceDescriptor {
+/** A font-face rule's declared descriptors, plus the subset it covers. */
+function descriptorOf(rule: CSSFontFaceRule): FaceDescriptor & { unicodeRange: string } {
   const s = rule.style;
   return {
     family: stripQuotes(s.getPropertyValue("font-family")),
     weight: s.getPropertyValue("font-weight").trim() || "400",
     style: s.getPropertyValue("font-style").trim() || "normal",
+    unicodeRange: s.getPropertyValue("unicode-range").trim(),
   };
 }
 
@@ -77,7 +78,7 @@ export async function collectFontFaceCss(doc: FolderDocument): Promise<string> {
   // Every readable @font-face rule in the document, then the nearest one per
   // wanted face. Collecting first (rather than matching inside the loop) is
   // what lets the choice be "closest available" instead of "exact or nothing".
-  const available: Array<FaceDescriptor & { rule: CSSFontFaceRule }> = [];
+  const available: Array<FaceDescriptor & { unicodeRange: string; rule: CSSFontFaceRule }> = [];
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
     try {
@@ -92,26 +93,29 @@ export async function collectFontFaceCss(doc: FolderDocument): Promise<string> {
     }
   }
 
-  const wanted: Array<{ face: FaceDescriptor; rule: CSSFontFaceRule }> = [];
+  // Every rule of the chosen face, not just the first. A weight is split
+  // across unicode-range subsets and @fontsource lists latin LAST, so taking
+  // one rule shipped a font with no Latin glyphs at all.
+  const wanted: Array<(typeof available)[number]> = [];
   for (const face of faces) {
     const hit = pickFace(available, face);
-    // Keyed on the RULE: two weights of one family that resolve to the same
-    // single available face must not embed it twice.
-    if (hit && !wanted.some((w) => w.rule === hit.rule)) {
-      // The face is declared with its REAL descriptors, not the requested
-      // ones, so the SVG viewer performs the same nearest-weight match (and
-      // any synthetic bolding) the editor and the canvas export already do.
-      wanted.push({ face: { family: hit.family, weight: hit.weight, style: hit.style }, rule: hit.rule });
+    if (!hit) continue;
+    for (const rule of faceGroup(available, hit)) {
+      if (!wanted.some((w) => w.rule === rule.rule)) wanted.push(rule);
     }
   }
 
   const blocks = await Promise.all(
-    wanted.map(async ({ face, rule }) => {
-      const url = firstUrl(rule.style.getPropertyValue("src"));
+    wanted.map(async (face) => {
+      const url = firstUrl(face.rule.style.getPropertyValue("src"));
       if (!url) return "";
       const dataUrl = await toDataUrl(new URL(url, location.href).href);
       if (!dataUrl) return "";
-      return `@font-face{font-family:"${face.family}";font-style:${face.style};font-weight:${face.weight};src:url(${dataUrl}) format("woff2");}`;
+      // The face keeps its REAL descriptors so the viewer does the same
+      // nearest-weight match the editor does, and its own unicode-range so it
+      // picks the right subset per character.
+      const range = face.unicodeRange ? `unicode-range:${face.unicodeRange};` : "";
+      return `@font-face{font-family:"${face.family}";font-style:${face.style};font-weight:${face.weight};${range}src:url(${dataUrl}) format("woff2");}`;
     }),
   );
   return blocks.filter(Boolean).join("");

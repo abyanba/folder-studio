@@ -53,6 +53,31 @@ export function weightDistance(candidate: string, wanted: string): number {
  * the design. Weight and style are allowed to bend, nearest first, because a
  * near weight in the right family is what the browser itself renders.
  */
+export function sameFace(a: FaceDescriptor, b: FaceDescriptor): boolean {
+  return (
+    norm(a.family) === norm(b.family) &&
+    norm(a.style || "normal") === norm(b.style || "normal") &&
+    a.weight.trim() === b.weight.trim()
+  );
+}
+
+/**
+ * Every rule belonging to the same face as `hit`.
+ *
+ * A "face" is not one `@font-face` rule. Providers split a single weight
+ * across unicode-range subsets — @fontsource emits vietnamese, latin-ext and
+ * latin for one 400 weight, in that order, with **latin last**. Embedding only
+ * the first rule ships a font with no basic Latin glyphs, and every Latin
+ * character falls back to a serif. Subsets must travel together, each keeping
+ * its own unicode-range so the viewer picks between them.
+ */
+export function faceGroup<T extends FaceDescriptor>(
+  candidates: readonly T[],
+  hit: FaceDescriptor,
+): T[] {
+  return candidates.filter((c) => sameFace(c, hit));
+}
+
 export function pickFace<T extends FaceDescriptor>(
   candidates: readonly T[],
   want: FaceDescriptor,
