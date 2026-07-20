@@ -23,7 +23,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { MaterialControls } from "@/components/controls/MaterialControls";
-import { ShadowControls } from "@/components/controls/ShadowControls";
+import { DEFAULT_INNER_SHADOW, ShadowControls } from "@/components/controls/ShadowControls";
 import { SliderField } from "@/components/controls/SliderField";
 import { StrokeControls } from "@/components/controls/StrokeControls";
 import { TransformFields } from "@/components/controls/TransformFields";
@@ -312,6 +312,13 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
       <ShadowControls
         shadow={el.shadow}
         onChange={(shadow) => updateElement(el.id, { shadow: shadow ?? undefined })}
+      />
+
+      <ShadowControls
+        title="Inner shadow"
+        defaultShadow={DEFAULT_INNER_SHADOW}
+        shadow={el.innerShadow}
+        onChange={(shadow) => updateElement(el.id, { innerShadow: shadow ?? undefined })}
       />
 
       <MaterialControls el={el} />

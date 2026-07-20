@@ -33,7 +33,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
@@ -174,6 +174,14 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
     (el.underline ? ` text-decoration="underline"` : "");
 
   let inner = `<text text-anchor="${anchor}" dominant-baseline="central" fill="${fill}"${strokeAttrs}${shadow} ${styleAttrs}>${tspans}</text>`;
+  // Inner shadow, cast inside the glyph outlines. The same builder shape and
+  // icon use — here the wrap group's space IS workspace units, so the offsets
+  // need no conversion (scale 1), unlike the 100/viewBox forms those two pass.
+  if (el.innerShadow) {
+    const id = `tis${el.id}`;
+    defs.push(innerShadowFilter(id, el.innerShadow, 1, 1));
+    inner = `<g filter="url(#${id})">${inner}</g>`;
+  }
   // The box is a transform/selection frame, so text overflows it freely unless
   // `clip` is on — matching the editor's `overflow` and the canvas export. The
   // clip rect is in the wrap group's local (box-centered) space.

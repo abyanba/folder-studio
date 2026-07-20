@@ -12,7 +12,7 @@ import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import { DEFAULT_ELEMENT_MATERIAL, elementMaterial } from "@/types/element";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "@/lib/export/elementSvg";
+import { buildDrawSvg, buildIconSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "@/lib/export/elementSvg";
 import { buildElementMaterialFilter } from "@/lib/export/materials";
 import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
@@ -82,6 +82,15 @@ function TextContent({ el }: { el: TextElement }) {
   // exactly what both export paths use.
   const materialPreview = useUiStore((s) => (isSelected ? s.materialPreview : null));
   const materialId = `tmat-${el.id}`;
+  // CSS has no inner-shadow for text (`box-shadow: inset` is a box, not glyphs),
+  // so the editor references the very SVG filter the vector export inlines. A
+  // CSS `filter: url()` resolves against the document and its user space is the
+  // border box — workspace units, which is what the filter is built in.
+  const innerShadowId = `tins-${el.id}`;
+  const innerShadowFilterDef = useMemo(
+    () => (el.innerShadow ? innerShadowFilter(innerShadowId, el.innerShadow, 1, 1) : null),
+    [el.innerShadow, innerShadowId],
+  );
   // Memoised: an unchanged filter string keeps React from replacing the <defs>
   // node, which lets the browser reuse the rasterised grain instead of re-running
   // the noise on every unrelated re-render (a drag frame, a selection change).
@@ -172,6 +181,7 @@ function TextContent({ el }: { el: TextElement }) {
         el.shadow && grad
           ? `drop-shadow(${el.shadow.x}px ${el.shadow.y}px ${el.shadow.blur}px ${hexA(el.shadow.color, el.shadow.opacity)})`
           : null,
+        innerShadowFilterDef ? `url(#${innerShadowId})` : null,
         materialFilter ? `url(#${materialId})` : null,
       ]
         .filter(Boolean)
@@ -179,13 +189,15 @@ function TextContent({ el }: { el: TextElement }) {
   };
   return (
     <>
-      {materialFilter && (
+      {(materialFilter || innerShadowFilterDef) && (
         <svg
           aria-hidden
           width="0"
           height="0"
           style={{ position: "absolute" }}
-          dangerouslySetInnerHTML={{ __html: `<defs>${materialFilter}</defs>` }}
+          dangerouslySetInnerHTML={{
+            __html: `<defs>${innerShadowFilterDef ?? ""}${materialFilter ?? ""}</defs>`,
+          }}
         />
       )}
     <div

@@ -127,6 +127,8 @@ export interface TextElement extends BaseElement {
   clip?: boolean;
   stroke?: { color: string; width: number; position: StrokePosition };
   shadow?: DropShadow;
+  /** Inner shadow, cast inside the glyph outlines (independent of `shadow`). */
+  innerShadow?: DropShadow;
 }
 
 export interface ImageElement extends BaseElement {

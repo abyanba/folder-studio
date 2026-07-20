@@ -337,30 +337,71 @@ const FULL_FRAME_MASK =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="white"/></svg>';
 
 /**
- * Text plus its surface material. Shape and icon get their material for free —
+ * Cast an inner shadow inside the glyphs already drawn on `layer`.
+ *
+ * Text is the one element with no SVG form the canvas can rasterize — a
+ * data-URL SVG has no access to the document's fonts — so the filter the editor
+ * and vector export share is rebuilt here with compositing ops. It is the same
+ * recipe: the filter blurs the INVERTED alpha and offsets it; blurring an
+ * inverse equals inverting the blur (blur is linear and preserves DC), so
+ * subtracting the offset blurred glyph from a flood of the shadow colour gives
+ * the identical field, which is then clipped back inside the glyphs.
+ */
+function applyInnerShadow(
+  layer: HTMLCanvasElement,
+  shadow: DropShadow,
+  scale: number,
+  createCanvas: CanvasFactory,
+): void {
+  const lctx = layer.getContext("2d");
+  const shade = createCanvas(layer.width, layer.height);
+  const sctx = shade.getContext("2d");
+  if (!lctx || !sctx) return;
+
+  sctx.fillStyle = hexA(shadow.color, shadow.opacity ?? 1);
+  sctx.fillRect(0, 0, layer.width, layer.height);
+  sctx.globalCompositeOperation = "destination-out";
+  // `blur(<length>)` takes a standard deviation, which is what feGaussianBlur
+  // takes too — so this is the same radius, not half or double it.
+  if ("filter" in sctx) sctx.filter = `blur(${Math.max(0, shadow.blur) * scale}px)`;
+  sctx.drawImage(layer, shadow.x * scale, shadow.y * scale);
+  if ("filter" in sctx) sctx.filter = "none";
+  // Clip the field back inside the glyphs, so the shadow falls INSIDE them.
+  sctx.globalCompositeOperation = "destination-in";
+  sctx.drawImage(layer, 0, 0);
+
+  lctx.save();
+  lctx.setTransform(1, 0, 0, 1, 0, 0);
+  lctx.drawImage(shade, 0, 0);
+  lctx.restore();
+}
+
+/**
+ * Text with any effect that needs its own layer — a surface material, an inner
+ * shadow, or both. Shape and icon get both for free —
  * the canvas rasterizes the very SVG string the editor injects, filter and all.
  * Text is the one element with no shared SVG form (it is drawn with `fillText`),
  * so the same result is rebuilt here from two scratch layers: the glyphs, and
  * the grain intersected with the glyph alpha. Intersecting is what keeps the
  * grain inside the letterforms instead of smearing it over the folder behind.
  */
-async function renderTextMaterial(
+async function renderTextLayered(
   ctx: CanvasRenderingContext2D,
   el: TextElement,
   size: number,
   ew: number,
   eh: number,
-  material: ElementMaterial,
+  material: ElementMaterial | undefined,
   createCanvas: CanvasFactory,
   loadImage: ImageLoader,
 ): Promise<void> {
   const glyphs = createCanvas(size, size);
-  const grain = createCanvas(size, size);
   const gctx = glyphs.getContext("2d");
-  const rctx = grain.getContext("2d");
-  const grainSvg = buildMaterialLayerSvg({ ...material, span: "full" }, FULL_FRAME_MASK);
+  const grainSvg = material
+    ? buildMaterialLayerSvg({ ...material, span: "full" }, FULL_FRAME_MASK)
+    : null;
   const grainImg = grainSvg ? await loadImage(toSvgDataUrl(grainSvg)) : null;
-  if (!gctx || !rctx || !grainImg) {
+  if (!gctx || (material && !grainImg)) {
     // No scratch canvas or the grain failed to decode: draw plain text rather
     // than dropping the element entirely.
     renderText(ctx, el, size, ew, eh);
@@ -372,9 +413,31 @@ async function renderTextMaterial(
   const t = ctx.getTransform();
   gctx.setTransform(t);
   renderText(gctx, el, size, ew, eh);
+  // Inside the glyphs and BELOW the grain, so a materialed inner shadow picks
+  // up the surface rather than sitting on top of it.
+  if (el.innerShadow) applyInnerShadow(glyphs, el.innerShadow, size / FW, createCanvas);
+
+  if (!grainImg) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(glyphs, 0, 0);
+    ctx.restore();
+    return;
+  }
 
   // Grain drawn under the element's own transform, so it rotates with the text
   // exactly as the injected filter does in the editor and the vector export.
+  // Allocated only now: text with an inner shadow but no material reaches the
+  // early return above without ever paying for a second full-size canvas.
+  const grain = createCanvas(size, size);
+  const rctx = grain.getContext("2d");
+  if (!rctx) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(glyphs, 0, 0);
+    ctx.restore();
+    return;
+  }
   rctx.setTransform(t);
   // ponytail: one grain tile centred on the element. Text overflowing more than
   // half the canvas from its own centre would leave the excess unshaded — tile
@@ -487,8 +550,11 @@ async function renderElement(
     else skipped.push(elementLabel(el));
   } else {
     const mat = elementMaterial(el);
-    if (mat) await renderTextMaterial(ctx, el, size, ew, eh, mat, createCanvas, loadImage);
-    else renderText(ctx, el, size, ew, eh);
+    if (mat || el.innerShadow) {
+      await renderTextLayered(ctx, el, size, ew, eh, mat, createCanvas, loadImage);
+    } else {
+      renderText(ctx, el, size, ew, eh);
+    }
   }
 
   ctx.restore();

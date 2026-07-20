@@ -156,6 +156,30 @@ describe("buildExportSvg", () => {
     expect(svg).toContain("world");
   });
 
+  it("casts a text inner shadow inside the glyphs, at workspace scale", () => {
+    const doc = createEmptyDocument();
+    const t = createTextElement("T");
+    t.text = "hello";
+    t.innerShadow = { x: 0, y: 3, blur: 4, color: "#000000", opacity: 0.5 };
+    doc.elements = [t];
+    const { svg } = buildExportSvg(doc, 256, noIcon);
+    expect(svg).toContain(`<filter id="tis${t.id}"`);
+    expect(svg).toContain(`<g filter="url(#tis${t.id})"><text`);
+    // The wrap group's space IS workspace units, so offsets pass through
+    // unconverted — unlike shape/icon, which scale into a 100/viewBox space.
+    expect(svg).toContain('dy="3"');
+    expect(svg).toContain('stdDeviation="4 4"');
+    // Clipped back inside the glyphs: that is what makes it *inner*.
+    expect(svg).toContain('in2="SourceGraphic" operator="in"');
+  });
+
+  it("emits no inner-shadow filter when text has none", () => {
+    const doc = createEmptyDocument();
+    const t = createTextElement("T");
+    doc.elements = [t];
+    expect(buildExportSvg(doc, 256, noIcon).svg).not.toContain(`tis${t.id}`);
+  });
+
   it("escapes XML-special characters in text", () => {
     const doc = createEmptyDocument();
     const t = createTextElement("T");
