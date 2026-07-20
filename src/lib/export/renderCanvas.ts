@@ -20,7 +20,7 @@ import { getHex, hexA } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import { elementMaterial } from "@/types/element";
-import type { ElementMaterial, FolderElement, TextElement } from "@/types/element";
+import type { DropShadow, ElementMaterial, FolderElement, TextElement } from "@/types/element";
 import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
@@ -408,8 +408,32 @@ async function renderElement(
   const ew = el.width * sx;
   const eh = el.height * sy;
 
+  // A shadow plus partial opacity has to be composed at full alpha and faded
+  // ONCE, or the shadow and the element each fade separately against the folder
+  // and the shadow shows through the element that should be covering it. With a
+  // white shadow under a dark 55%-opaque logo that visibly lightens the logo —
+  // and the vector export never had the bug, because there `opacity` applies to
+  // the already-filtered group as a unit. This restores that grouping.
+  const shadow =
+    (el as { dropShadow?: DropShadow }).dropShadow ?? (el as { shadow?: DropShadow }).shadow;
+  const opacity = el.opacity ?? 1;
+  if (opacity < 1 && shadow) {
+    const tmp = createCanvas(size, size);
+    const tctx = tmp.getContext("2d");
+    if (tctx) {
+      tctx.setTransform(ctx.getTransform());
+      await renderElement(tctx, { ...el, opacity: 1 }, size, deps, loadImage, createCanvas, skipped);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = opacity;
+      ctx.drawImage(tmp, 0, 0);
+      ctx.restore();
+      return;
+    }
+  }
+
   ctx.save();
-  ctx.globalAlpha = el.opacity ?? 1;
+  ctx.globalAlpha = opacity;
   if ((el.type === "icon" || el.type === "shape" || el.type === "image") && el.dropShadow) {
     const ds = el.dropShadow;
     ctx.shadowOffsetX = ds.x * (size / FW);

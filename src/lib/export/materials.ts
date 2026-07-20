@@ -219,9 +219,22 @@ export function buildElementMaterialFilter(
     `<feDiffuseLighting in="n" lighting-color="#ffffff" surfaceScale="${num(recipe.depth)}" diffuseConstant="1" result="lit">` +
     `<feDistantLight azimuth="${num(azimuth)}" elevation="${num(recipe.elevation)}"/>` +
     `</feDiffuseLighting>` +
-    // Clip the (fully opaque) lighting to the element's own alpha, then fade it
-    // by intensity, then blend it back over the element.
-    `<feComposite in="lit" in2="SourceAlpha" operator="in" result="clipped"/>` +
+    // Grain is confined to the element's SOLID pixels, not merely to its alpha.
+    //
+    // The blend below happens against the element in isolation, so anywhere the
+    // element is semi-transparent the white lighting is composited straight on
+    // instead of blended — `as*(1-ab)*Cs` in the Porter-Duff term. On a blurred
+    // black drop shadow that drives the result from 0 up to ~0.46, i.e. a black
+    // shadow rimmed in white. (The canvas export never showed it: it blends
+    // against the opaque folder, where that term vanishes.)
+    //
+    // Hard-gating the alpha keeps grain on the body and off the soft edges,
+    // where grain is meaningless anyway. Element opacity is applied outside the
+    // filter, so a 55%-opaque element still grains normally.
+    `<feComponentTransfer in="SourceAlpha" result="solid">` +
+    `<feFuncA type="linear" slope="12" intercept="-11"/>` +
+    `</feComponentTransfer>` +
+    `<feComposite in="lit" in2="solid" operator="in" result="clipped"/>` +
     `<feComponentTransfer in="clipped" result="faded">` +
     `<feFuncA type="linear" slope="${num(clamp01(material.intensity))}"/>` +
     `</feComponentTransfer>` +

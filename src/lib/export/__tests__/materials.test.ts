@@ -122,10 +122,24 @@ describe("buildElementMaterialFilter", () => {
     expect(buildElementMaterialFilter(mat({ id: "none" }), "f")).toBeNull();
   });
 
-  it("clips the grain to the element's own alpha", () => {
+  it("clips the grain to the element's own pixels", () => {
     // Without this the grain would paint across the whole filter region and
     // smear over whatever sits behind the element.
-    expect(buildElementMaterialFilter(mat(), "f")).toContain('in2="SourceAlpha" operator="in"');
+    expect(buildElementMaterialFilter(mat(), "f")).toContain('in2="solid" operator="in"');
+  });
+
+  it("keeps grain off semi-transparent edges, which would rim them in white", () => {
+    // The blend happens against the element in isolation, so on a soft edge the
+    // white lighting is composited straight on rather than blended: a BLACK drop
+    // shadow came out rimmed in white at ~0.46 luminance. The alpha gate has to
+    // stay steep enough that a half-opaque pixel gets no grain at all.
+    const svg = buildElementMaterialFilter(mat(), "f")!;
+    const [, slope, intercept] = /slope="([\d.]+)" intercept="(-?[\d.]+)"/.exec(svg)!;
+    const gated = (a: number): number =>
+      Math.min(1, Math.max(0, Number(slope) * a + Number(intercept)));
+    expect(gated(1)).toBe(1);      // solid body: full grain
+    expect(gated(0.9)).toBe(0);    // soft edge: none
+    expect(gated(0.5)).toBe(0);
   });
 
   it("blends the grain back over the element, not instead of it", () => {
