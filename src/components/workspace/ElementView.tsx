@@ -10,7 +10,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
-import { elementMaterial } from "@/types/element";
+import { DEFAULT_ELEMENT_MATERIAL, elementMaterial } from "@/types/element";
 import type { FolderElement, TextElement } from "@/types/element";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "@/lib/export/elementSvg";
 import { buildElementMaterialFilter } from "@/lib/export/materials";
@@ -24,6 +24,21 @@ interface Props {
   el: FolderElement;
   override?: LiveOverride;
   onPointerDown: (e: ReactPointerEvent, id: string) => void;
+}
+
+/**
+ * The element as the panel is currently previewing it: the hovered material
+ * swapped in without touching the document, so browsing the dropdown costs no
+ * undo entries and leaves nothing behind if you press Escape. Mirrors the
+ * font/blend-mode hover previews.
+ *
+ * Applied to the ELEMENT rather than to each renderer, so shape, icon and text
+ * all pick the preview up from one place.
+ */
+function withMaterialPreview<T extends FolderElement>(el: T, preview: string | null): T {
+  if (preview == null) return el;
+  const base = el.material ?? DEFAULT_ELEMENT_MATERIAL;
+  return { ...el, material: { ...base, id: preview } };
 }
 
 function svgHtml(el: FolderElement, w: number, h: number): string | null {
@@ -65,14 +80,17 @@ function TextContent({ el }: { el: TextElement }) {
   // `filter: url(#id)` on an HTML element resolves against the document, and
   // its user space is the element's border box, i.e. workspace units, which is
   // exactly what both export paths use.
-  const material = elementMaterial(el);
+  const materialPreview = useUiStore((s) => (isSelected ? s.materialPreview : null));
   const materialId = `tmat-${el.id}`;
   // Memoised: an unchanged filter string keeps React from replacing the <defs>
   // node, which lets the browser reuse the rasterised grain instead of re-running
   // the noise on every unrelated re-render (a drag frame, a selection change).
-  const materialFilter = useMemo(
-    () =>
-      material
+  // The material is resolved INSIDE the memo — resolving it outside rebuilds a
+  // fresh object every render, which would defeat the memo exactly while the
+  // dropdown is open and the noise is most expensive to re-run.
+  const materialFilter = useMemo(() => {
+      const material = elementMaterial(withMaterialPreview(el, materialPreview));
+      return material
         ? buildElementMaterialFilter(material, materialId, 1, 1, {
             // A CSS filter's user space is the border box with its origin at
             // the top-left, so this is the same doubled box the SVG export
@@ -82,8 +100,9 @@ function TextContent({ el }: { el: TextElement }) {
             w: el.width * 2,
             h: el.height * 2,
           })
-        : null,
-    [material, materialId, el.width, el.height],
+        : null;
+    },
+    [el, materialPreview, materialId, el.width, el.height],
   );
   const style: CSSProperties = {
     width: "100%",
@@ -212,14 +231,21 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
     (el.type === "shape" || el.type === "icon" || el.type === "image") && el.dropShadow;
   // Re-render when a fetched icon body lands in the cache.
   const iconVersion = useIconCacheVersion();
-  // Rebuild the injected SVG only when the element, its box, or the icon cache
-  // actually changed — so an unrelated drag frame doesn't re-serialize it (PF-01).
+  const isSelected = useSelectionStore((s) => s.selectedId === el.id);
+  // Live-preview of a hovered material on the selected shape/icon. Text handles
+  // its own preview in TextContent, where its CSS filter is built.
+  const materialPreview = useUiStore((s) =>
+    isSelected && (el.type === "shape" || el.type === "icon") ? s.materialPreview : null,
+  );
+  // Rebuild the injected SVG only when the element, its box, the icon cache or
+  // the previewed material actually changed — so an unrelated drag frame
+  // doesn't re-serialize it (PF-01).
   const svg = useMemo(
     () =>
       el.type === "shape" || el.type === "draw" || el.type === "icon"
-        ? svgHtml(el, width, height)
+        ? svgHtml(withMaterialPreview(el, materialPreview), width, height)
         : null,
-    [el, width, height, iconVersion],
+    [el, width, height, iconVersion, materialPreview],
   );
   const svgPad =
     el.type === "shape" ? shapeStrokePadPx(el, width, height) : { px: 0, py: 0 };
@@ -227,7 +253,6 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
   const blendPreview = useUiStore((s) =>
     el.type === "image" ? s.blendPreview : null,
   );
-  const isSelected = useSelectionStore((s) => s.selectedId === el.id);
   const effectiveBlend =
     el.type === "image" ? (isSelected && blendPreview ? blendPreview : el.blendMode) : undefined;
 

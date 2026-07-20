@@ -8,6 +8,7 @@
  * already dense don't grow for a feature most designs won't use.
  */
 
+import { useEffect } from "react";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import {
@@ -19,20 +20,19 @@ import {
 } from "@/components/ui/select";
 import { MATERIALS, getMaterialRecipe } from "@/lib/export/materials";
 import { useDocumentStore } from "@/store/documentStore";
+import { useUiStore } from "@/store/uiStore";
+import { DEFAULT_ELEMENT_MATERIAL } from "@/types/element";
 import type { ElementMaterial, FolderElement } from "@/types/element";
-
-/** Applied when a material is first chosen; matches the folder-level defaults. */
-export const DEFAULT_ELEMENT_MATERIAL: ElementMaterial = {
-  id: "none",
-  intensity: 0.7,
-  scale: 1,
-  angle: 90,
-};
 
 export function MaterialControls({ el }: { el: FolderElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
+  const setMaterialPreview = useUiStore((s) => s.setMaterialPreview);
   const material = el.material ?? DEFAULT_ELEMENT_MATERIAL;
   const recipe = getMaterialRecipe(material.id);
+
+  // Deselecting the element unmounts this panel; without this the last hovered
+  // material would stay previewed on a canvas that has no panel to clear it.
+  useEffect(() => () => setMaterialPreview(null), [setMaterialPreview]);
 
   const patch = (next: Partial<ElementMaterial>): void => {
     updateElement(el.id, { material: { ...material, ...next } });
@@ -42,7 +42,14 @@ export function MaterialControls({ el }: { el: FolderElement }) {
     <PanelSection title="Material">
       <Select
         value={material.id}
+        // Escape, a click outside or a selection all close the list without
+        // ever firing pointer-leave on the hovered row, which would strand the
+        // preview on the canvas.
+        onOpenChange={(open) => {
+          if (!open) setMaterialPreview(null);
+        }}
         onValueChange={(id) => {
+          setMaterialPreview(null);
           // Picking a material also seeds its recipe's own light direction, so
           // brushed metal starts brushing the way it was tuned to.
           const r = getMaterialRecipe(id);
@@ -53,11 +60,27 @@ export function MaterialControls({ el }: { el: FolderElement }) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent position="popper" side="bottom" sideOffset={4}>
-          <SelectItem value="none" className="text-xs">
+          {/* Live-preview the hovered material on the canvas, same as the text
+              panel's font hover. Keyboard focus previews too, so arrowing
+              through the list shows each surface without committing to it. */}
+          <SelectItem
+            value="none"
+            className="text-xs"
+            onPointerEnter={() => setMaterialPreview("none")}
+            onPointerLeave={() => setMaterialPreview(null)}
+            onFocus={() => setMaterialPreview("none")}
+          >
             None
           </SelectItem>
           {MATERIALS.map((m) => (
-            <SelectItem key={m.id} value={m.id} className="text-xs">
+            <SelectItem
+              key={m.id}
+              value={m.id}
+              className="text-xs"
+              onPointerEnter={() => setMaterialPreview(m.id)}
+              onPointerLeave={() => setMaterialPreview(null)}
+              onFocus={() => setMaterialPreview(m.id)}
+            >
               {m.name}
             </SelectItem>
           ))}

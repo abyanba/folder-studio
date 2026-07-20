@@ -30,6 +30,14 @@ export interface ElementMaterial {
   angle: number;
 }
 
+/** Applied when a material is first chosen; matches the folder-level defaults. */
+export const DEFAULT_ELEMENT_MATERIAL: ElementMaterial = {
+  id: "none",
+  intensity: 0.7,
+  scale: 1,
+  angle: 90,
+};
+
 export interface BaseElement {
   id: string;
   x: number;
