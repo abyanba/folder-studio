@@ -124,7 +124,17 @@ export function rotateAngle(
   pointerX: number,
   pointerY: number,
 ): number {
-  return (Math.atan2(pointerY - centerY, pointerX - centerX) * 180) / Math.PI + 90;
+  return normalizeRotation((Math.atan2(pointerY - centerY, pointerX - centerX) * 180) / Math.PI + 90);
+}
+
+/**
+ * Fold any angle into (-180, 180] — the single convention for `rotation`
+ * everywhere (AR-08). `atan2 + 90` alone spans (-90, 270], so dragging past the
+ * top used to store 200° while the transform slider clamps at 180.
+ */
+export function normalizeRotation(deg: number): number {
+  const r = ((deg % 360) + 360) % 360;
+  return r > 180 ? r - 360 : r;
 }
 
 export interface SnapResult {

@@ -1,12 +1,24 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { resizeElement, rotateAngle, snapMove } from "@/lib/geometry";
+import { normalizeRotation, resizeElement, rotateAngle, snapMove } from "@/lib/geometry";
 
 describe("rotateAngle", () => {
-  it("maps pointer direction to degrees with a +90 offset", () => {
+  it("maps pointer direction to degrees with a +90 offset, folded into (-180,180]", () => {
     expect(rotateAngle(0, 0, 1, 0)).toBeCloseTo(90);
     expect(rotateAngle(0, 0, 0, 1)).toBeCloseTo(180);
-    expect(rotateAngle(0, 0, -1, 0)).toBeCloseTo(270);
+    // AR-08: the raw `atan2 + 90` here is 270; one convention means -90.
+    expect(rotateAngle(0, 0, -1, 0)).toBeCloseTo(-90);
+  });
+});
+
+describe("normalizeRotation", () => {
+  it("folds any angle into (-180, 180]", () => {
+    expect(normalizeRotation(0)).toBe(0);
+    expect(normalizeRotation(180)).toBe(180);
+    expect(normalizeRotation(270)).toBe(-90);
+    expect(normalizeRotation(-270)).toBe(90);
+    expect(normalizeRotation(720 + 45)).toBe(45);
+    expect(normalizeRotation(-360)).toBe(0);
   });
 });
 

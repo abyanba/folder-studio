@@ -62,11 +62,13 @@ describe("freehand", () => {
     expect(temporal().pastStates.length).toBe(baseline + 1);
   });
 
-  it("drops sub-2-point taps", () => {
+  it("commits a single tap as a dot (IN-10)", () => {
     const target = overlay();
     fireEvent.pointerDown(target, { clientX: 20, clientY: 20, buttons: 1, pointerId: 1 });
     fireEvent.pointerUp(target, { pointerId: 1 });
-    expect(useDocumentStore.getState().doc.elements).toHaveLength(0);
+    const els = useDocumentStore.getState().doc.elements;
+    expect(els).toHaveLength(1);
+    expect(els[0].type).toBe("draw");
   });
 });
 

@@ -23,6 +23,7 @@ import type {
 } from "@/types/element";
 import type { ColorValue, Gradient, GradientStop } from "@/types/gradient";
 import { maxIdSuffix, reseedIds } from "./id";
+import { notify } from "@/store/toastStore";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Legacy = Record<string, any>;
@@ -188,6 +189,34 @@ function isNewFormat(snap: Legacy): boolean {
   return "folderColor" in snap && Array.isArray(snap.elements);
 }
 
+/** The field each element type cannot render without. */
+const REQUIRED_BY_TYPE: Record<string, string> = {
+  shape: "shapeType",
+  text: "text",
+  image: "src",
+  icon: "iconName",
+  draw: "svgPath",
+};
+
+/**
+ * Sanity-check one already-`FolderDocument`-shaped element. A hand-edited or
+ * truncated snapshot could otherwise load an element missing `fontSize`/`src`
+ * and render blank or throw mid-paint; those are dropped instead.
+ *
+ * Deliberately shallow — it checks the geometry numbers everything reads plus
+ * the one field the element's renderer dereferences, not the full shape.
+ * ponytail: hand-rolled check, swap for a schema lib only if the format grows.
+ */
+function isValidElement(e: unknown): e is FolderElement {
+  if (!e || typeof e !== "object") return false;
+  const el = e as Legacy;
+  if (typeof el.id !== "string" || !el.id) return false;
+  const required = REQUIRED_BY_TYPE[el.type];
+  if (!required || typeof el[required] !== "string") return false;
+  if (el.type === "text" && !Number.isFinite(el.fontSize)) return false;
+  return (["x", "y", "width", "height"] as const).every((k) => Number.isFinite(el[k]));
+}
+
 export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
   const doc = createEmptyDocument();
   if (!legacy || typeof legacy !== "object") return doc;
@@ -199,9 +228,21 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
     // its default instead of `undefined` on an older snapshot (ST-08).
     // Snapshots may still carry `pattern`/`texture` settings from before the
     // pattern feature was removed; they are ignored rather than migrated.
+    // Elements are validated individually — the legacy path already did this,
+    // but new-format snapshots used to pass straight through, so one corrupt
+    // element could blank or crash the whole design instead of being skipped.
+    const elements = (snap.elements ?? []).filter(isValidElement);
+    const dropped = (snap.elements ?? []).length - elements.length;
+    if (dropped > 0) {
+      notify.error(
+        `${dropped} element${dropped === 1 ? "" : "s"} couldn't be loaded`,
+        "They were missing required fields and have been skipped; the rest of the design loaded normally.",
+      );
+    }
     const merged: FolderDocument = {
       ...doc,
       ...snap,
+      elements,
       patternLayerZ: Number(snap.patternLayerZ ?? sn.textureLayerZ ?? 0),
       iconDefaults: { ...doc.iconDefaults, ...snap.iconDefaults },
       v: doc.v,
@@ -245,6 +286,13 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
   doc.elements = rawElements
     .map((e, i) => normalizeElement(e, i))
     .filter((e): e is FolderElement => e !== null);
+  if (doc.elements.length < rawElements.length) {
+    const dropped = rawElements.length - doc.elements.length;
+    notify.error(
+      `${dropped} element${dropped === 1 ? "" : "s"} couldn't be loaded`,
+      "They were missing required fields and have been skipped; the rest of the design loaded normally.",
+    );
+  }
   // Legacy snapshots don't persist patternLayerZ; default to bottom-of-stack.
   doc.patternLayerZ = 0;
 

@@ -26,8 +26,16 @@ describe("computeFreehandCommit", () => {
     opacity: 0.8,
   };
 
-  it("returns null for fewer than 2 points", () => {
-    expect(computeFreehandCommit({ ...draw, points: [{ x: 1, y: 1 }] })).toBeNull();
+  it("returns null only for an empty stroke", () => {
+    expect(computeFreehandCommit({ ...draw, points: [] })).toBeNull();
+  });
+
+  it("commits a single point as a dot (IN-10)", () => {
+    const dot = computeFreehandCommit({ ...draw, points: [{ x: 1, y: 1 }] })!;
+    expect(dot).not.toBeNull();
+    // Zero-length path — the round linecap paints it as a dot.
+    expect(dot.svgPath).toBe(`M ${draw.size + 2} ${draw.size + 2} L ${draw.size + 2} ${draw.size + 2}`);
+    expect(dot.linecap).toBe("round");
   });
 
   it("bounds the smoothed stroke with size+2 padding and is deterministic", () => {

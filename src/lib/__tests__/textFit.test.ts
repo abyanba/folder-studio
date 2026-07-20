@@ -32,10 +32,27 @@ describe("autoFitSize", () => {
     expect(autoFitSize(el, fakeMeasure)).toBe(40);
   });
 
-  it("accounts for letter spacing", () => {
-    // width term: 2ch × s/2 + 1 gap × 10 ≤ 100 → s ≤ 90; height 200/1.3 → not binding below 96.
-    const el = makeText({ text: "ab", width: 100, height: 200, lineHeight: 1, letterSpacing: 10 });
+  it("accounts for letter spacing when a line must stay unbroken", () => {
+    // "ab" on one line: 2ch × s/2 + 1 gap × 10 ≤ 100 → s ≤ 90. Height is the
+    // binding constraint here (2 lines × s ≤ 100 → s ≤ 50), so wrapping to two
+    // single-char lines can't beat the 90 one-liner.
+    const el = makeText({ text: "ab", width: 100, height: 100, lineHeight: 1, letterSpacing: 10 });
     expect(autoFitSize(el, fakeMeasure)).toBe(90);
+  });
+
+  it("re-fits on explicit newlines instead of measuring one long line", () => {
+    // Two lines × size × lineHeight 1 ≤ height 40 → size ≤ 20 (the one-line
+    // measurement used to allow 40 here and overflow the box).
+    const el = makeText({ text: "ab\ncd", width: 1000, height: 40, lineHeight: 1, letterSpacing: 0 });
+    expect(autoFitSize(el, fakeMeasure)).toBe(20);
+  });
+
+  it("counts word-wrapped lines toward the height", () => {
+    // "aaaa bbbb" is 9 chars → stays one line while 9 × s/2 ≤ 100 (s ≤ 22).
+    // At 23 it wraps to 2 lines and 2 × 23 > height 40, so 22 wins. Without the
+    // wrap-aware height check the one-line measurement would have allowed 40.
+    const el = makeText({ text: "aaaa bbbb", width: 100, height: 40, lineHeight: 1, letterSpacing: 0 });
+    expect(autoFitSize(el, fakeMeasure)).toBe(22);
   });
 });
 

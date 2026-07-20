@@ -29,13 +29,14 @@ function bounds(pts: Point[], pad: number) {
 
 /**
  * Commit a freehand stroke: Chaikin-smooth (2 iterations), then bound with
- * `size + 2` padding. Returns null for strokes under 2 points (legacy drops
- * them).
+ * `size + 2` padding. A single point commits as a dot (IN-10) — `buildSvgPath`
+ * emits a zero-length `M/L` which the round linecap paints as a round dot.
  */
 export function computeFreehandCommit(draw: CurrentDraw): CreateDrawInput | null {
-  if (draw.points.length < 2) return null;
+  if (draw.points.length < 1) return null;
   const pad = draw.size + 2;
-  const smoothed = chaikinSmooth(draw.points, 2);
+  // Chaikin on a lone point just duplicates it into a run of identical points.
+  const smoothed = draw.points.length < 2 ? draw.points : chaikinSmooth(draw.points, 2);
   const { mnX, mnY, w, h } = bounds(smoothed, pad);
   return {
     x: mnX,
