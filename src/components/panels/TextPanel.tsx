@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Crop, Plus } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
@@ -209,16 +210,6 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
           >
             U
           </Toggle>
-          <Toggle
-            size="sm"
-            className="size-7 p-0"
-            pressed={el.clip ?? false}
-            aria-label="Clip to box"
-            title="Clip to box"
-            onPressedChange={(on) => updateElement(el.id, { clip: on })}
-          >
-            <Crop className="size-3.5" />
-          </Toggle>
           <div className="mx-1 h-5 w-px bg-border" />
           <ToggleGroup
             type="single"
@@ -281,6 +272,15 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
           <FitButton
             label="Auto-fit line height"
             onClick={() => updateElement(el.id, { lineHeight: autoFitLineHeight(el) })}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Clip to box</span>
+          <Switch
+            checked={el.clip ?? false}
+            aria-label="Clip text to box"
+            onCheckedChange={(v) => updateElement(el.id, { clip: v })}
           />
         </div>
       </PanelSection>
