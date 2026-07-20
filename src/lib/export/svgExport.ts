@@ -36,7 +36,7 @@ import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./e
 import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
-import { buildPatternSvg, isFrontPattern, patternTileSize } from "./patterns";
+import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
 import type { MeasureText } from "./textLayout";
 
 export interface SvgExportDeps {
@@ -297,35 +297,16 @@ export function buildExportSvg(
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) emit(doc.elements[i]);
 
-  // The pattern layer is true vector here: a <pattern> tile referenced by a
-  // full-frame rect, masked to the folder (or just its front panel). The old
-  // raster-only implementation composited with source-atop, which had no clean
-  // SVG form; a plain background rect inside the tile does.
+  // The pattern layer is the same self-contained SVG the editor injects and the
+  // canvas export rasterizes, inlined here with namespaced ids. The pre-rework
+  // implementation couldn't appear in SVG at all — its source-atop compositing
+  // had no vector form.
   const patternBody = doc.pattern.id !== "none" ? deps.getPatternBody?.(doc.pattern.id) : null;
   if (patternBody) {
-    const t = patternTileSize(doc.pattern, patternBody);
-    const rot = doc.pattern.rotation || 0;
-    // patternTransform rotates the tiling itself — no overdraw layer needed,
-    // unlike the canvas path fighting createPattern.
-    const transform = rot ? ` patternTransform="rotate(${num(rot)} ${num(FW / 2)} ${num(FH / 2)})"` : "";
-    const tileSvg = buildPatternSvg(doc.pattern, patternBody);
-    defs.push(
-      `<pattern id="pat" patternUnits="userSpaceOnUse" width="${num(t.w)}" height="${num(t.h)}"${transform}>` +
-        // The viewBox is load-bearing: the tile SVG carries its own natural
-        // width/height, so without a coordinate system to map onto the scaled
-        // cell it just paints at natural size in the corner. Only visible once
-        // the effective scale differs from 1, which is why it needs a test at
-        // scale != 1 rather than the default.
-        `<svg x="0" y="0" width="${num(t.w)}" height="${num(t.h)}" viewBox="0 0 ${num(patternBody.w)} ${num(patternBody.h)}" preserveAspectRatio="none">${tileSvg}</svg>` +
-        `</pattern>`,
-    );
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
       ? getFrontMask(doc.baseShape)
       : getBaseShapeMask(doc.baseShape);
-    defs.push(
-      `<mask id="patmask"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(patMask)}</svg></mask>`,
-    );
-    body.push(`<rect width="${FW}" height="${FH}" fill="url(#pat)" mask="url(#patmask)"/>`);
+    body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
     // Highlights back on top of the pattern (shine / rim stripes). Not the full
     // overlay — its vignette would double the colour base's own shading.
     const structure = buildFrontImageOverlaySvg(doc.baseShape);

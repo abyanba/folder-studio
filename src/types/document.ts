@@ -26,11 +26,11 @@ export type BaseShapeId = string;
  * - best    — echo back via the anchored reference treatment + tuned shine.
  */
 export type WindowsGradientAlgo = "current" | "lit" | "echo" | "best";
-export const DEFAULT_WINDOWS_GRADIENT_ALGO: WindowsGradientAlgo = "best";
+export const DEFAULT_WINDOWS_GRADIENT_ALGO: WindowsGradientAlgo = "echo";
 
 /** macOS gradient-fill treatment; same option set as {@link WindowsGradientAlgo}. */
 export type MacGradientAlgo = WindowsGradientAlgo;
-export const DEFAULT_MAC_GRADIENT_ALGO: MacGradientAlgo = "best";
+export const DEFAULT_MAC_GRADIENT_ALGO: MacGradientAlgo = "echo";
 
 /**
  * TEMPORARY: macOS solid-fill color treatment. Every profile shares the same
@@ -88,7 +88,8 @@ export type PatternSpan = WindowsImageMode;
 export interface PatternSettings {
   /** `hero-patterns` key from `PATTERN_CATALOG`, or `"none"`. */
   id: string;
-  fgColor: string;
+  /** Solid or gradient; a gradient spans the folder rather than each tile. */
+  fgColor: ColorValue;
   /** 0-1, baked into the tile's `fill-opacity`. */
   fgOpacity: number;
   bgColor: string;

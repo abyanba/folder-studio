@@ -83,34 +83,38 @@ describe("batch export", () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /batch/i }));
 
-    // Drop 64, add SVG alongside the default PNG. (Format labels are
-    // lowercase in the DOM — the uppercase is CSS.)
-    await user.click(screen.getByRole("button", { name: "64" }));
+    // Batch defaults to 256 in every format; add 128 and drop SVG + ICNS.
+    // (Format labels are lowercase in the DOM — the uppercase is CSS.)
+    await user.click(screen.getByRole("button", { name: "128" }));
     await user.click(screen.getByRole("button", { name: /^svg$/i }));
+    await user.click(screen.getByRole("button", { name: /^icns$/i }));
     await user.click(screen.getByRole("button", { name: "Export .zip" }));
 
     expect(mocks.batchExportZip).toHaveBeenCalledTimes(1);
     const [, sizes, formats] = mocks.batchExportZip.mock.calls[0];
-    expect(sizes).toEqual([128, 256, 512]);
-    expect(formats).toEqual(["png", "svg"]);
+    expect(sizes).toEqual([256, 128]); // selection order, 256 preselected
+    expect(formats).toEqual(["png", "ico"]);
     expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icons.zip");
   });
 
   it("cannot deselect the last format", async () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /batch/i }));
-    await user.click(screen.getByRole("button", { name: /^png$/i })); // last one → ignored
+    // Deselect all but one, then try to drop that one too.
+    for (const f of [/^png$/i, /^svg$/i, /^ico$/i]) {
+      await user.click(screen.getByRole("button", { name: f }));
+    }
+    await user.click(screen.getByRole("button", { name: /^icns$/i })); // last one → ignored
     await user.click(screen.getByRole("button", { name: "Export .zip" }));
     const [, , formats] = mocks.batchExportZip.mock.calls[0];
-    expect(formats).toEqual(["png"]);
+    expect(formats).toEqual(["icns"]);
   });
 
   it("disables export when no size is selected", async () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /batch/i }));
-    for (const s of ["64", "128", "256", "512"]) {
-      await user.click(screen.getByRole("button", { name: s }));
-    }
+    // Only 256 is selected by default.
+    await user.click(screen.getByRole("button", { name: "256" }));
     expect(screen.getByRole("button", { name: "Export .zip" })).toBeDisabled();
     expect(mocks.batchExportZip).not.toHaveBeenCalled();
   });

@@ -77,20 +77,22 @@ describe("ColorPanel fill modes", () => {
     expect(useDocumentStore.getState().doc.windowsColorProfile).toBe("flat");
   });
 
-  it("shows the Windows gradient color-profile dropdown (Refined default) on a gradient fill", async () => {
+  it("shows the Windows gradient color-profile dropdown (Echo default) on a gradient fill", async () => {
     const user = userEvent.setup();
     render(<ColorPanel />);
 
     await user.click(screen.getByRole("tab", { name: "Gradient" }));
     expect(screen.getByText("Color profile")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Refined/ }));
+    await user.click(screen.getByRole("button", { name: /Echo/ }));
 
-    // Hovering an option live-previews it (without committing).
-    const echoItem = screen.getByRole("menuitem", { name: "Echo" });
-    fireEvent.mouseEnter(echoItem);
-    expect(useUiStore.getState().windowsGradientPreview).toBe("echo");
-    expect(useDocumentStore.getState().doc.windowsGradientAlgo).toBe("best"); // not committed
-    fireEvent.mouseLeave(echoItem);
+    // Hovering an option live-previews it (without committing). Hover a
+    // NON-default option, or "not committed" would be indistinguishable from
+    // the starting value.
+    const refinedItem = screen.getByRole("menuitem", { name: "Refined" });
+    fireEvent.mouseEnter(refinedItem);
+    expect(useUiStore.getState().windowsGradientPreview).toBe("best");
+    expect(useDocumentStore.getState().doc.windowsGradientAlgo).toBe("echo"); // not committed
+    fireEvent.mouseLeave(refinedItem);
     expect(useUiStore.getState().windowsGradientPreview).toBeNull();
 
     await user.click(screen.getByRole("menuitem", { name: "Deep tab" }));

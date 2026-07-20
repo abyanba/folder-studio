@@ -19,7 +19,7 @@ import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { PATTERN_CATALOG } from "@/data/patterns";
-import { buildPatternSvg } from "@/lib/export/patterns";
+import { buildPatternLayerSvg, buildPatternSvg } from "@/lib/export/patterns";
 import {
   getPatternBody,
   loadPatternBodies,
@@ -34,6 +34,21 @@ import { PanelHeader } from "./PanelHeader";
 
 /** Base shapes with a front/back split — the only ones where span is meaningful. */
 const SPLIT_SHAPES = ["windows", "macos"];
+
+/** An all-white mask, so the preview swatch shows the layer unclipped. */
+const FULL_MASK =
+  '<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><rect width="256" height="256" fill="white"/></svg>';
+
+/**
+ * The adjust-view swatch renders the whole layer (background wash + motif, and
+ * a gradient foreground as the gradient rather than the white mask tile the raw
+ * tile would show).
+ */
+function layerPreview(settings: PatternSettings): string | undefined {
+  const body = getPatternBody(settings.id);
+  if (!body) return undefined;
+  return `url("${toSvgDataUrl(buildPatternLayerSvg(settings, body, FULL_MASK))}")`;
+}
 
 function tileBackground(id: string, settings: PatternSettings): string | undefined {
   const body = getPatternBody(id);
@@ -62,9 +77,8 @@ export function PatternPanel() {
           <div
             className="h-24 w-full rounded-lg border bg-muted/40"
             style={{
-              backgroundImage: tileBackground(pattern.id, pattern),
-              // The tile itself carries the background rect, so nothing to
-              // paint behind it here.
+              backgroundImage: layerPreview(pattern),
+              backgroundSize: "cover",
             }}
           />
 
@@ -72,9 +86,8 @@ export function PatternPanel() {
             <div className="flex items-center gap-2">
               <ColorField
                 value={pattern.fgColor}
-                onChange={(v) => {
-                  if (typeof v === "string") setPattern({ fgColor: v });
-                }}
+                onChange={(v) => setPattern({ fgColor: v })}
+                allowGradient
                 ariaLabel="Pattern color"
               />
               <SliderField

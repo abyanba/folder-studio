@@ -422,8 +422,8 @@ describe("windows gradient treatment tweak (temporary)", () => {
   const gradientAt = (algo: FolderDocument["windowsGradientAlgo"]) =>
     buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: gradient, windowsGradientAlgo: algo }));
 
-  it("defaults to 'best' and every treatment emits a front, back and shine", () => {
-    expect(createEmptyDocument().windowsGradientAlgo).toBe("best");
+  it("defaults to 'echo' and every treatment emits a front, back and shine", () => {
+    expect(createEmptyDocument().windowsGradientAlgo).toBe("echo");
     for (const algo of ["current", "lit", "echo", "best"] as const) {
       const svg = gradientAt(algo);
       expect(svg, algo).toContain("url(#wg)");

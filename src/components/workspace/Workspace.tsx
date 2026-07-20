@@ -56,11 +56,11 @@ export function Workspace() {
   const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
-  const patternMaskUrl = useMemo(
+  const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
-        ? toSvgDataUrl(getFrontMask(doc.baseShape))
-        : toSvgDataUrl(getBaseShapeMask(doc.baseShape)),
+        ? getFrontMask(doc.baseShape)
+        : getBaseShapeMask(doc.baseShape),
     [doc.baseShape, doc.pattern],
   );
 
@@ -130,7 +130,7 @@ export function Workspace() {
               {doc.elements.slice(0, tz).map(renderEl)}
               {doc.pattern.id !== "none" && (
                 <>
-                  <PatternOverlay pattern={doc.pattern} maskUrl={patternMaskUrl} />
+                  <PatternOverlay pattern={doc.pattern} maskSvg={patternMaskSvg} />
                   {/* Structure back on top so the pattern doesn't flatten the
                       folder — same treatment an image fill gets. */}
                   <FolderStructureOverlay baseShape={doc.baseShape} />

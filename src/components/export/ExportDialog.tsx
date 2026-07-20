@@ -57,8 +57,11 @@ export function ExportDialog() {
   const [mode, setMode] = useState<"single" | "batch">("single");
   const [size, setSize] = useState("256");
   const [format, setFormat] = useState<ExportFormat>("png");
-  const [batchSizes, setBatchSizes] = useState<string[]>(BATCH_SIZES.map(String));
-  const [batchFormats, setBatchFormats] = useState<string[]>(["png"]);
+  // Batch defaults to the one size that matters for an icon (256, also the ICO
+  // ceiling) in every format, since the usual reason to batch is wanting the
+  // same icon for each platform.
+  const [batchSizes, setBatchSizes] = useState<string[]>(["256"]);
+  const [batchFormats, setBatchFormats] = useState<string[]>([...FORMATS]);
   const [busy, setBusy] = useState(false);
 
   // ICO is capped at 256px (EXP-08): restrict single-mode sizes and, in batch,

@@ -1,32 +1,33 @@
 /**
- * The pattern layer, masked to the folder silhouette (or just the front panel
- * when `span` is "front"). Sits in the content-rect stack at the pattern's
- * z-position, interleaved by DOM order in `Workspace`.
+ * The pattern layer. Injects the SAME `buildPatternLayerSvg` markup the canvas
+ * export rasterizes and the vector export inlines — the layer owns its own
+ * folder mask, tiling and (for a gradient foreground) the ink mask, so the
+ * editor can't drift from either export.
  *
- * Uses the same `buildPatternSvg` tile as both export paths; only the tiling
- * mechanism differs (CSS `background-repeat` here, `createPattern` on canvas,
- * `<pattern>` in the vector export).
+ * This replaced a CSS `background-repeat` + `mask-image` implementation, which
+ * could not express a gradient foreground: the mask and the gradient would have
+ * had to rotate independently, and CSS can't rotate a mask image on its own.
  */
 
 import { memo, useEffect, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
 import { CDX, CDY, FH, FW } from "@/lib/constants";
 import type { PatternSettings } from "@/types/document";
-import { buildPatternSvg, patternTileSize } from "@/lib/export/patterns";
+import { buildPatternLayerSvg } from "@/lib/export/patterns";
 import {
   getPatternBody,
   loadPatternBodies,
   patternBodiesVersion,
   subscribePatternBodies,
 } from "@/lib/patternBodies";
-import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 
 function PatternOverlayImpl({
   pattern,
-  maskUrl,
+  maskSvg,
 }: {
   pattern: PatternSettings;
-  maskUrl: string;
+  /** Folder silhouette, or just the front panel for a front-span pattern. */
+  maskSvg: string;
 }) {
   // The bodies are a lazy chunk; re-render once it lands.
   useSyncExternalStore(subscribePatternBodies, patternBodiesVersion);
@@ -37,43 +38,23 @@ function PatternOverlayImpl({
   const body = getPatternBody(pattern.id);
   if (!body) return null;
 
-  const tileUrl = toSvgDataUrl(buildPatternSvg(pattern, body));
-  const tile = patternTileSize(pattern, body);
-
-  const outer: CSSProperties = {
+  const style: CSSProperties = {
     position: "absolute",
     left: -CDX,
     top: -CDY,
     width: FW,
     height: FH,
-    WebkitMaskImage: `url("${maskUrl}")`,
-    maskImage: `url("${maskUrl}")`,
-    WebkitMaskSize: "100% 100%",
-    maskSize: "100% 100%",
-    WebkitMaskRepeat: "no-repeat",
-    maskRepeat: "no-repeat",
-    overflow: "hidden",
     pointerEvents: "none",
   };
-  // Oversized and centred so a rotated tiling still covers every corner.
-  const inner: CSSProperties = {
-    position: "absolute",
-    top: "-60%",
-    left: "-60%",
-    width: "220%",
-    height: "220%",
-    backgroundImage: `url("${tileUrl}")`,
-    backgroundSize: `${tile.w}px ${tile.h}px`,
-    transform: pattern.rotation ? `rotate(${pattern.rotation}deg)` : undefined,
-    transformOrigin: "center",
-  };
   return (
-    <div style={outer}>
-      <div style={inner} />
-    </div>
+    <div
+      aria-hidden
+      style={style}
+      dangerouslySetInnerHTML={{ __html: buildPatternLayerSvg(pattern, body, maskSvg) }}
+    />
   );
 }
 
-// Memoized on (pattern, maskUrl) so an unrelated drag frame doesn't rebuild the
-// tile SVG and data URL (PF-03).
+// Memoized on (pattern, maskSvg) so an unrelated drag frame doesn't rebuild the
+// layer markup (PF-03).
 export const PatternOverlay = memo(PatternOverlayImpl);

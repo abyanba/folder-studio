@@ -38,7 +38,7 @@ import { gradientLine } from "./gradientSvg";
 import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLayout";
 import { toSvgDataUrl } from "./svgDataUrl";
 import { computeTrimBounds, computeTrimTransform } from "./trim";
-import { buildPatternSvg, isFrontPattern, patternTileSize } from "./patterns";
+import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
 import { getPatternBody } from "@/lib/patternBodies";
 
 /** A loaded raster source; `naturalWidth`/`Height` present for `HTMLImageElement`. */
@@ -406,67 +406,25 @@ async function renderElement(
 }
 
 /**
- * Composite the pattern layer, tiled and confined to the folder (or just its
- * front panel). Uses the same tile SVG as the editor and vector export; only
- * the tiling mechanism differs.
- *
- * Painted on its own canvas and masked with `destination-in`, rather than
- * `source-atop` over the folder pixels: an opaque background colour has to be
- * able to cover the folder fill, which source-atop's alpha test would keep
- * punching holes in.
+ * Composite the pattern layer. Rasterizes the SAME layer SVG the editor injects
+ * and the vector export inlines, so the three can't drift — this replaced a
+ * hand-rolled createPattern + overdraw + destination-in sequence that had to be
+ * kept in agreement with the other two by hand.
  */
 async function renderPattern(
   ctx: CanvasRenderingContext2D,
   doc: FolderDocument,
   size: number,
   loadImage: ImageLoader,
-  createCanvas: CanvasFactory,
 ): Promise<void> {
   const body = getPatternBody(doc.pattern.id);
   if (!body) return;
 
-  const tileSvg = buildPatternSvg(doc.pattern, body);
-  const tImg = await loadImage(toSvgDataUrl(tileSvg));
-  if (!tImg) return;
-
-  const exportScale = size / FW;
-  const t = patternTileSize(doc.pattern, body);
-  const tileW = Math.max(1, Math.round(t.w * exportScale));
-  const tileH = Math.max(1, Math.round(t.h * exportScale));
-  const tile = createCanvas(tileW, tileH);
-  const tctx = tile.getContext("2d");
-  if (!tctx) return;
-  tctx.drawImage(tImg, 0, 0, tileW, tileH);
-
-  const layer = createCanvas(size, size);
-  const lctx = layer.getContext("2d");
-  if (!lctx) return;
-  const pattern = lctx.createPattern(tile, "repeat");
-  if (!pattern) return;
-  lctx.fillStyle = pattern;
-
-  const rot = doc.pattern.rotation || 0;
-  if (rot) {
-    // Rotate about the canvas centre with enough overdraw that the rotated
-    // tiling still reaches every corner — mirrors the editor's 220% layer.
-    lctx.translate(size / 2, size / 2);
-    lctx.rotate((rot * Math.PI) / 180);
-    const over = size * 1.2;
-    lctx.fillRect(-over, -over, over * 2, over * 2);
-    lctx.setTransform(1, 0, 0, 1, 0, 0);
-  } else {
-    lctx.fillRect(0, 0, size, size);
-  }
-
   const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
     ? getFrontMask(doc.baseShape)
     : getBaseShapeMask(doc.baseShape);
-  const mask = await loadImage(toSvgDataUrl(maskSvg));
-  if (mask) {
-    lctx.globalCompositeOperation = "destination-in";
-    lctx.drawImage(mask, 0, 0, size, size);
-  }
-  ctx.drawImage(layer, 0, 0);
+  const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
+  if (layer) ctx.drawImage(layer, 0, 0, size, size);
 
   // Re-apply the folder's highlights over the pattern, or it buries them and the
   // folder reads flat. Highlights only (`buildFrontImageOverlaySvg`) — the full
@@ -511,7 +469,7 @@ export async function buildExportCanvas(
     await renderElement(ctx, el, size, deps, loadImage, skipped);
   }
 
-  await renderPattern(ctx, doc, size, loadImage, createCanvas);
+  await renderPattern(ctx, doc, size, loadImage);
 
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];

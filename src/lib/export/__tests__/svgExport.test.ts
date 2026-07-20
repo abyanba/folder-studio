@@ -188,9 +188,10 @@ describe("buildExportSvg", () => {
     const { svg, skipped } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
     // The old implementation could only surface this as a skipped layer.
     expect(skipped).not.toContain("Pattern (raster export only)");
-    expect(svg).toContain('<pattern id="pat"');
-    expect(svg).toContain('fill="url(#pat)"');
-    expect(svg).toContain('mask="url(#patmask)"');
+    // Inlined via the shared layer builder, with ids namespaced under "pl".
+    expect(svg).toContain('<pattern id="pltile"');
+    expect(svg).toContain('fill="url(#pltile)"');
+    expect(svg).toContain('<g mask="url(#plfolder)">');
   });
 
   it("maps the tile onto the scaled cell so a scaled pattern isn't drawn at natural size", () => {
@@ -202,7 +203,7 @@ describe("buildExportSvg", () => {
     doc.pattern = { ...doc.pattern, id: "dots", scale: 2 };
     const body = { svg: '<svg width="32" height="64" viewBox="0 0 32 64"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 32, h: 64, defaultScale: 1 };
     const { svg } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
-    expect(svg).toContain('<pattern id="pat" patternUnits="userSpaceOnUse" width="64" height="128"');
+    expect(svg).toContain('<pattern id="pltile" patternUnits="userSpaceOnUse" width="64" height="128"');
     // The cell is 64x128 and the tile's own space is 32x64, so the wrapper must
     // carry that viewBox for the motif to fill the cell.
     expect(svg).toContain('width="64" height="128" viewBox="0 0 32 64"');
@@ -213,7 +214,7 @@ describe("buildExportSvg", () => {
     doc.pattern = { ...doc.pattern, id: "dots", rotation: 45 };
     const body = { svg: '<svg width="10" height="10"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 10, h: 10, defaultScale: 1 };
     const { svg } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
-    expect(svg).toContain("patternTransform=\"rotate(45 190 190)\"");
+    expect(svg).toContain('patternTransform="rotate(45 190 190)"');
   });
 
   it("omits the pattern layer entirely when none is selected", () => {
@@ -221,7 +222,7 @@ describe("buildExportSvg", () => {
       ...noIcon,
       getPatternBody: () => null,
     });
-    expect(svg).not.toContain('<pattern id="pat"');
+    expect(svg).not.toContain('<pattern id="pltile"');
   });
 
   it("emits a folder mask when clip-to-folder is on", () => {
