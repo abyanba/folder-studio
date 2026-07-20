@@ -1,8 +1,8 @@
 /**
- * Texture panel: a searchable 3-column pattern grid, and an adjust view
+ * Pattern panel: a searchable 3-column pattern grid, and an adjust view
  * (opacity/scale/rotation, seeded randomize for scatter patterns, foreground +
- * background colors). Clicking the active texture again opens adjust, matching
- * the legacy flow. Previews render each tile via the same `buildTextureSvg`
+ * background colors). Clicking the active pattern again opens adjust, matching
+ * the legacy flow. Previews render each tile via the same `buildPatternSvg`
  * the workspace/export use.
  */
 
@@ -13,17 +13,17 @@ import { Input } from "@/components/ui/input";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
-import { SEEDED_IDS, TEXTURES, buildTextureSvg } from "@/lib/export/textures";
+import { SEEDED_IDS, PATTERNS, buildPatternSvg } from "@/lib/export/patterns";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { useDocumentStore } from "@/store/documentStore";
-import type { TextureSettings } from "@/types/document";
+import type { PatternSettings } from "@/types/document";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
 
 const randomSeed = () => Math.floor(Math.random() * 0xffffffff) || 1;
 
-function tileBackground(settings: TextureSettings): string | undefined {
-  const svg = buildTextureSvg(settings);
+function tileBackground(settings: PatternSettings): string | undefined {
+  const svg = buildPatternSvg(settings);
   return svg ? `url("${toSvgDataUrl(svg)}")` : undefined;
 }
 
@@ -31,7 +31,7 @@ function PreviewTile({
   settings,
   className,
 }: {
-  settings: TextureSettings;
+  settings: PatternSettings;
   className?: string;
 }) {
   return (
@@ -45,44 +45,44 @@ function PreviewTile({
   );
 }
 
-export function TexturePanel() {
-  const texture = useDocumentStore((s) => s.doc.texture);
-  const setTexture = useDocumentStore((s) => s.setTexture);
+export function PatternPanel() {
+  const pattern = useDocumentStore((s) => s.doc.pattern);
+  const setPattern = useDocumentStore((s) => s.setPattern);
   const [view, setView] = useState<"grid" | "adjust">("grid");
   const [search, setSearch] = useState("");
 
-  const canRandomize = SEEDED_IDS.includes(texture.id);
+  const canRandomize = SEEDED_IDS.includes(pattern.id);
 
-  if (view === "adjust" && texture.id !== "none") {
+  if (view === "adjust" && pattern.id !== "none") {
     return (
       <div>
-        <PanelHeader title="Adjust Texture" onBack={() => setView("grid")} />
+        <PanelHeader title="Adjust Pattern" onBack={() => setView("grid")} />
         <div className="space-y-4 p-3">
-          <PreviewTile settings={texture} className="h-24 w-full" />
+          <PreviewTile settings={pattern} className="h-24 w-full" />
           <SliderField
             label="Opacity"
-            value={texture.opacity}
+            value={pattern.opacity}
             min={0.05}
             max={1}
             step={0.05}
-            onChange={(v) => setTexture({ opacity: v })}
+            onChange={(v) => setPattern({ opacity: v })}
             format={(v) => `${Math.round(v * 100)}%`}
           />
           <SliderField
             label="Scale"
-            value={texture.scale}
+            value={pattern.scale}
             min={0.5}
             max={6}
             step={0.25}
-            onChange={(v) => setTexture({ scale: v })}
+            onChange={(v) => setPattern({ scale: v })}
             format={(v) => `${v.toFixed(2)}×`}
           />
           <SliderField
             label="Rotation"
-            value={texture.rotation}
+            value={pattern.rotation}
             min={0}
             max={360}
-            onChange={(v) => setTexture({ rotation: v })}
+            onChange={(v) => setPattern({ rotation: v })}
             format={(v) => `${v}°`}
           />
 
@@ -90,21 +90,21 @@ export function TexturePanel() {
             <PanelSection title="Scatter">
               <div className="flex gap-1.5">
                 <Button
-                  variant={texture.seed ? "secondary" : "outline"}
+                  variant={pattern.seed ? "secondary" : "outline"}
                   size="sm"
                   className="h-7 flex-1 text-xs"
-                  onClick={() => setTexture({ seed: texture.seed ? 0 : randomSeed() })}
+                  onClick={() => setPattern({ seed: pattern.seed ? 0 : randomSeed() })}
                 >
                   <Dices className="size-3" />
-                  {texture.seed ? "Randomized" : "Randomize"}
+                  {pattern.seed ? "Randomized" : "Randomize"}
                 </Button>
-                {texture.seed !== 0 && (
+                {pattern.seed !== 0 && (
                   <Button
                     variant="outline"
                     size="icon"
                     className="size-7"
                     aria-label="Reroll random layout"
-                    onClick={() => setTexture({ seed: randomSeed() })}
+                    onClick={() => setPattern({ seed: randomSeed() })}
                   >
                     <RefreshCw className="size-3" />
                   </Button>
@@ -117,39 +117,39 @@ export function TexturePanel() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <ColorField
-                  value={texture.color}
+                  value={pattern.color}
                   onChange={(v) => {
-                    if (typeof v === "string") setTexture({ color: v });
+                    if (typeof v === "string") setPattern({ color: v });
                   }}
-                  ariaLabel="Texture color"
+                  ariaLabel="Pattern color"
                 />
                 <span className="text-xs text-muted-foreground">Pattern</span>
               </div>
               <div className="flex items-center gap-2">
-                {texture.bg === "transparent" ? (
+                {pattern.bg === "transparent" ? (
                   <button
                     type="button"
-                    aria-label="Texture background (transparent)"
+                    aria-label="Pattern background (transparent)"
                     className="size-7 shrink-0 rounded-md border shadow-sm [background:repeating-conic-gradient(#8883_0%_25%,transparent_0%_50%)_0_0/8px_8px]"
-                    onClick={() => setTexture({ bg: "#000000" })}
+                    onClick={() => setPattern({ bg: "#000000" })}
                   />
                 ) : (
                   <ColorField
-                    value={texture.bg}
+                    value={pattern.bg}
                     onChange={(v) => {
-                      if (typeof v === "string") setTexture({ bg: v });
+                      if (typeof v === "string") setPattern({ bg: v });
                     }}
-                    ariaLabel="Texture background color"
+                    ariaLabel="Pattern background color"
                   />
                 )}
                 <span className="text-xs text-muted-foreground">Background</span>
               </div>
-              {texture.bg !== "transparent" && (
+              {pattern.bg !== "transparent" && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-[11px]"
-                  onClick={() => setTexture({ bg: "transparent" })}
+                  onClick={() => setPattern({ bg: "transparent" })}
                 >
                   Clear
                 </Button>
@@ -162,23 +162,23 @@ export function TexturePanel() {
   }
 
   const q = search.trim().toLowerCase();
-  const shown = TEXTURES.filter((t) => !q || t.name.toLowerCase().includes(q));
+  const shown = PATTERNS.filter((t) => !q || t.name.toLowerCase().includes(q));
 
   return (
     <div>
-      <PanelHeader title="Texture" />
+      <PanelHeader title="Pattern" />
       <div className="space-y-3 p-3">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search textures…"
+          placeholder="Search patterns…"
           className="h-7 px-2 text-xs"
-          aria-label="Search textures"
+          aria-label="Search patterns"
           data-panel-search
         />
         <div className="grid grid-cols-3 gap-1.5">
           {shown.map((t) => {
-            const active = texture.id === t.id;
+            const active = pattern.id === t.id;
             return (
               <button
                 key={t.id}
@@ -186,7 +186,7 @@ export function TexturePanel() {
                 title={t.name}
                 onClick={() => {
                   if (active && t.id !== "none") setView("adjust");
-                  else setTexture({ id: t.id });
+                  else setPattern({ id: t.id });
                 }}
                 className={cn(
                   "flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border p-1 transition-colors",
@@ -219,14 +219,14 @@ export function TexturePanel() {
             );
           })}
         </div>
-        {texture.id !== "none" && (
+        {pattern.id !== "none" && (
           <Button
             variant="outline"
             size="sm"
             className="h-7 w-full text-xs"
             onClick={() => setView("adjust")}
           >
-            <Settings2 className="size-3" /> Adjust texture
+            <Settings2 className="size-3" /> Adjust pattern
           </Button>
         )}
       </div>

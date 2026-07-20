@@ -30,18 +30,18 @@ describe("documentStore CRUD", () => {
     expect(doc().elements[0].x).toBe(123);
   });
 
-  it("removes elements and adjusts textureLayerZ", () => {
+  it("removes elements and adjusts patternLayerZ", () => {
     const a = createShapeElement();
     const b = createShapeElement();
     const c = createShapeElement();
     store().loadDocument({
       ...createEmptyDocument(),
       elements: [a, b, c],
-      textureLayerZ: 2,
+      patternLayerZ: 2,
     });
     store().removeElements([a.id]);
     expect(doc().elements.map((e) => e.id)).toEqual([b.id, c.id]);
-    expect(doc().textureLayerZ).toBe(1);
+    expect(doc().patternLayerZ).toBe(1);
   });
 
   it("duplicates with a +10 offset and a fresh id", () => {

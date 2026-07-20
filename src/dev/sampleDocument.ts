@@ -1,6 +1,6 @@
 /**
  * A sample FolderDocument exercising every element type + gradient base shape +
- * seeded texture + clip. Shared by the export harness (Phase 3) and the Phase-4
+ * seeded pattern + clip. Shared by the export harness (Phase 3) and the Phase-4
  * dev "seed sample" button so the workspace/interaction can be driven before the
  * real element-creation panels exist (Phase 5).
  */
@@ -46,7 +46,7 @@ export function buildSampleDocument(): FolderDocument {
   doc.baseShape = "windows";
   doc.folderColor = baseGradient;
   doc.clipToFolder = true;
-  doc.texture = { ...doc.texture, id: "dots", color: "#ffffff", opacity: 0.4, scale: 1, seed: 7 };
+  doc.pattern = { ...doc.pattern, id: "dots", color: "#ffffff", opacity: 0.4, scale: 1, seed: 7 };
 
   const shape = createShapeElement("star", "Star");
   shape.x = 10;
@@ -92,6 +92,6 @@ export function buildSampleDocument(): FolderDocument {
   image.y = 120;
 
   doc.elements = [shape, image, draw, text, icon];
-  doc.textureLayerZ = 2; // texture sits above shape+image, below draw/text/icon
+  doc.patternLayerZ = 2; // pattern sits above shape+image, below draw/text/icon
   return doc;
 }

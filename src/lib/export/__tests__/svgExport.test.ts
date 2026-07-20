@@ -2,7 +2,7 @@
 /**
  * True vector SVG composition (EXP-14). Verifies the root frame, that each
  * element type reuses its shared builder wrapped in a centered transform, that
- * text becomes real <text>, unloaded icons and textures are surfaced as skipped,
+ * text becomes real <text>, unloaded icons and patterns are surfaced as skipped,
  * and clip-to-folder emits a mask. Font inlining is browser-only (svgFonts).
  */
 
@@ -199,11 +199,11 @@ describe("buildExportSvg", () => {
     expect(svg).toContain('width="380" height="380" href=');
   });
 
-  it("surfaces the texture layer as a skipped label", () => {
+  it("surfaces the pattern layer as a skipped label", () => {
     const doc = createEmptyDocument();
-    doc.texture = { ...doc.texture, id: "dots" };
+    doc.pattern = { ...doc.pattern, id: "dots" };
     const { skipped } = buildExportSvg(doc, 256, noIcon);
-    expect(skipped).toContain("Texture (raster export only)");
+    expect(skipped).toContain("Pattern (raster export only)");
   });
 
   it("omits hidden elements", () => {

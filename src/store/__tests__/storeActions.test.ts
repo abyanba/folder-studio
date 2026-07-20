@@ -95,7 +95,7 @@ describe("documentStore ordering and toggles", () => {
     expect(order()).toEqual([c, a, b]);
   });
 
-  it("toggleLock/toggleVisible flip flags; removeElements adjusts textureLayerZ", () => {
+  it("toggleLock/toggleVisible flip flags; removeElements adjusts patternLayerZ", () => {
     const a = addRect(0, 0);
     const b = addRect(10, 10);
     store().toggleLock(a);
@@ -103,9 +103,9 @@ describe("documentStore ordering and toggles", () => {
     expect(store().doc.elements[0].locked).toBe(true);
     expect(store().doc.elements[1].visible).toBe(false);
 
-    useDocumentStore.setState((s) => ({ doc: { ...s.doc, textureLayerZ: 2 } }));
-    store().removeElements([a]); // below the texture → tz shifts down
-    expect(store().doc.textureLayerZ).toBe(1);
+    useDocumentStore.setState((s) => ({ doc: { ...s.doc, patternLayerZ: 2 } }));
+    store().removeElements([a]); // below the pattern → tz shifts down
+    expect(store().doc.patternLayerZ).toBe(1);
     expect(store().doc.elements.map((e) => e.id)).toEqual([b]);
   });
 
@@ -115,7 +115,7 @@ describe("documentStore ordering and toggles", () => {
 });
 
 describe("documentStore folder setters", () => {
-  it("cover the one-line folder/texture/icon-default setters", () => {
+  it("cover the one-line folder/pattern/icon-default setters", () => {
     store().setBaseShape("macos");
     store().setFolderOpacity(0.5);
     store().setFolderBgImage("data:x");

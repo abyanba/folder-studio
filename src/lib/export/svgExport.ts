@@ -8,7 +8,7 @@
  * `deps`, so no canvas/network here. The browser wiring (measuring text for
  * wrap, inlining fonts) lives in `exporters.ts` / `svgFonts.ts`.
  *
- * Known gaps vs the raster export, surfaced in `skipped`: the texture layer
+ * Known gaps vs the raster export, surfaced in `skipped`: the pattern layer
  * (its source-atop-over-painted-pixels compositing has no clean SVG form) and
  * auto-trim (the SVG keeps the full workspace frame — vector output is
  * resolution-independent, so tight cropping matters less).
@@ -141,12 +141,12 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
       : "";
   const shadow = el.shadow
     ? ((): string => {
-        const id = `tsh${el.id}`;
-        defs.push(
-          `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${num(el.shadow.x)}" dy="${num(el.shadow.y)}" stdDeviation="${num(el.shadow.blur / 2)}" flood-color="${el.shadow.color}" flood-opacity="${num(el.shadow.opacity ?? 1)}"/></filter>`,
-        );
-        return ` filter="url(#${id})"`;
-      })()
+      const id = `tsh${el.id}`;
+      defs.push(
+        `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${num(el.shadow.x)}" dy="${num(el.shadow.y)}" stdDeviation="${num(el.shadow.blur / 2)}" flood-color="${el.shadow.color}" flood-opacity="${num(el.shadow.opacity ?? 1)}"/></filter>`,
+      );
+      return ` filter="url(#${id})"`;
+    })()
     : "";
 
   const tspans = layout.lines
@@ -257,7 +257,7 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
 /**
  * Compose the whole design as one vector SVG at `size`×`size` (viewBox stays the
  * workspace, so the file is resolution-independent). Returns the markup plus the
- * labels of any layers that couldn't be included (unloaded icons, texture).
+ * labels of any layers that couldn't be included (unloaded icons, pattern).
  */
 export function buildExportSvg(
   doc: FolderDocument,
@@ -276,10 +276,10 @@ export function buildExportSvg(
     else skipped.push(elementLabel(el));
   };
 
-  const tz = Math.min(doc.textureLayerZ, doc.elements.length);
+  const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) emit(doc.elements[i]);
-  if (doc.texture && doc.texture.id !== "none") {
-    skipped.push("Texture (raster export only)");
+  if (doc.pattern && doc.pattern.id !== "none") {
+    skipped.push("Pattern (raster export only)");
   }
   for (let i = tz; i < doc.elements.length; i++) emit(doc.elements[i]);
 

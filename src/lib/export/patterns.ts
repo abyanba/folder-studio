@@ -1,20 +1,20 @@
 /**
- * Texture pattern generators, ported verbatim from public/legacy.html L350-383,
+ * Pattern pattern generators, ported verbatim from public/legacy.html L350-383,
  * plus the seeded randomizer for the scatter patterns (L868-884).
  *
  * Each generator returns a small tileable SVG string that the canvas
  * orchestrator rasterizes and repeats as a pattern.
  */
 
-import type { TextureSettings } from "@/types/document";
+import type { PatternSettings } from "@/types/document";
 
-export interface TextureDef {
+export interface PatternDef {
   id: string;
   name: string;
   svg?: (color: string, bg: string) => string;
 }
 
-export const TEXTURES: TextureDef[] = [
+export const PATTERNS: PatternDef[] = [
   { id: "none", name: "None" },
   { id: "dots", name: "Polka Dots", svg: (c, b = "transparent") => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="${b}"/><circle cx="8" cy="8" r="3" fill="${c}"/></svg>` },
   { id: "dots-sm", name: "Mini Dots", svg: (c, b = "transparent") => `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="${b}"/><circle cx="4" cy="4" r="1.5" fill="${c}"/></svg>` },
@@ -54,13 +54,13 @@ export const TEXTURES: TextureDef[] = [
 export const SEEDED_IDS = ["dots", "dots-sm", "polka-lg", "rain", "confetti", "stars", "circles"];
 
 /**
- * Build the tile SVG for the given texture settings. Returns null for "none" or
- * an unknown id. When `seed` is set and the texture is a scatter pattern, a
- * deterministic randomized tile is generated (ported from `_getTextureSvg`).
+ * Build the tile SVG for the given pattern settings. Returns null for "none" or
+ * an unknown id. When `seed` is set and the pattern is a scatter pattern, a
+ * deterministic randomized tile is generated (ported from `_getPatternSvg`).
  */
-export function buildTextureSvg(settings: TextureSettings): string | null {
+export function buildPatternSvg(settings: PatternSettings): string | null {
   if (settings.id === "none") return null;
-  const def = TEXTURES.find((t) => t.id === settings.id);
+  const def = PATTERNS.find((t) => t.id === settings.id);
   if (!def || !def.svg) return null;
   const color = settings.color;
   const bg = settings.bg || "transparent";

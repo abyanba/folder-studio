@@ -1,6 +1,6 @@
 /**
  * Folder-panel behaviors (5b): base-shape defaults as one undo entry, fill
- * mode switching that preserves the uploaded image, texture selection/adjust,
+ * mode switching that preserves the uploaded image, pattern selection/adjust,
  * and the image-pan math.
  */
 
@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ShapePanel } from "@/components/panels/ShapePanel";
-import { TexturePanel } from "@/components/panels/TexturePanel";
+import { PatternPanel } from "@/components/panels/PatternPanel";
 import { ColorPanel } from "@/components/panels/ColorPanel";
 import { useDocumentStore } from "@/store/documentStore";
 import { useUiStore } from "@/store/uiStore";
@@ -191,27 +191,27 @@ describe("ColorPanel fill modes", () => {
   });
 });
 
-describe("TexturePanel", () => {
-  it("selects a texture, then opens adjust on second click", async () => {
+describe("PatternPanel", () => {
+  it("selects a pattern, then opens adjust on second click", async () => {
     const user = userEvent.setup();
-    render(<TexturePanel />);
+    render(<PatternPanel />);
 
     await user.click(screen.getByRole("button", { name: "Polka Dots" }));
-    expect(useDocumentStore.getState().doc.texture.id).toBe("dots");
+    expect(useDocumentStore.getState().doc.pattern.id).toBe("dots");
 
     await user.click(screen.getByRole("button", { name: "Polka Dots" }));
-    expect(screen.getByText("Adjust Texture")).toBeInTheDocument();
+    expect(screen.getByText("Adjust Pattern")).toBeInTheDocument();
 
-    // Scatter texture → randomize toggles a non-zero seed, reroll changes it.
+    // Scatter pattern → randomize toggles a non-zero seed, reroll changes it.
     await user.click(screen.getByRole("button", { name: /Randomize/i }));
-    const seed1 = useDocumentStore.getState().doc.texture.seed;
+    const seed1 = useDocumentStore.getState().doc.pattern.seed;
     expect(seed1).not.toBe(0);
   });
 
   it("search filters the grid", async () => {
     const user = userEvent.setup();
-    render(<TexturePanel />);
-    await user.type(screen.getByRole("textbox", { name: "Search textures" }), "zig");
+    render(<PatternPanel />);
+    await user.type(screen.getByRole("textbox", { name: "Search patterns" }), "zig");
     expect(screen.getByRole("button", { name: "Zigzag" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Polka Dots" })).toBeNull();
   });

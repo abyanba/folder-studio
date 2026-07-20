@@ -1,5 +1,5 @@
 /**
- * The editor canvas: a fixed FW×FH folder (base + interleaved texture + elements)
+ * The editor canvas: a fixed FW×FH folder (base + interleaved pattern + elements)
  * with selection chrome, marquee, and snap guides — the DOM twin of
  * `buildExportCanvas`. Drives pointer interaction through `useInteraction`, whose
  * live drag transforms are applied to both elements and selection chrome.
@@ -17,7 +17,7 @@ import { useUiStore } from "@/store/uiStore";
 import { useInteraction } from "@/hooks/useInteraction";
 import type { LiveOverride } from "@/hooks/useInteraction";
 import { FolderBase } from "./FolderBase";
-import { TextureOverlay } from "./TextureOverlay";
+import { PatternOverlay } from "./PatternOverlay";
 import { ElementView } from "./ElementView";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
@@ -48,7 +48,7 @@ export function Workspace() {
   const { state, beginMove, beginResize, beginRotate, beginMarquee } = useInteraction(wsRef);
   const { overrides, marquee, snap } = state;
 
-  const tz = Math.min(doc.textureLayerZ, doc.elements.length);
+  const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   // Pure function of the base shape — don't rebuild the mask data URL every
   // drag frame (PF-03).
   const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
@@ -70,13 +70,13 @@ export function Workspace() {
     inset: 0,
     ...(doc.clipToFolder
       ? {
-          WebkitMaskImage: `url("${maskUrl}")`,
-          maskImage: `url("${maskUrl}")`,
-          WebkitMaskSize: "100% 100%",
-          maskSize: "100% 100%",
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-        }
+        WebkitMaskImage: `url("${maskUrl}")`,
+        maskImage: `url("${maskUrl}")`,
+        WebkitMaskSize: "100% 100%",
+        maskSize: "100% 100%",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+      }
       : {}),
   };
 
@@ -92,9 +92,8 @@ export function Workspace() {
   return (
     <ElementContextMenu>
       <div
-        className={`relative flex flex-1 items-center justify-center overflow-hidden transition-colors ${
-          canvasLight ? "bg-neutral-200" : ""
-        }`}
+        className={`relative flex flex-1 items-center justify-center overflow-hidden transition-colors ${canvasLight ? "bg-neutral-200" : ""
+          }`}
         style={{ touchAction: "none" }}
         // Marquee-select spans the whole visible workspace pane, not just the
         // FW×FH canvas — a drag can start in the surrounding padding and still
@@ -114,69 +113,69 @@ export function Workspace() {
           data-ws
           style={{ position: "relative", width: FW, height: FH, touchAction: "none" }}
         >
-        <div style={contentLayerStyle}>
-          <FolderBase doc={doc} />
-          <div style={contentRect}>
-            {doc.elements.slice(0, tz).map(renderEl)}
-            {doc.texture.id !== "none" && <TextureOverlay texture={doc.texture} maskUrl={maskUrl} />}
-            {doc.elements.slice(tz).map(renderEl)}
+          <div style={contentLayerStyle}>
+            <FolderBase doc={doc} />
+            <div style={contentRect}>
+              {doc.elements.slice(0, tz).map(renderEl)}
+              {doc.pattern.id !== "none" && <PatternOverlay pattern={doc.pattern} maskUrl={maskUrl} />}
+              {doc.elements.slice(tz).map(renderEl)}
+            </div>
           </div>
-        </div>
-        <div style={{ ...contentRect, pointerEvents: "none" }}>
-          <SelectionOverlay
-            selected={selectedEls}
-            primaryId={selectedId}
-            onResizeDown={beginResize}
-            onRotateDown={beginRotate}
-          />
-          {drawToolActive && <DrawOverlay />}
-          {marquee && (
-            <div
-              style={{
-                position: "absolute",
-                left: marquee.x,
-                top: marquee.y,
-                width: marquee.width,
-                height: marquee.height,
-                border: "1.5px dashed var(--primary)",
-                background: "color-mix(in oklch, var(--primary) 8%, transparent)",
-                borderRadius: 2,
-                pointerEvents: "none",
-                zIndex: 200,
-              }}
+          <div style={{ ...contentRect, pointerEvents: "none" }}>
+            <SelectionOverlay
+              selected={selectedEls}
+              primaryId={selectedId}
+              onResizeDown={beginResize}
+              onRotateDown={beginRotate}
             />
-          )}
-          {snap.v && (
-            <div
-              style={{
-                position: "absolute",
-                left: snap.vx ?? CDW / 2,
-                top: -20,
-                width: 0,
-                height: CDH + 40,
-                borderLeft: "1px dashed var(--primary)",
-                pointerEvents: "none",
-                zIndex: 30,
-                opacity: 0.7,
-              }}
-            />
-          )}
-          {snap.h && (
-            <div
-              style={{
-                position: "absolute",
-                top: snap.hy ?? CDH / 2,
-                left: -20,
-                height: 0,
-                width: CDW + 40,
-                borderTop: "1px dashed var(--primary)",
-                pointerEvents: "none",
-                zIndex: 30,
-                opacity: 0.7,
-              }}
-            />
-          )}
-        </div>
+            {drawToolActive && <DrawOverlay />}
+            {marquee && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: marquee.x,
+                  top: marquee.y,
+                  width: marquee.width,
+                  height: marquee.height,
+                  border: "1.5px dashed var(--primary)",
+                  background: "color-mix(in oklch, var(--primary) 8%, transparent)",
+                  borderRadius: 2,
+                  pointerEvents: "none",
+                  zIndex: 200,
+                }}
+              />
+            )}
+            {snap.v && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: snap.vx ?? CDW / 2,
+                  top: -20,
+                  width: 0,
+                  height: CDH + 40,
+                  borderLeft: "1px dashed var(--primary)",
+                  pointerEvents: "none",
+                  zIndex: 30,
+                  opacity: 0.7,
+                }}
+              />
+            )}
+            {snap.h && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: snap.hy ?? CDH / 2,
+                  left: -20,
+                  height: 0,
+                  width: CDW + 40,
+                  borderTop: "1px dashed var(--primary)",
+                  pointerEvents: "none",
+                  zIndex: 30,
+                  opacity: 0.7,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     </ElementContextMenu>

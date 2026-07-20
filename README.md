@@ -2,7 +2,7 @@
 
 **Live:** https://abyanba.github.io/folder-studio/
 
-A browser-based folder icon creator. Design custom folder icons with colors, gradients, images, icons, logos, text, shapes, textures, and freehand drawings — then export as PNG, SVG, or ICO. Fully offline once loaded: icon artwork and fonts are bundled, nothing is fetched at runtime.
+A browser-based folder icon creator. Design custom folder icons with colors, gradients, images, icons, logos, text, shapes, patterns, and freehand drawings — then export as PNG, SVG, or ICO. Fully offline once loaded: icon artwork and fonts are bundled, nothing is fetched at runtime.
 
 ## Features
 
@@ -14,8 +14,8 @@ A browser-based folder icon creator. Design custom folder icons with colors, gra
 - **Text** — full typography: 20 bundled font families, size/spacing/line-height with auto-fit, stroke, shadow, gradient fill
 - **Draw** — freehand pen, line, and arc tools with Chaikin smoothing, plus an eraser
 - **Shapes** — rectangle, ellipse, triangle, star, hexagon with fill/stroke/shadow controls
-- **Texture** — 30+ pattern overlays with opacity/scale/rotation and seeded randomization
-- **Layers** — drag-to-reorder (texture layer included), visibility, lock, rename
+- **Pattern** — 30+ pattern overlays with opacity/scale/rotation and seeded randomization
+- **Layers** — drag-to-reorder (pattern layer included), visibility, lock, rename
 - **Multi-select** — marquee or shift-click, then edit shared properties at once
 - **Gallery** — save and restore design snapshots (localStorage; designs from the legacy app still load)
 - **Export** — PNG/SVG/ICO at 64–1024px, batch ZIP export of any size/format combination

@@ -1,6 +1,6 @@
 /**
  * Browser-only canvas orchestrator. Rasterizes the SVG-string builders
- * (base shape, elements, texture, clip mask) onto a real 2D canvas and applies
+ * (base shape, elements, pattern, clip mask) onto a real 2D canvas and applies
  * the auto-trim transform, then hands the finished canvas to {@link exportPng}
  * etc. Ported from public/legacy.html `buildExportCanvas` (L921-945) and
  * `_recolorCanvas` (L590-605).
@@ -35,7 +35,7 @@ import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./e
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
-import { buildTextureSvg } from "./textures";
+import { buildPatternSvg } from "./patterns";
 import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLayout";
 import { toSvgDataUrl } from "./svgDataUrl";
 import { computeTrimBounds, computeTrimTransform } from "./trim";
@@ -399,23 +399,23 @@ async function renderElement(
   ctx.restore();
 }
 
-/** Composite the texture pattern over the current canvas, clipped to content. */
-async function renderTexture(
+/** Composite the pattern pattern over the current canvas, clipped to content. */
+async function renderPattern(
   ctx: CanvasRenderingContext2D,
   doc: FolderDocument,
   size: number,
   loadImage: ImageLoader,
   createCanvas: CanvasFactory,
 ): Promise<void> {
-  const texSvg = buildTextureSvg(doc.texture);
+  const texSvg = buildPatternSvg(doc.pattern);
   if (!texSvg) return;
   const tImg = await loadImage(toSvgDataUrl(texSvg));
   if (!tImg) return;
   const exportScale = size / FW;
   const nW = tImg.naturalWidth || 10;
   const nH = tImg.naturalHeight || 10;
-  const tileW = Math.max(1, Math.round(nW * doc.texture.scale * exportScale));
-  const tileH = Math.max(1, Math.round(nH * doc.texture.scale * exportScale));
+  const tileW = Math.max(1, Math.round(nW * doc.pattern.scale * exportScale));
+  const tileH = Math.max(1, Math.round(nH * doc.pattern.scale * exportScale));
   const tile = createCanvas(tileW, tileH);
   const tctx = tile.getContext("2d");
   if (!tctx) return;
@@ -425,11 +425,11 @@ async function renderTexture(
   if (!pattern) return;
   ctx.save();
   ctx.globalCompositeOperation = "source-atop";
-  ctx.globalAlpha = doc.texture.opacity;
+  ctx.globalAlpha = doc.pattern.opacity;
   ctx.fillStyle = pattern;
-  const rot = doc.texture.rotation || 0;
+  const rot = doc.pattern.rotation || 0;
   if (rot) {
-    // Match the editor's TextureOverlay: the tiled pattern rotates about the
+    // Match the editor's PatternOverlay: the tiled pattern rotates about the
     // folder center, with enough overdraw (its 220% layer) to keep the rotated
     // tiling covering every corner of the canvas.
     ctx.translate(size / 2, size / 2);
@@ -444,7 +444,7 @@ async function renderTexture(
 
 /**
  * Render `doc` to a `size`×`size` canvas: base recolor, elements below the
- * texture layer, texture, elements above it, optional clip-to-folder mask, and
+ * pattern layer, pattern, elements above it, optional clip-to-folder mask, and
  * the auto-trim pass. Returns the finished canvas (a fresh trimmed one when the
  * content needed recentering) plus the labels of any layers whose image/body
  * couldn't be loaded (EXP-12/13 surfacing plumbing).
@@ -467,14 +467,14 @@ export async function buildExportCanvas(
   const ctx = canvas.getContext("2d");
   if (!ctx) return { canvas, skipped };
 
-  const tz = Math.min(doc.textureLayerZ, doc.elements.length);
+  const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
     await renderElement(ctx, el, size, deps, loadImage, skipped);
   }
 
-  await renderTexture(ctx, doc, size, loadImage, createCanvas);
+  await renderPattern(ctx, doc, size, loadImage, createCanvas);
 
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];

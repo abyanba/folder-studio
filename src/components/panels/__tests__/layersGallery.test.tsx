@@ -1,5 +1,5 @@
 /**
- * 5e behaviors: layer-order application incl. the texture pseudo-row,
+ * 5e behaviors: layer-order application incl. the pattern pseudo-row,
  * legacy gallery-snapshot migration, gallery persistence, and undoable
  * multi-select editing.
  */
@@ -33,31 +33,31 @@ describe("applyLayerOrder", () => {
     const b = s.addShape("ellipse");
     const c = s.addShape("star");
     useDocumentStore.setState((st) => ({
-      doc: { ...st.doc, texture: { ...st.doc.texture, id: "dots" }, textureLayerZ: 1 },
+      doc: { ...st.doc, pattern: { ...st.doc.pattern, id: "dots" }, patternLayerZ: 1 },
     }));
     return [a, b, c]; // bottom → top
   }
 
-  it("derives element order and textureLayerZ from top-first keys", () => {
+  it("derives element order and patternLayerZ from top-first keys", () => {
     const [a, b, c] = seed();
-    // Current display (top-first): c, b, __texture__, a  (tz=1 → one below).
-    // Move the texture to the very top.
-    useDocumentStore.getState().applyLayerOrder(["__texture__", c, b, a]);
+    // Current display (top-first): c, b, __pattern__, a  (tz=1 → one below).
+    // Move the pattern to the very top.
+    useDocumentStore.getState().applyLayerOrder(["__pattern__", c, b, a]);
     let doc = useDocumentStore.getState().doc;
-    expect(doc.textureLayerZ).toBe(3);
+    expect(doc.patternLayerZ).toBe(3);
     expect(doc.elements.map((e) => e.id)).toEqual([a, b, c]);
 
-    // Move element c below everything, texture to the bottom.
-    useDocumentStore.getState().applyLayerOrder([b, a, c, "__texture__"]);
+    // Move element c below everything, pattern to the bottom.
+    useDocumentStore.getState().applyLayerOrder([b, a, c, "__pattern__"]);
     doc = useDocumentStore.getState().doc;
-    expect(doc.textureLayerZ).toBe(0);
+    expect(doc.patternLayerZ).toBe(0);
     expect(doc.elements.map((e) => e.id)).toEqual([c, a, b]);
   });
 
   it("is one undo entry and ignores incomplete key sets", () => {
     const [a, b, c] = seed();
     const baseline = temporal().pastStates.length;
-    useDocumentStore.getState().applyLayerOrder([a, b, c, "__texture__"]);
+    useDocumentStore.getState().applyLayerOrder([a, b, c, "__pattern__"]);
     expect(temporal().pastStates.length).toBe(baseline + 1);
 
     const before = useDocumentStore.getState().doc.elements.map((e) => e.id);
@@ -65,7 +65,7 @@ describe("applyLayerOrder", () => {
     expect(useDocumentStore.getState().doc.elements.map((e) => e.id)).toEqual(before);
   });
 
-  it("renders rows top-first with the texture pseudo-row", () => {
+  it("renders rows top-first with the pattern pseudo-row", () => {
     const [a, , c] = seed();
     render(<LayersPanel />);
     const labels = screen.getAllByText(/Shape \d|Polka Dots/).map((n) => n.textContent);
@@ -131,10 +131,12 @@ describe("normalizeLegacySnapshot", () => {
         height: 80,
         rotation: 15,
         opacity: 0.9,
-        fillColor: { _g: true, type: "linear", angle: 90, stops: [
-          { id: 0, pos: 0, hue: 10, sat: 1, bri: 1 },
-          { id: 1, pos: 1, hue: 50, sat: 1, bri: 1 },
-        ] },
+        fillColor: {
+          _g: true, type: "linear", angle: 90, stops: [
+            { id: 0, pos: 0, hue: 10, sat: 1, bri: 1 },
+            { id: 1, pos: 1, hue: 50, sat: 1, bri: 1 },
+          ]
+        },
         fillEnabled: true,
         strokeColor: "#112233",
         strokeEnabled: true,
@@ -160,13 +162,15 @@ describe("normalizeLegacySnapshot", () => {
     ],
     iconStroke: 1.5,
     iconColor: "#ffcc00",
+    // Legacy on-disk format spells these `texture*` — the migration reads that
+    // spelling for pre-rename snapshots (see legacySnapshot.ts).
     texture: "dots",
     textureOpacity: 0.5,
     textureScale: 2,
     textureColor: "#000000",
   };
 
-  it("migrates folder fill, texture, and elements into the typed document", () => {
+  it("migrates folder fill, pattern, and elements into the typed document", () => {
     const doc = normalizeLegacySnapshot(legacySnap);
     expect(doc.baseShape).toBe("windows");
     expect(isGradient(doc.folderColor)).toBe(true);
@@ -174,9 +178,9 @@ describe("normalizeLegacySnapshot", () => {
     expect(g.kind).toBe("radial");
     expect(g.stops.map((s) => s.id)).toEqual(["0", "1"]);
 
-    expect(doc.texture.id).toBe("dots");
-    expect(doc.texture.opacity).toBe(0.5);
-    expect(doc.texture.scale).toBe(2);
+    expect(doc.pattern.id).toBe("dots");
+    expect(doc.pattern.opacity).toBe(0.5);
+    expect(doc.pattern.scale).toBe(2);
 
     expect(doc.elements).toHaveLength(2);
     const shape = doc.elements[0] as ShapeElement;

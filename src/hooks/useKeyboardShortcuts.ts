@@ -72,7 +72,7 @@ export function useKeyboardShortcuts(): void {
       // consumed this key — don't double-handle it.
       if (e.defaultPrevented) return;
 
-      // `/` jumps focus to the active panel's search box (Icons/Logos/Textures).
+      // `/` jumps focus to the active panel's search box (Icons/Logos/Patterns).
       if (e.key === "/") {
         const search = document.querySelector<HTMLInputElement>("[data-panel-search]");
         // Only intercept when a search box is actually on screen; otherwise let

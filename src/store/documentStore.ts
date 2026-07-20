@@ -32,7 +32,7 @@ import type {
   IconDefaults,
   MacColorProfile,
   MacGradientAlgo,
-  TextureSettings,
+  PatternSettings,
   WindowsColorProfile,
   WindowsGradientAlgo,
   WindowsImageMode,
@@ -73,7 +73,7 @@ export interface DocumentStore {
   addIcon: (input: CreateIconInput) => string;
   /** `label` is "Drawing" | "Line" | "Arc"; numbering counts existing draws. */
   addDrawElement: (input: CreateDrawInput, label?: string) => string;
-  /** Remove every draw element and clamp textureLayerZ (legacy Clear All). */
+  /** Remove every draw element and clamp patternLayerZ (legacy Clear All). */
   clearDrawings: () => void;
   updateElement: (id: string, patch: Partial<FolderElement>) => void;
   /**
@@ -92,8 +92,8 @@ export interface DocumentStore {
   reorder: (fromId: string, toId: string) => void;
   /**
    * Apply a full layer order from the layers panel, given TOP-FIRST keys
-   * (element ids plus the `"__texture__"` pseudo-row). Derives both the new
-   * element order and `textureLayerZ` in one undo entry.
+   * (element ids plus the `"__pattern__"` pseudo-row). Derives both the new
+   * element order and `patternLayerZ` in one undo entry.
    */
   applyLayerOrder: (keysTopFirst: string[]) => void;
 
@@ -105,7 +105,7 @@ export interface DocumentStore {
   toggleLock: (id: string) => void;
   toggleVisible: (id: string) => void;
 
-  // Folder / texture setters
+  // Folder / pattern setters
   setFolderColor: (color: ColorValue) => void;
   setBaseShape: (baseShape: string) => void;
   /**
@@ -155,7 +155,7 @@ export interface DocumentStore {
   setMacImageMode: (mode: WindowsImageMode) => void;
   /** Pick how an image fill maps onto the Windows folder (full vs front-only). */
   setWindowsImageMode: (mode: WindowsImageMode) => void;
-  setTexture: (patch: Partial<TextureSettings>) => void;
+  setPattern: (patch: Partial<PatternSettings>) => void;
   setIconDefaults: (patch: Partial<IconDefaults>) => void;
 
   // Whole-document
@@ -250,7 +250,7 @@ export const useDocumentStore = create<DocumentStore>()(
 
       clearDrawings: () =>
         set((s) => {
-          let tz = s.doc.textureLayerZ;
+          let tz = s.doc.patternLayerZ;
           s.doc.elements.forEach((e, idx) => {
             if (e.type === "draw" && idx < tz) tz -= 1;
           });
@@ -259,7 +259,7 @@ export const useDocumentStore = create<DocumentStore>()(
             doc: {
               ...s.doc,
               elements,
-              textureLayerZ: Math.max(0, Math.min(elements.length, tz)),
+              patternLayerZ: Math.max(0, Math.min(elements.length, tz)),
             },
           };
         }),
@@ -282,13 +282,13 @@ export const useDocumentStore = create<DocumentStore>()(
       removeElements: (ids) =>
         set((s) => {
           const removing = new Set(ids);
-          let tz = s.doc.textureLayerZ;
+          let tz = s.doc.patternLayerZ;
           s.doc.elements.forEach((e, idx) => {
             if (removing.has(e.id) && idx < tz) tz -= 1;
           });
           const elements = s.doc.elements.filter((e) => !removing.has(e.id));
           tz = Math.max(0, Math.min(elements.length, tz));
-          return { doc: { ...s.doc, elements, textureLayerZ: tz } };
+          return { doc: { ...s.doc, elements, patternLayerZ: tz } };
         }),
 
       duplicateElement: (id) => {
@@ -349,20 +349,20 @@ export const useDocumentStore = create<DocumentStore>()(
 
       applyLayerOrder: (keysTopFirst) =>
         set((s) => {
-          const texIdx = keysTopFirst.indexOf("__texture__");
-          const elKeys = keysTopFirst.filter((k) => k !== "__texture__");
+          const texIdx = keysTopFirst.indexOf("__pattern__");
+          const elKeys = keysTopFirst.filter((k) => k !== "__pattern__");
           const byId = new Map(s.doc.elements.map((e) => [e.id, e]));
           const bottomFirst = [...elKeys]
             .reverse()
             .map((k) => byId.get(k))
             .filter((e): e is FolderElement => Boolean(e));
           if (bottomFirst.length !== s.doc.elements.length) return s;
-          // texIdx keys sit above the texture → tz = N - texIdx elements below.
+          // texIdx keys sit above the pattern → tz = N - texIdx elements below.
           const tz =
             texIdx === -1
-              ? Math.min(s.doc.textureLayerZ, bottomFirst.length)
+              ? Math.min(s.doc.patternLayerZ, bottomFirst.length)
               : bottomFirst.length - texIdx;
-          return { doc: { ...s.doc, elements: bottomFirst, textureLayerZ: tz } };
+          return { doc: { ...s.doc, elements: bottomFirst, patternLayerZ: tz } };
         }),
 
       align: (ids, dir) =>
@@ -484,7 +484,7 @@ export const useDocumentStore = create<DocumentStore>()(
         set((s) => ({ doc: { ...s.doc, windowsColorProfile: profile } })),
       setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),
       setWindowsImageMode: (mode) => set((s) => ({ doc: { ...s.doc, windowsImageMode: mode } })),
-      setTexture: (patch) => set((s) => ({ doc: { ...s.doc, texture: { ...s.doc.texture, ...patch } } })),
+      setPattern: (patch) => set((s) => ({ doc: { ...s.doc, pattern: { ...s.doc.pattern, ...patch } } })),
       setIconDefaults: (patch) =>
         set((s) => ({ doc: { ...s.doc, iconDefaults: { ...s.doc.iconDefaults, ...patch } } })),
 

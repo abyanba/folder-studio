@@ -31,7 +31,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   shapes: Shapes,
   text: Type,
   draw: Pencil,
-  texture: Grid3x3,
+  pattern: Grid3x3,
   layers: Layers,
   gallery: Images,
 };

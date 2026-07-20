@@ -1,7 +1,7 @@
 /**
  * Draw-tool interaction (5d): freehand stroke → one element/one undo entry,
  * eraser gesture → one undo entry, line anchors + Enter/commit, Escape
- * semantics, and clearDrawings' textureLayerZ clamp.
+ * semantics, and clearDrawings' patternLayerZ clamp.
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -118,18 +118,18 @@ describe("line tool", () => {
 });
 
 describe("escape + clear", () => {
-  it("clearDrawings removes draws and clamps textureLayerZ", () => {
+  it("clearDrawings removes draws and clamps patternLayerZ", () => {
     const s = useDocumentStore.getState();
     s.addDrawElement({ x: 0, y: 0, width: 10, height: 10, origWidth: 10, origHeight: 10, svgPath: "M 0 0 L 1 1", strokeColor: "#fff", strokeSize: 2 });
     s.addShape("rect");
     s.addDrawElement({ x: 0, y: 0, width: 10, height: 10, origWidth: 10, origHeight: 10, svgPath: "M 0 0 L 1 1", strokeColor: "#fff", strokeSize: 2 });
-    // texture above all three elements
-    useDocumentStore.setState((st) => ({ doc: { ...st.doc, textureLayerZ: 3 } }));
+    // pattern above all three elements
+    useDocumentStore.setState((st) => ({ doc: { ...st.doc, patternLayerZ: 3 } }));
 
     useDocumentStore.getState().clearDrawings();
     const doc = useDocumentStore.getState().doc;
     expect(doc.elements).toHaveLength(1);
     expect(doc.elements[0].type).toBe("shape");
-    expect(doc.textureLayerZ).toBe(1);
+    expect(doc.patternLayerZ).toBe(1);
   });
 });

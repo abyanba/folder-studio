@@ -122,10 +122,10 @@ function normalizeElement(e: Legacy, index: number): FolderElement | null {
       stroke:
         Number(e.strokeWidth) > 0
           ? {
-              color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
-              width: Number(e.strokeWidth),
-              position: e.strokePosition ?? "outside",
-            }
+            color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
+            width: Number(e.strokeWidth),
+            position: e.strokePosition ?? "outside",
+          }
           : undefined,
       shadow: normalizeShadow(e.shadow),
     };
@@ -141,10 +141,10 @@ function normalizeElement(e: Legacy, index: number): FolderElement | null {
       blendMode: e.blendMode ?? undefined,
       stroke: e.strokeEnabled
         ? {
-            color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
-            enabled: true,
-            width: Number(e.strokeWidth) || 2,
-          }
+          color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
+          enabled: true,
+          width: Number(e.strokeWidth) || 2,
+        }
         : undefined,
       dropShadow: normalizeShadow(e.dropShadow),
     };
@@ -195,12 +195,15 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
 
   if (isNewFormat(sn)) {
     const snap = sn as Partial<FolderDocument>;
-    // Deep-merge nested objects so a future field added to `texture`/`iconDefaults`
+    // Deep-merge nested objects so a future field added to `pattern`/`iconDefaults`
     // loads its default instead of `undefined` on an older snapshot (ST-08).
+    // `pattern` was called `texture` on disk before the rename — snapshots saved
+    // then are still in users' galleries, so both spellings are read.
     const merged: FolderDocument = {
       ...doc,
       ...snap,
-      texture: { ...doc.texture, ...snap.texture },
+      pattern: { ...doc.pattern, ...sn.texture, ...snap.pattern },
+      patternLayerZ: Number(snap.patternLayerZ ?? sn.textureLayerZ ?? 0),
       iconDefaults: { ...doc.iconDefaults, ...snap.iconDefaults },
       v: doc.v,
     };
@@ -230,8 +233,9 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
     );
   }
 
-  doc.texture = {
-    ...doc.texture,
+  doc.pattern = {
+    ...doc.pattern,
+    // Pre-rename legacy snapshots spell these `texture*`.
     id: typeof sn.texture === "string" ? sn.texture : "none",
     opacity: Number(sn.textureOpacity ?? 0.35),
     scale: Number(sn.textureScale ?? 1),
@@ -246,8 +250,8 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
   doc.elements = rawElements
     .map((e, i) => normalizeElement(e, i))
     .filter((e): e is FolderElement => e !== null);
-  // Legacy snapshots don't persist textureLayerZ; default to texture-below-all.
-  doc.textureLayerZ = 0;
+  // Legacy snapshots don't persist patternLayerZ; default to pattern-below-all.
+  doc.patternLayerZ = 0;
 
   reseedIds(maxIdSuffix(doc.elements.map((e) => e.id)));
   return doc;

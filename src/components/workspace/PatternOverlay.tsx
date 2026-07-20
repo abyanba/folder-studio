@@ -1,15 +1,15 @@
 /**
- * The texture pattern layer, masked to the folder silhouette. Sits within the
- * content-rect stack at the texture's z-position (interleaved by DOM order in
- * `Workspace`). Reuses the Phase-3 `buildTextureSvg`. Ported from public/legacy.html
+ * The pattern pattern layer, masked to the folder silhouette. Sits within the
+ * content-rect stack at the pattern's z-position (interleaved by DOM order in
+ * `Workspace`). Reuses the Phase-3 `buildPatternSvg`. Ported from public/legacy.html
  * L1144/L1241.
  */
 
 import { memo } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY } from "@/lib/constants";
-import type { TextureSettings } from "@/types/document";
-import { buildTextureSvg } from "@/lib/export/textures";
+import type { PatternSettings } from "@/types/document";
+import { buildPatternSvg } from "@/lib/export/patterns";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 
 function parseAttr(svg: string, attr: string): number {
@@ -17,14 +17,14 @@ function parseAttr(svg: string, attr: string): number {
   return m ? parseFloat(m[1]) : 10;
 }
 
-function TextureOverlayImpl({
-  texture,
+function PatternOverlayImpl({
+  pattern,
   maskUrl,
 }: {
-  texture: TextureSettings;
+  pattern: PatternSettings;
   maskUrl: string;
 }) {
-  const svg = buildTextureSvg(texture);
+  const svg = buildPatternSvg(pattern);
   if (!svg) return null;
   const tileUrl = toSvgDataUrl(svg);
   const tnw = parseAttr(svg, "width");
@@ -42,7 +42,7 @@ function TextureOverlayImpl({
     maskSize: "100% 100%",
     WebkitMaskRepeat: "no-repeat",
     maskRepeat: "no-repeat",
-    opacity: texture.opacity,
+    opacity: pattern.opacity,
     overflow: "hidden",
     pointerEvents: "none",
   };
@@ -53,8 +53,8 @@ function TextureOverlayImpl({
     width: "220%",
     height: "220%",
     backgroundImage: `url("${tileUrl}")`,
-    backgroundSize: `${tnw * texture.scale}px ${tnh * texture.scale}px`,
-    transform: texture.rotation ? `rotate(${texture.rotation}deg)` : undefined,
+    backgroundSize: `${tnw * pattern.scale}px ${tnh * pattern.scale}px`,
+    transform: pattern.rotation ? `rotate(${pattern.rotation}deg)` : undefined,
     transformOrigin: "center",
   };
   return (
@@ -64,7 +64,7 @@ function TextureOverlayImpl({
   );
 }
 
-// Memoized on (texture, maskUrl) so it doesn't rebuild the tile SVG + regex-parse
-// it on every unrelated drag frame (PF-03); the texture object identity is stable
-// unless the texture actually changes.
-export const TextureOverlay = memo(TextureOverlayImpl);
+// Memoized on (pattern, maskUrl) so it doesn't rebuild the tile SVG + regex-parse
+// it on every unrelated drag frame (PF-03); the pattern object identity is stable
+// unless the pattern actually changes.
+export const PatternOverlay = memo(PatternOverlayImpl);

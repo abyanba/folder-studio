@@ -2,7 +2,7 @@
  * Dev-only harness for the Phase-3 canvas/export engine. Reached at
  * `?harness=export` (wired in main.tsx). jsdom can't rasterize SVG, so this is
  * how the orchestrator is verified — in a real browser (Chrome MCP): it builds a
- * sample document exercising every element type + base shape + texture + clip,
+ * sample document exercising every element type + base shape + pattern + clip,
  * renders it via `buildExportCanvas`, and offers PNG/SVG/ICO/ZIP downloads.
  *
  * Icon bodies are stubbed inline (no Iconify network dependency — that's Phase 6).
@@ -79,7 +79,7 @@ export function ExportHarness() {
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>Export Harness</h1>
       <p style={{ opacity: 0.7, marginBottom: 16 }}>
         Phase-3 canvas/export verification. Every element type, gradient base shape,
-        seeded texture, and clip-to-folder are exercised below.
+        seeded pattern, and clip-to-folder are exercised below.
       </p>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>

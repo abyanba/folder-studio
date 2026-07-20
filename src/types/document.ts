@@ -12,7 +12,7 @@ import type { ColorValue } from "./gradient";
 import type { FolderElement } from "./element";
 
 export type BaseShapeId = string;
-export type TextureId = string;
+export type PatternId = string;
 
 /**
  * Color profile for a *gradient*-filled Windows folder — how the tab/back and
@@ -77,15 +77,15 @@ export const DEFAULT_WINDOWS_IMAGE_MODE: WindowsImageMode = "full";
 export type FolderState = "empty" | "contents";
 export const DEFAULT_FOLDER_STATE: FolderState = "empty";
 
-export interface TextureSettings {
-  id: TextureId;
+export interface PatternSettings {
+  id: PatternId;
   opacity: number;
   scale: number;
   rotation: number;
   color: string;
   /** `"transparent"` or a hex string. */
   bg: string;
-  /** Deterministic seed for randomized textures (dots, confetti, …). */
+  /** Deterministic seed for randomized patterns (dots, confetti, …). */
   seed: number;
 }
 
@@ -152,14 +152,14 @@ export interface FolderDocument {
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
   macImageMode: WindowsImageMode;
-  texture: TextureSettings;
+  pattern: PatternSettings;
   iconDefaults: IconDefaults;
   elements: FolderElement[];
   /**
-   * Z-position of the texture layer within `elements`, counted from the top.
+   * Z-position of the pattern layer within `elements`, counted from the top.
    * Kept in sync when elements are added/removed/reordered.
    */
-  textureLayerZ: number;
+  patternLayerZ: number;
 }
 
 export const DOCUMENT_VERSION = 2;
@@ -187,7 +187,7 @@ export function createEmptyDocument(): FolderDocument {
     windowsColorProfile: DEFAULT_WINDOWS_COLOR_PROFILE,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
-    texture: {
+    pattern: {
       id: "none",
       opacity: 0.35,
       scale: 1,
@@ -198,7 +198,7 @@ export function createEmptyDocument(): FolderDocument {
     },
     iconDefaults: { stroke: 1.5, color: "#ffffff" },
     elements: [],
-    textureLayerZ: 0,
+    patternLayerZ: 0,
   };
 }
 

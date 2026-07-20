@@ -1,7 +1,7 @@
 /**
- * Layers panel: top-first list of elements with the texture as a pseudo-row,
+ * Layers panel: top-first list of elements with the pattern as a pseudo-row,
  * drag-sortable via the DiceUI/dnd-kit Sortable. Dropping applies the whole
- * order (elements + textureLayerZ) as one undo entry through
+ * order (elements + patternLayerZ) as one undo entry through
  * `applyLayerOrder`. Rows support click/ctrl/shift selection, double-click
  * rename, visibility/lock toggles, and delete — ported from the legacy layers
  * panel (public/legacy.html L1710-1813).
@@ -28,7 +28,7 @@ import { MultiSelectControls, useHasMultiSelection } from "./MultiSelectControls
 import { buildDrawSvg, buildShapeSvg } from "@/lib/export/elementSvg";
 import { getIconBody, useIconCacheVersion } from "@/lib/iconify";
 import { getHex } from "@/lib/color";
-import { TEXTURES } from "@/lib/export/textures";
+import { PATTERNS } from "@/lib/export/patterns";
 import { isGradient } from "@/types/gradient";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
@@ -37,7 +37,7 @@ import type { FolderElement } from "@/types/element";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
 
-const TEXTURE_KEY = "__texture__";
+const PATTERN_KEY = "__pattern__";
 
 /** Plural label for the "Select all of type" action, per element type. */
 const TYPE_PLURAL: Record<FolderElement["type"], string> = {
@@ -117,7 +117,7 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
       return;
     }
     if (e.shiftKey && sel.selectedId) {
-      const keys = displayKeys.filter((k) => k !== TEXTURE_KEY);
+      const keys = displayKeys.filter((k) => k !== PATTERN_KEY);
       const a = keys.indexOf(sel.selectedId);
       const b = keys.indexOf(el.id);
       if (a !== -1 && b !== -1) {
@@ -139,92 +139,92 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-    <div
-      className={cn(
-        "group flex h-9 items-center gap-1.5 rounded-md border px-1.5 text-xs transition-colors",
-        selected
-          ? "border-primary/60 bg-primary/10"
-          : "border-transparent bg-muted/30 hover:bg-muted/60",
-      )}
-      onClick={onRowClick}
-    >
-      <SortableItemHandle
-        className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground"
-        aria-label={`Reorder ${getElementLabel(el)}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="size-3.5" />
-      </SortableItemHandle>
-      <LayerThumb el={el} />
-      {editing ? (
-        <Input
-          autoFocus
-          value={draft}
-          className="h-6 flex-1 px-1 text-xs"
-          aria-label="Layer name"
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitRename}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commitRename();
-            else if (e.key === "Escape") {
-              setDraft(el.name);
-              useUiStore.getState().setEditingLayerName(null);
-            }
-          }}
-        />
-      ) : (
-        <span
-          className={cn("min-w-0 flex-1 truncate", el.visible === false && "opacity-50")}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            setDraft(el.name);
-            useUiStore.getState().setEditingLayerName(el.id);
-          }}
+        <div
+          className={cn(
+            "group flex h-9 items-center gap-1.5 rounded-md border px-1.5 text-xs transition-colors",
+            selected
+              ? "border-primary/60 bg-primary/10"
+              : "border-transparent bg-muted/30 hover:bg-muted/60",
+          )}
+          onClick={onRowClick}
         >
-          {getElementLabel(el)}
-        </span>
-      )}
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 data-show:opacity-100" data-show={selected || el.locked || el.visible === false || undefined}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6"
-          aria-label={el.visible === false ? "Show layer" : "Hide layer"}
-          onClick={(e) => {
-            e.stopPropagation();
-            useDocumentStore.getState().toggleVisible(el.id);
-          }}
-        >
-          {el.visible === false ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6"
-          aria-label={el.locked ? "Unlock layer" : "Lock layer"}
-          onClick={(e) => {
-            e.stopPropagation();
-            useDocumentStore.getState().toggleLock(el.id);
-          }}
-        >
-          {el.locked ? <Lock className="size-3" /> : <LockOpen className="size-3" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6 text-destructive"
-          aria-label={`Delete ${getElementLabel(el)}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            useDocumentStore.getState().removeElements([el.id]);
-            useSelectionStore.getState().clear();
-          }}
-        >
-          <Trash2 className="size-3" />
-        </Button>
-      </div>
-    </div>
+          <SortableItemHandle
+            className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground"
+            aria-label={`Reorder ${getElementLabel(el)}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="size-3.5" />
+          </SortableItemHandle>
+          <LayerThumb el={el} />
+          {editing ? (
+            <Input
+              autoFocus
+              value={draft}
+              className="h-6 flex-1 px-1 text-xs"
+              aria-label="Layer name"
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                else if (e.key === "Escape") {
+                  setDraft(el.name);
+                  useUiStore.getState().setEditingLayerName(null);
+                }
+              }}
+            />
+          ) : (
+            <span
+              className={cn("min-w-0 flex-1 truncate", el.visible === false && "opacity-50")}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setDraft(el.name);
+                useUiStore.getState().setEditingLayerName(el.id);
+              }}
+            >
+              {getElementLabel(el)}
+            </span>
+          )}
+          <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 data-show:opacity-100" data-show={selected || el.locked || el.visible === false || undefined}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label={el.visible === false ? "Show layer" : "Hide layer"}
+              onClick={(e) => {
+                e.stopPropagation();
+                useDocumentStore.getState().toggleVisible(el.id);
+              }}
+            >
+              {el.visible === false ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              aria-label={el.locked ? "Unlock layer" : "Lock layer"}
+              onClick={(e) => {
+                e.stopPropagation();
+                useDocumentStore.getState().toggleLock(el.id);
+              }}
+            >
+              {el.locked ? <Lock className="size-3" /> : <LockOpen className="size-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 text-destructive"
+              aria-label={`Delete ${getElementLabel(el)}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                useDocumentStore.getState().removeElements([el.id]);
+                useSelectionStore.getState().clear();
+              }}
+            >
+              <Trash2 className="size-3" />
+            </Button>
+          </div>
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <ContextMenuItem
@@ -239,17 +239,17 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
   );
 }
 
-function TextureRow({ textureId }: { textureId: string }) {
+function PatternRow({ patternId }: { patternId: string }) {
   const setActivePanel = useUiStore((s) => s.setActivePanel);
-  const name = TEXTURES.find((t) => t.id === textureId)?.name ?? textureId;
+  const name = PATTERNS.find((t) => t.id === patternId)?.name ?? patternId;
   return (
     <div
       className="group flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-border/60 bg-muted/20 px-1.5 text-xs hover:bg-muted/50"
-      onClick={() => setActivePanel("texture")}
+      onClick={() => setActivePanel("pattern")}
     >
       <SortableItemHandle
         className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground"
-        aria-label="Reorder texture layer"
+        aria-label="Reorder pattern layer"
         onClick={(e) => e.stopPropagation()}
       >
         <GripVertical className="size-3.5" />
@@ -269,11 +269,11 @@ export function LayersPanel() {
   const selectedCount = useSelectionStore((s) => s.selectedIds.length);
   const [groupOpen, setGroupOpen] = useState(true);
 
-  const hasTexture = doc.texture.id !== "none";
-  const tz = Math.min(doc.textureLayerZ, doc.elements.length);
+  const hasPattern = doc.pattern.id !== "none";
+  const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   const topFirst = [...doc.elements].reverse();
   const keys: string[] = topFirst.map((e) => e.id);
-  if (hasTexture) keys.splice(doc.elements.length - tz, 0, TEXTURE_KEY);
+  if (hasPattern) keys.splice(doc.elements.length - tz, 0, PATTERN_KEY);
   const byId = new Map(doc.elements.map((e) => [e.id, e]));
 
   return (
@@ -293,8 +293,8 @@ export function LayersPanel() {
             <SortableContent className="flex flex-col gap-1">
               {keys.map((key) => (
                 <SortableItem key={key} value={key}>
-                  {key === TEXTURE_KEY ? (
-                    <TextureRow textureId={doc.texture.id} />
+                  {key === PATTERN_KEY ? (
+                    <PatternRow patternId={doc.pattern.id} />
                   ) : (
                     <ElementRow el={byId.get(key)!} displayKeys={keys} />
                   )}
