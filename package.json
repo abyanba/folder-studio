@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:icons": "tsx scripts/generateIconAssets.ts",
+    "generate:patterns": "tsx scripts/generatePatternAssets.ts",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
