@@ -91,6 +91,8 @@ export interface TextElement extends BaseElement {
   letterSpacing: number;
   lineHeight: number;
   underline: boolean;
+  /** Clip glyphs to the element box. Default (absent/false) lets them overflow. */
+  clip?: boolean;
   stroke?: { color: string; width: number; position: StrokePosition };
   shadow?: DropShadow;
 }

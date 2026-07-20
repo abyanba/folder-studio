@@ -161,9 +161,17 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
     ` font-style="${el.fontStyle}" letter-spacing="${num(el.letterSpacing || 0)}"` +
     (el.underline ? ` text-decoration="underline"` : "");
 
-  const inner = `<text text-anchor="${anchor}" dominant-baseline="central" fill="${fill}"${strokeAttrs}${shadow} ${styleAttrs}>${tspans}</text>`;
-  // No clip: the box is a transform/selection frame, so text overflows it freely
-  // — matching the editor's `overflow: visible` and the canvas export.
+  let inner = `<text text-anchor="${anchor}" dominant-baseline="central" fill="${fill}"${strokeAttrs}${shadow} ${styleAttrs}>${tspans}</text>`;
+  // The box is a transform/selection frame, so text overflows it freely unless
+  // `clip` is on — matching the editor's `overflow` and the canvas export. The
+  // clip rect is in the wrap group's local (box-centered) space.
+  if (el.clip) {
+    const id = `tc${el.id}`;
+    defs.push(
+      `<clipPath id="${id}"><rect x="${num(-ew / 2)}" y="${num(-eh / 2)}" width="${num(ew)}" height="${num(eh)}"/></clipPath>`,
+    );
+    inner = `<g clip-path="url(#${id})">${inner}</g>`;
+  }
   return wrap(el, ew, eh, inner);
 }
 

@@ -195,9 +195,14 @@ function renderText(
   const fontSizePx = el.fontSize * sx;
   ctx.font = `${el.fontStyle === "italic" ? "italic " : ""}${el.fontWeight} ${fontSizePx}px "${el.fontFamily}"`;
 
-  // No clip: the box is a transform/selection frame, so text overflows it
-  // freely — matching the editor and the SVG export.
+  // The box is a transform/selection frame, so text overflows it freely unless
+  // `clip` is on — matching the editor's `overflow` and the SVG export.
   ctx.save();
+  if (el.clip) {
+    ctx.beginPath();
+    ctx.rect(-ew / 2, -eh / 2, ew, eh);
+    ctx.clip();
+  }
 
   const sortedStops = isGradient(el.color)
     ? [...el.color.stops].sort((a, b) => a.pos - b.pos)

@@ -164,6 +164,22 @@ describe("buildExportSvg", () => {
     expect(svg).toContain("a &amp; b &lt; c");
   });
 
+  it("lets text overflow its box by default, and clips it when `clip` is on", () => {
+    const doc = createEmptyDocument();
+    const t = createTextElement("T");
+    doc.elements = [t];
+    expect(buildExportSvg(doc, 256, noIcon).svg).not.toContain(`clip-path="url(#tc${t.id})"`);
+
+    t.clip = true;
+    const { svg } = buildExportSvg(doc, 256, noIcon);
+    expect(svg).toContain(`<clipPath id="tc${t.id}">`);
+    expect(svg).toContain(`clip-path="url(#tc${t.id})"`);
+    // Box-centered, matching the wrap group's local space.
+    expect(svg).toContain(
+      `<rect x="${-t.width / 2}" y="${-t.height / 2}" width="${t.width}" height="${t.height}"/>`,
+    );
+  });
+
   it("emits a folder mask when clip-to-folder is on", () => {
     const doc = createEmptyDocument();
     doc.clipToFolder = true;

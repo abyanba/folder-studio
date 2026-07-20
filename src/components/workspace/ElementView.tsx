@@ -79,8 +79,9 @@ function TextContent({ el }: { el: TextElement }) {
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     // The box is a transform/selection frame, not a clip — glyphs overflow it
-    // freely (like the draw tool / Figma). Mirrored by both export paths.
-    overflow: "visible",
+    // freely (like the draw tool / Figma) unless `clip` opts back into the old
+    // clip-to-box behaviour. Mirrored by both export paths.
+    overflow: el.clip ? "hidden" : "visible",
     outline: "none",
     cursor: editing ? "text" : "grab",
     userSelect: editing ? "text" : "none",

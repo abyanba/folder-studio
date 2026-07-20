@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Plus } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Crop, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -208,6 +208,16 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
             onPressedChange={(on) => updateElement(el.id, { underline: on })}
           >
             U
+          </Toggle>
+          <Toggle
+            size="sm"
+            className="size-7 p-0"
+            pressed={el.clip ?? false}
+            aria-label="Clip to box"
+            title="Clip to box"
+            onPressedChange={(on) => updateElement(el.id, { clip: on })}
+          >
+            <Crop className="size-3.5" />
           </Toggle>
           <div className="mx-1 h-5 w-px bg-border" />
           <ToggleGroup
