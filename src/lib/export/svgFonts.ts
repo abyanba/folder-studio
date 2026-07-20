@@ -11,6 +11,8 @@
  */
 
 import type { FolderDocument } from "@/types/document";
+import { pickFace } from "./fontMatch";
+import type { FaceDescriptor } from "./fontMatch";
 
 interface FaceKey {
   family: string;
@@ -37,16 +39,14 @@ function stripQuotes(s: string): string {
   return s.trim().replace(/^["']|["']$/g, "");
 }
 
-/** True when a CSSFontFaceRule matches the wanted family/weight/style. */
-function matches(rule: CSSFontFaceRule, want: FaceKey): boolean {
+/** A font-face rule's declared descriptors. */
+function descriptorOf(rule: CSSFontFaceRule): FaceDescriptor {
   const s = rule.style;
-  const family = stripQuotes(s.getPropertyValue("font-family"));
-  if (family.toLowerCase() !== want.family.toLowerCase()) return false;
-  const weight = s.getPropertyValue("font-weight").trim() || "400";
-  const style = s.getPropertyValue("font-style").trim() || "normal";
-  // A rule spanning a weight range (e.g. "400 700") counts as a match.
-  const weightOk = weight === want.weight || weight.split(/\s+/).includes(want.weight);
-  return weightOk && style === want.style;
+  return {
+    family: stripQuotes(s.getPropertyValue("font-family")),
+    weight: s.getPropertyValue("font-weight").trim() || "400",
+    style: s.getPropertyValue("font-style").trim() || "normal",
+  };
 }
 
 /** Extract the first `url(...)` from a font-face `src` descriptor. */
@@ -74,8 +74,10 @@ export async function collectFontFaceCss(doc: FolderDocument): Promise<string> {
   const faces = usedFaces(doc);
   if (!faces.length) return "";
 
-  // Find one matching CSSFontFaceRule per wanted face.
-  const wanted: Array<{ face: FaceKey; rule: CSSFontFaceRule }> = [];
+  // Every readable @font-face rule in the document, then the nearest one per
+  // wanted face. Collecting first (rather than matching inside the loop) is
+  // what lets the choice be "closest available" instead of "exact or nothing".
+  const available: Array<FaceDescriptor & { rule: CSSFontFaceRule }> = [];
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
     try {
@@ -86,8 +88,20 @@ export async function collectFontFaceCss(doc: FolderDocument): Promise<string> {
     for (const rule of Array.from(rules)) {
       if (rule.constructor.name !== "CSSFontFaceRule") continue;
       const fr = rule as CSSFontFaceRule;
-      const face = faces.find((f) => matches(fr, f));
-      if (face && !wanted.some((w) => w.face === face)) wanted.push({ face, rule: fr });
+      available.push({ ...descriptorOf(fr), rule: fr });
+    }
+  }
+
+  const wanted: Array<{ face: FaceDescriptor; rule: CSSFontFaceRule }> = [];
+  for (const face of faces) {
+    const hit = pickFace(available, face);
+    // Keyed on the RULE: two weights of one family that resolve to the same
+    // single available face must not embed it twice.
+    if (hit && !wanted.some((w) => w.rule === hit.rule)) {
+      // The face is declared with its REAL descriptors, not the requested
+      // ones, so the SVG viewer performs the same nearest-weight match (and
+      // any synthetic bolding) the editor and the canvas export already do.
+      wanted.push({ face: { family: hit.family, weight: hit.weight, style: hit.style }, rule: hit.rule });
     }
   }
 
