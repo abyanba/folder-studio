@@ -8,6 +8,7 @@ import {
   Award,
   Folder,
   Grid3x3,
+  Layers2,
   Image,
   Images,
   Layers,
@@ -32,6 +33,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   text: Type,
   draw: Pencil,
   pattern: Grid3x3,
+  material: Layers2,
   layers: Layers,
   gallery: Images,
 };

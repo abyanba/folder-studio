@@ -15,6 +15,7 @@ A browser-based folder icon creator. Design custom folder icons with colors, gra
 - **Draw** — freehand pen, line, and arc tools with Chaikin smoothing, plus an eraser
 - **Shapes** — rectangle, ellipse, triangle, star, hexagon with fill/stroke/shadow controls
 - **Pattern** — 43 Hero Patterns overlays with foreground/background color + opacity, scale, rotation, and a whole-folder or front-panel-only span
+- **Material** — leather, brushed metal, fabric or paper as a procedural surface, shading whatever is beneath it so a pattern picks up the grain rather than sitting flat on top
 - **Layers** — drag-to-reorder (pattern layer included), visibility, lock, rename
 - **Multi-select** — marquee or shift-click, then edit shared properties at once
 - **Gallery** — save and restore design snapshots (localStorage; designs from the legacy app still load)

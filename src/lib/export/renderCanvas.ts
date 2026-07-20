@@ -39,6 +39,7 @@ import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLa
 import { toSvgDataUrl } from "./svgDataUrl";
 import { computeTrimBounds, computeTrimTransform } from "./trim";
 import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
+import { buildMaterialLayerSvg, isFrontMaterial } from "./materials";
 import { getPatternBody } from "@/lib/patternBodies";
 
 /** A loaded raster source; `naturalWidth`/`Height` present for `HTMLImageElement`. */
@@ -418,18 +419,40 @@ async function renderPattern(
   loadImage: ImageLoader,
 ): Promise<void> {
   const body = getPatternBody(doc.pattern.id);
-  if (!body) return;
+  if (body) {
+    const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
+      ? getFrontMask(doc.baseShape)
+      : getBaseShapeMask(doc.baseShape);
+    const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
+    if (layer) ctx.drawImage(layer, 0, 0, size, size);
+  }
 
-  const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
-    ? getFrontMask(doc.baseShape)
-    : getBaseShapeMask(doc.baseShape);
-  const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
-  if (layer) ctx.drawImage(layer, 0, 0, size, size);
+  // The material blends over base + pattern together, which is what makes the
+  // pattern pick up the grain instead of floating on top of it.
+  const materialSvg = buildMaterialLayerSvg(
+    doc.material,
+    isFrontMaterial(doc.baseShape, doc.material)
+      ? getFrontMask(doc.baseShape)
+      : getBaseShapeMask(doc.baseShape),
+  );
+  if (materialSvg) {
+    const mImg = await loadImage(toSvgDataUrl(materialSvg));
+    if (mImg) {
+      ctx.save();
+      ctx.globalCompositeOperation = "soft-light";
+      ctx.drawImage(mImg, 0, 0, size, size);
+      ctx.restore();
+    }
+  }
 
-  // Re-apply the folder's highlights over the pattern, or it buries them and the
-  // folder reads flat. Highlights only (`buildFrontImageOverlaySvg`) — the full
-  // overlay's darkening vignette is already baked into a colour base and would
-  // compound.
+  // Re-apply the folder's highlights over the surface treatment, or it buries
+  // them and the folder reads flat. Highlights only (`buildFrontImageOverlaySvg`)
+  // — the full overlay's darkening vignette is already baked into a colour base
+  // and would compound.
+  //
+  // Guarded: with neither a pattern nor a material there is nothing covering the
+  // base's own shine, and re-applying it would double it on every plain folder.
+  if (!body && !materialSvg) return;
   const structure = buildFrontImageOverlaySvg(doc.baseShape);
   if (structure) {
     const sImg = await loadImage(toSvgDataUrl(structure));

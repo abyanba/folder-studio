@@ -105,6 +105,19 @@ export interface PatternSettings {
   span: PatternSpan;
 }
 
+export interface MaterialSettings {
+  /** `MATERIALS` recipe id, or `"none"`. */
+  id: string;
+  /** 0-1 strength of the surface shading. */
+  intensity: number;
+  /** Multiplies the recipe's grain size — larger is coarser. */
+  scale: number;
+  /** Light/brush azimuth in degrees; only materials whose recipe lists
+   *  `"angle"` respond to it (brushed metal). */
+  angle: number;
+  span: PatternSpan;
+}
+
 export interface IconDefaults {
   stroke: number;
   /** Default color applied to newly added icons (gradient-capable). */
@@ -169,6 +182,8 @@ export interface FolderDocument {
   /** How an image fill maps onto the macOS folder (full vs front-only). */
   macImageMode: WindowsImageMode;
   pattern: PatternSettings;
+  /** Surface material blended over the base + pattern. */
+  material: MaterialSettings;
   iconDefaults: IconDefaults;
   elements: FolderElement[];
   /**
@@ -211,6 +226,13 @@ export function createEmptyDocument(): FolderDocument {
       bgOpacity: 0,
       scale: 1,
       rotation: 0,
+      span: DEFAULT_WINDOWS_IMAGE_MODE,
+    },
+    material: {
+      id: "none",
+      intensity: 0.7,
+      scale: 1,
+      angle: 90,
       span: DEFAULT_WINDOWS_IMAGE_MODE,
     },
     iconDefaults: { stroke: 1.5, color: "#ffffff" },

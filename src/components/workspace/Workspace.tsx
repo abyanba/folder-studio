@@ -12,6 +12,7 @@ import type { FolderElement } from "@/types/element";
 import { getBaseShapeMask, getFrontMask } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { isFrontPattern } from "@/lib/export/patterns";
+import { isFrontMaterial } from "@/lib/export/materials";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { useUiStore } from "@/store/uiStore";
@@ -20,6 +21,7 @@ import type { LiveOverride } from "@/hooks/useInteraction";
 import { FolderBase } from "./FolderBase";
 import { ElementView } from "./ElementView";
 import { PatternOverlay } from "./PatternOverlay";
+import { MaterialOverlay } from "./MaterialOverlay";
 import { FolderStructureOverlay } from "./FolderStructureOverlay";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { DrawOverlay } from "./DrawOverlay";
@@ -56,6 +58,13 @@ export function Workspace() {
   const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
+  const materialMaskSvg = useMemo(
+    () =>
+      isFrontMaterial(doc.baseShape, doc.material)
+        ? getFrontMask(doc.baseShape)
+        : getBaseShapeMask(doc.baseShape),
+    [doc.baseShape, doc.material],
+  );
   const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
@@ -129,12 +138,15 @@ export function Workspace() {
             <div style={contentRect}>
               {doc.elements.slice(0, tz).map(renderEl)}
               {doc.pattern.id !== "none" && (
-                <>
-                  <PatternOverlay pattern={doc.pattern} maskSvg={patternMaskSvg} />
-                  {/* Structure back on top so the pattern doesn't flatten the
-                      folder — same treatment an image fill gets. */}
-                  <FolderStructureOverlay baseShape={doc.baseShape} />
-                </>
+                <PatternOverlay pattern={doc.pattern} maskSvg={patternMaskSvg} />
+              )}
+              {doc.material.id !== "none" && (
+                <MaterialOverlay material={doc.material} maskSvg={materialMaskSvg} />
+              )}
+              {(doc.pattern.id !== "none" || doc.material.id !== "none") && (
+                /* Highlights back on top so the surface treatment doesn't
+                   flatten the folder — same treatment an image fill gets. */
+                <FolderStructureOverlay baseShape={doc.baseShape} />
               )}
               {doc.elements.slice(tz).map(renderEl)}
             </div>

@@ -259,6 +259,7 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
       // field was authored as full-span, so pin it rather than restyling it.
       windowsImageMode: snap.windowsImageMode ?? "full",
       macImageMode: snap.macImageMode ?? "full",
+      material: { ...doc.material, ...snap.material },
       pattern: {
         ...doc.pattern,
         ...snap.pattern,

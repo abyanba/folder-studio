@@ -37,6 +37,7 @@ import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
 import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
+import { buildMaterialLayerSvg, isFrontMaterial } from "./materials";
 import type { MeasureText } from "./textLayout";
 
 export interface SvgExportDeps {
@@ -307,8 +308,25 @@ export function buildExportSvg(
       ? getFrontMask(doc.baseShape)
       : getBaseShapeMask(doc.baseShape);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
-    // Highlights back on top of the pattern (shine / rim stripes). Not the full
-    // overlay — its vignette would double the colour base's own shading.
+  }
+
+  // The material blends over base + pattern together — that is what prints the
+  // grain onto the pattern rather than letting it float above.
+  const materialSvg = buildMaterialLayerSvg(
+    doc.material,
+    isFrontMaterial(doc.baseShape, doc.material)
+      ? getFrontMask(doc.baseShape)
+      : getBaseShapeMask(doc.baseShape),
+    "ml",
+  );
+  if (materialSvg) {
+    body.push(`<g style="mix-blend-mode:soft-light">${materialSvg}</g>`);
+  }
+
+  if (patternBody || materialSvg) {
+    // Highlights back on top of the surface treatment (shine / rim stripes).
+    // Not the full overlay — its vignette would double the colour base's own
+    // shading.
     const structure = buildFrontImageOverlaySvg(doc.baseShape);
     if (structure) body.push(`<svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(structure)}</svg>`);
   }

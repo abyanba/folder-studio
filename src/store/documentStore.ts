@@ -32,6 +32,7 @@ import type {
   IconDefaults,
   MacColorProfile,
   MacGradientAlgo,
+  MaterialSettings,
   PatternSettings,
   WindowsColorProfile,
   WindowsGradientAlgo,
@@ -156,6 +157,7 @@ export interface DocumentStore {
   /** Pick how an image fill maps onto the Windows folder (full vs front-only). */
   setWindowsImageMode: (mode: WindowsImageMode) => void;
   setPattern: (patch: Partial<PatternSettings>) => void;
+  setMaterial: (patch: Partial<MaterialSettings>) => void;
   setIconDefaults: (patch: Partial<IconDefaults>) => void;
 
   // Whole-document
@@ -485,6 +487,7 @@ export const useDocumentStore = create<DocumentStore>()(
       setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),
       setWindowsImageMode: (mode) => set((s) => ({ doc: { ...s.doc, windowsImageMode: mode } })),
       setPattern: (patch) => set((s) => ({ doc: { ...s.doc, pattern: { ...s.doc.pattern, ...patch } } })),
+      setMaterial: (patch) => set((s) => ({ doc: { ...s.doc, material: { ...s.doc.material, ...patch } } })),
       setIconDefaults: (patch) =>
         set((s) => ({ doc: { ...s.doc, iconDefaults: { ...s.doc.iconDefaults, ...patch } } })),
 

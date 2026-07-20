@@ -21,6 +21,7 @@ export const TOOLS: ToolDef[] = [
   { id: "text", label: "Text" },
   { id: "draw", label: "Free Draw", isTool: true },
   { id: "pattern", label: "Pattern" },
+  { id: "material", label: "Material" },
   { id: "layers", label: "Layers" },
   { id: "gallery", label: "Gallery" },
 ];
