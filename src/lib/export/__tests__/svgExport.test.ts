@@ -227,7 +227,7 @@ describe("buildExportSvg", () => {
     doc.pattern = { ...doc.pattern, id: "dots", scale: 2 };
     const body = { svg: '<svg width="32" height="64" viewBox="0 0 32 64"><path fill="{{FG}}" fill-opacity="{{FGO}}"/></svg>', w: 32, h: 64, defaultScale: 1 };
     const { svg } = buildExportSvg(doc, 256, { ...noIcon, getPatternBody: () => body });
-    expect(svg).toContain('<pattern id="pltile" patternUnits="userSpaceOnUse" width="64" height="128"');
+    expect(svg).toContain('<pattern id="pltile" patternUnits="userSpaceOnUse" x="0" y="0" width="64" height="128"');
     // The cell is 64x128 and the tile's own space is 32x64, so the wrapper must
     // carry that viewBox for the motif to fill the cell.
     expect(svg).toContain('width="64" height="128" viewBox="0 0 32 64"');
