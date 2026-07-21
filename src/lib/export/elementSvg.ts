@@ -8,7 +8,7 @@
 
 import { isGradient } from "@/types/gradient";
 import { elementMaterial } from "@/types/element";
-import type { DrawElement, DropShadow, IconElement, ShapeElement } from "@/types/element";
+import type { DrawElement, DropShadow, IconElement, ImageElement, ShapeElement } from "@/types/element";
 import {
   gradientDefsUserSpace,
   gradientElement,
@@ -52,6 +52,40 @@ export function innerShadowFilter(id: string, s: DropShadow, sx: number, sy: num
     `<feComposite in2="SourceGraphic" operator="in" result="sh"/>` +
     `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge>` +
     `</filter>`
+  );
+}
+
+/**
+ * Build an outlined SVG for an image element (color logo or upload) whose alpha
+ * silhouette gets a `stroke.width`-thick outline in `stroke.color` — hugging the
+ * logo shape via `feMorphology` dilate instead of boxing the element rect. Only
+ * used when the stroke is enabled; a plain image stays on the fast <img>/
+ * drawImage path. Both render paths call this so editor == export.
+ *
+ * The viewBox is the element box in workspace units and the outline radius is
+ * `stroke.width` in those same units, so it scales with the logo exactly like
+ * the `width`px editor `outline` and `(size/FW)`-scaled export stroke it
+ * replaces. The `<image>` uses `xMidYMid meet` to match `object-fit: contain`.
+ */
+export function buildImageStrokeSvg(el: ImageElement, ew: number, eh: number): string {
+  const W = el.width || ew;
+  const H = el.height || eh;
+  const r = el.stroke?.width || 0;
+  const color = el.stroke?.color || "#000000";
+  const id = "isk" + el.id;
+  // el.src is a data:/blob: URL; color-logo data URLs are encodeURIComponent'd
+  // (no literal quotes) and base64/blob URLs never contain quotes, so it embeds
+  // safely in a double-quoted attribute.
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">` +
+    `<defs><filter id="${id}" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">` +
+    `<feMorphology in="SourceAlpha" operator="dilate" radius="${r}" result="d"/>` +
+    `<feFlood flood-color="${color}"/>` +
+    `<feComposite in2="d" operator="in" result="o"/>` +
+    `<feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+    `</filter></defs>` +
+    `<g filter="url(#${id})"><image href="${el.src}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/></g>` +
+    `</svg>`
   );
 }
 

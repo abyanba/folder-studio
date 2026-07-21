@@ -12,7 +12,7 @@ import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import { DEFAULT_ELEMENT_MATERIAL, elementMaterial } from "@/types/element";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "@/lib/export/elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "@/lib/export/elementSvg";
 import { buildElementMaterialFilter } from "@/lib/export/materials";
 import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
@@ -47,6 +47,11 @@ function svgHtml(el: FolderElement, w: number, h: number): string | null {
   if (el.type === "icon") {
     const body = getIconBody(el.iconName, el.iconVariant);
     return body ? buildIconSvg(el, body, w, h) : null;
+  }
+  // A stroked image renders via the same shape-hugging outline SVG the export
+  // rasterizes; a plain image stays on the fast <img> path (svg stays null).
+  if (el.type === "image" && el.stroke?.enabled && (el.stroke.width || 0) > 0) {
+    return buildImageStrokeSvg(el, w, h);
   }
   return null;
 }
@@ -269,7 +274,7 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
   // doesn't re-serialize it (PF-01).
   const svg = useMemo(
     () =>
-      el.type === "shape" || el.type === "draw" || el.type === "icon"
+      el.type === "shape" || el.type === "draw" || el.type === "icon" || el.type === "image"
         ? svgHtml(withMaterialPreview(el, materialPreview), width, height)
         : null,
     [el, width, height, iconVersion, materialPreview],
@@ -301,16 +306,14 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
       ? `drop-shadow(${el.dropShadow!.x}px ${el.dropShadow!.y}px ${el.dropShadow!.blur}px ${hexA(el.dropShadow!.color, el.dropShadow!.opacity)})`
       : undefined,
     mixBlendMode: effectiveBlend && effectiveBlend !== "normal" ? effectiveBlend : undefined,
-    outline:
-      el.type === "image" && el.stroke?.enabled
-        ? `${el.stroke.width}px solid ${el.stroke.color}`
-        : undefined,
   };
 
   let content;
   if (el.type === "text") {
     content = <TextContent el={el} />;
-  } else if (el.type === "image") {
+  } else if (el.type === "image" && !svg) {
+    // Plain image (no stroke): fast <img>. A stroked image has a non-null `svg`
+    // and falls through to the injected shape-hugging outline below.
     content = (
       <img
         src={el.src}

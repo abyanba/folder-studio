@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg } from "@/lib/export/elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg } from "@/lib/export/elementSvg";
 import type { IconBody } from "@/lib/export/elementSvg";
 import {
   createDrawElement,
   createIconElement,
+  createImageElement,
   createShapeElement,
 } from "@/lib/elementFactories";
 import type { Gradient } from "@/types/gradient";
@@ -221,5 +222,22 @@ describe("buildDrawSvg", () => {
     expect(svg).toContain(`id="gdx${el.id}"`);
     expect(svg).toContain('gradientUnits="userSpaceOnUse"');
     expect(svg).toContain(`stroke="url(#gdx${el.id})"`);
+  });
+});
+
+describe("buildImageStrokeSvg", () => {
+  it("outlines the logo's own alpha via feMorphology, not the box", () => {
+    const el = createImageElement("data:image/svg+xml,%3Csvg%3E%3C/svg%3E", 100, 80, "Logo", "acme");
+    el.width = 100;
+    el.height = 80;
+    el.stroke = { color: "#ff0000", enabled: true, width: 3 };
+    const svg = buildImageStrokeSvg(el, 100, 80);
+    // Dilate the source ALPHA (the silhouette), not a rect around the box.
+    expect(svg).toContain('<feMorphology in="SourceAlpha" operator="dilate" radius="3"');
+    expect(svg).toContain('flood-color="#ff0000"');
+    // The logo is embedded and letterboxed like object-fit: contain.
+    expect(svg).toContain('preserveAspectRatio="xMidYMid meet"');
+    expect(svg).toContain(`href="${el.src}"`);
+    expect(svg).toContain('viewBox="0 0 100 80"');
   });
 });
