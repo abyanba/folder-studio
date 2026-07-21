@@ -145,6 +145,22 @@ export function PatternPanel() {
             onChange={(v) => setPattern({ rotation: v })}
             format={(v) => `${v}°`}
           />
+          <SliderField
+            label="Offset X"
+            value={pattern.offsetX}
+            min={-100}
+            max={100}
+            onChange={(v) => setPattern({ offsetX: v })}
+            format={(v) => `${Math.round(v)}`}
+          />
+          <SliderField
+            label="Offset Y"
+            value={pattern.offsetY}
+            min={-100}
+            max={100}
+            onChange={(v) => setPattern({ offsetY: v })}
+            format={(v) => `${Math.round(v)}`}
+          />
 
           {SPLIT_SHAPES.includes(baseShape) && (
             <PanelSection title="Pattern span">
