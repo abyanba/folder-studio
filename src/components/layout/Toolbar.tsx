@@ -130,35 +130,42 @@ export function Toolbar() {
         <TooltipContent>{clipToFolder ? "Clipping: on" : "Clipping: off"}</TooltipContent>
       </Tooltip>
 
-      <input
-        ref={fileInput}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={onOpenFile}
-      />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Open project file"
-            onClick={() => fileInput.current?.click()}
-          >
-            <FolderOpen className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Open project (.json)</TooltipContent>
-      </Tooltip>
+      {/* Project-file JSON is a dev/debug feature only — folder icons are shared
+          as PNG/SVG/ICO, and keeping it dev-only means custom assets never need
+          to travel outside the browser (they're browser-local, reference-only). */}
+      {import.meta.env.DEV && (
+        <>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={onOpenFile}
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open project file"
+                onClick={() => fileInput.current?.click()}
+              >
+                <FolderOpen className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open project (.json)</TooltipContent>
+          </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Save project file" onClick={saveProjectFile}>
-            <FileJson className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Save project (.json)</TooltipContent>
-      </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Save project file" onClick={saveProjectFile}>
+                <FileJson className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Save project (.json)</TooltipContent>
+          </Tooltip>
+        </>
+      )}
 
       <Tooltip>
         <TooltipTrigger asChild>
