@@ -161,9 +161,14 @@ function TextContent({ el }: { el: TextElement }) {
     backgroundClip: grad ? "text" : "unset",
     WebkitTextFillColor: grad ? "transparent" : "unset",
     color: grad ? "transparent" : (el.color as string),
+    // Only "outside" doubles the width: the fill painted over the inner half
+    // then leaves a full-width band outside the glyph. "center" and "inside"
+    // use the width as-is — a true inside-only stroke would need the stroke
+    // clipped to the glyph outline, which -webkit-text-stroke can't do, so
+    // "inside" renders like "center" rather than at double thickness.
     WebkitTextStroke:
       el.stroke && el.stroke.width > 0
-        ? `${el.stroke.width * (el.stroke.position === "center" ? 1 : 2)}px ${el.stroke.color}`
+        ? `${el.stroke.width * (el.stroke.position === "outside" ? 2 : 1)}px ${el.stroke.color}`
         : "unset",
     paintOrder: el.stroke?.position === "outside" ? "stroke fill" : "fill stroke",
     // `text-shadow` paints in the text layer, which is ABOVE the background
@@ -233,7 +238,17 @@ function TextContent({ el }: { el: TextElement }) {
   );
 }
 
+/** Max gap (ms) between two presses on a text element that counts as a double-click. */
+const DBL_MS = 500;
+
 function ElementViewImpl({ el, override, onPointerDown }: Props) {
+  // Double-click to edit text is detected from `pointerdown`, not the DOM
+  // `dblclick` event. `dblclick` only fires when two clicks land on the *same*
+  // node within the OS threshold, and the interaction layer (pointer capture on
+  // the workspace + a click that selects/re-renders between the two presses)
+  // makes that unreliable. Pointerdown always reaches this element — that's how
+  // selection works — so a second press within DBL_MS enters edit mode instead.
+  const lastDownRef = useRef(Number.NEGATIVE_INFINITY);
   const x = override?.x ?? el.x;
   const y = override?.y ?? el.y;
   const width = override?.width ?? el.width;
@@ -353,17 +368,23 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
       data-element-id={el.id}
       style={style}
       onPointerDown={(e) => {
-        if (el.type === "text" && useUiStore.getState().editingTextId === el.id) return;
+        if (el.type === "text") {
+          if (useUiStore.getState().editingTextId === el.id) return;
+          const now = e.timeStamp;
+          if (!el.locked && now - lastDownRef.current < DBL_MS) {
+            lastDownRef.current = 0;
+            // Enter edit mode without starting a drag. preventDefault stops the
+            // compat mousedown from pulling focus to <body>, so the effect that
+            // focuses the contentEditable wins.
+            e.preventDefault();
+            e.stopPropagation();
+            useUiStore.getState().setEditingTextId(el.id);
+            return;
+          }
+          lastDownRef.current = now;
+        }
         onPointerDown(e, el.id);
       }}
-      onDoubleClick={
-        el.type === "text"
-          ? (e) => {
-              e.stopPropagation();
-              useUiStore.getState().setEditingTextId(el.id);
-            }
-          : undefined
-      }
     >
       {content}
     </div>

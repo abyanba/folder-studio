@@ -70,9 +70,12 @@ export function StrokeControls({
               <ToggleGroupItem value="center" className="flex-1 text-xs">
                 Center
               </ToggleGroupItem>
-              <ToggleGroupItem value="inside" className="flex-1 text-xs">
-                Inside
-              </ToggleGroupItem>
+              {/* if text enable only center and outside. if shape enable all three  */}
+              {label !== "Stroke" && (
+                <ToggleGroupItem value="inside" className="flex-1 text-xs">
+                  Inside
+                </ToggleGroupItem>
+              )}
             </ToggleGroup>
           )}
           <div className="flex items-end gap-2">

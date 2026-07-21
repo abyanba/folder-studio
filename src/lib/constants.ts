@@ -41,6 +41,14 @@ export const FONTS = [
   "Righteous",
 ] as const;
 
+/** Selectable font weights, shared by the text panel and the multi-select panel. */
+export const FONT_WEIGHTS: { value: string; label: string }[] = [
+  { value: "400", label: "Regular" },
+  { value: "500", label: "Medium" },
+  { value: "600", label: "Semibold" },
+  { value: "700", label: "Bold" },
+];
+
 /** Default color-preset swatches. */
 export const DEFAULT_PRESETS = [
   "#f5c542",

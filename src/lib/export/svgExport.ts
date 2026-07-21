@@ -143,13 +143,14 @@ function textMarkup(el: TextElement, defs: string[], measure?: MeasureText): str
     fill = el.color;
   }
 
-  // Only an "outside" stroke paints under the fill (the fill covering the inner
-  // half is what halves the doubled band). A "center" stroke must paint OVER the
-  // fill or the fill eats its inner half and it exports as a half-width outside
-  // stroke — which is what it used to do, disagreeing with the editor.
+  // Only an "outside" stroke doubles and paints under the fill (the fill
+  // covering the inner half is what leaves a full-width band outside). "center"
+  // and "inside" use the width as-is and paint OVER the fill — a true inside-only
+  // stroke would need the stroke clipped to the glyph outline, which isn't done
+  // here, so "inside" matches "center" instead of exporting at double thickness.
   const strokeAttrs =
     el.stroke && el.stroke.width > 0
-      ? ` stroke="${el.stroke.color}" stroke-width="${num(el.stroke.width * (el.stroke.position === "center" ? 1 : 2))}" paint-order="${el.stroke.position === "outside" ? "stroke" : "fill"}"`
+      ? ` stroke="${el.stroke.color}" stroke-width="${num(el.stroke.width * (el.stroke.position === "outside" ? 2 : 1))}" paint-order="${el.stroke.position === "outside" ? "stroke" : "fill"}"`
       : "";
   const shadow = el.shadow
     ? ((): string => {

@@ -22,11 +22,10 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
+import { FONT_WEIGHTS } from "@/lib/constants";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import type { FolderElement, TextAlign } from "@/types/element";
-
-const WEIGHTS = ["300", "400", "500", "600", "700"];
 
 const avgOf = (values: number[]): number =>
   values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
@@ -118,9 +117,9 @@ export function MultiSelectControls() {
                   Mixed
                 </SelectItem>
               )}
-              {WEIGHTS.map((w) => (
-                <SelectItem key={w} value={w} className="text-xs">
-                  {w}
+              {FONT_WEIGHTS.map((w) => (
+                <SelectItem key={w.value} value={w.value} className="text-xs">
+                  {w.label}
                 </SelectItem>
               ))}
             </SelectContent>

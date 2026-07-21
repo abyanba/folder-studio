@@ -27,7 +27,7 @@ import { DEFAULT_INNER_SHADOW, ShadowControls } from "@/components/controls/Shad
 import { SliderField } from "@/components/controls/SliderField";
 import { StrokeControls } from "@/components/controls/StrokeControls";
 import { TransformFields } from "@/components/controls/TransformFields";
-import { FONTS } from "@/lib/constants";
+import { FONTS, FONT_WEIGHTS } from "@/lib/constants";
 import { autoFitLineHeight, autoFitSize, autoFitSpacing } from "@/lib/textFit";
 import {
   beginDocPreview,
@@ -181,16 +181,23 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
           />
         </div>
 
+        <Select
+          value={el.fontWeight}
+          onValueChange={(v) => updateElement(el.id, { fontWeight: v })}
+        >
+          <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Font weight">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_WEIGHTS.map((w) => (
+              <SelectItem key={w.value} value={w.value} className="text-xs">
+                {w.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="flex items-center gap-1.5">
-          <Toggle
-            size="sm"
-            className="size-7 p-0 font-bold"
-            pressed={el.fontWeight === "700"}
-            aria-label="Bold"
-            onPressedChange={(on) => updateElement(el.id, { fontWeight: on ? "700" : "400" })}
-          >
-            B
-          </Toggle>
           <Toggle
             size="sm"
             className="size-7 p-0 italic"

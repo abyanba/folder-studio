@@ -30,9 +30,15 @@ function renderTextElement() {
 }
 
 describe("text editing lifecycle", () => {
-  it("double-click enters editing mode and focuses the contentEditable", () => {
+  it("a double press enters editing mode and focuses the contentEditable", () => {
     const { container } = renderTextElement();
-    fireEvent.doubleClick(container.querySelector("[data-element-id]")!);
+    const node = container.querySelector("[data-element-id]")!;
+    // Editing is entered from two quick pointerdowns, NOT the DOM `dblclick`
+    // event: pointer capture on the workspace plus the selecting click between
+    // the two presses make `dblclick` unreliable, while pointerdown always
+    // reaches the element. Two presses within DBL_MS = enter edit mode.
+    fireEvent.pointerDown(node);
+    fireEvent.pointerDown(node);
     expect(useUiStore.getState().editingTextId).toBe(
       useDocumentStore.getState().doc.elements[0].id,
     );
@@ -41,6 +47,12 @@ describe("text editing lifecycle", () => {
     const editable = container.querySelector("[contenteditable=true]") as HTMLElement;
     expect(editable).toBeTruthy();
     expect(document.activeElement).toBe(editable);
+  });
+
+  it("a single press selects but does not enter editing", () => {
+    const { container } = renderTextElement();
+    fireEvent.pointerDown(container.querySelector("[data-element-id]")!);
+    expect(useUiStore.getState().editingTextId).toBeNull();
   });
 
   it("blur commits the edited text as one patch", () => {

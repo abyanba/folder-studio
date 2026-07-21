@@ -71,16 +71,18 @@ describe("TextPanel", () => {
     expect(el.text).toBe("Hi");
   });
 
-  it("bold toggle flips fontWeight 400/700", async () => {
+  it("weight dropdown sets fontWeight for a single text element", async () => {
     const user = userEvent.setup();
     render(<TextPanel />);
     await user.click(screen.getByRole("button", { name: /Add Text Element/i }));
-    await user.click(screen.getByRole("button", { name: "Bold" }));
+    await user.click(screen.getByRole("combobox", { name: "Font weight" }));
+    await user.click(screen.getByRole("option", { name: "Bold" }));
     let el = useDocumentStore.getState().doc.elements[0] as TextElement;
     expect(el.fontWeight).toBe("700");
-    await user.click(screen.getByRole("button", { name: "Bold" }));
+    await user.click(screen.getByRole("combobox", { name: "Font weight" }));
+    await user.click(screen.getByRole("option", { name: "Medium" }));
     el = useDocumentStore.getState().doc.elements[0] as TextElement;
-    expect(el.fontWeight).toBe("400");
+    expect(el.fontWeight).toBe("500");
   });
 });
 

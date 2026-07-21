@@ -304,7 +304,10 @@ function renderText(
 
   if (el.stroke && el.stroke.width > 0) {
     const pf = el.stroke.position || "outside";
-    ctx.lineWidth = el.stroke.width * sx * (pf === "center" ? 1 : 2);
+    // Only "outside" doubles (its inner half is covered by the fill below).
+    // "center" and "inside" use the width as-is; "inside" can't be clipped to
+    // the glyph outline here, so it renders like "center" rather than at 2×.
+    ctx.lineWidth = el.stroke.width * sx * (pf === "outside" ? 2 : 1);
     ctx.strokeStyle = el.stroke.color || "#000";
     ctx.lineJoin = "round";
     lines.forEach((line, li) => {
@@ -315,10 +318,9 @@ function renderText(
         ctx.strokeText(line, tx, y);
         fillLine(line, y);
       } else {
-        // "center" straddles the glyph edge, so it paints OVER the fill — under
-        // it, the fill would eat the inner half and leave a half-width outside
-        // stroke instead (this used to match "outside", disagreeing with the
-        // editor). "inside" also paints over the fill.
+        // "center"/"inside" straddle the glyph edge, so they paint OVER the
+        // fill — under it, the fill would eat the inner half and leave a
+        // half-width outside stroke instead.
         fillLine(line, y);
         ctx.strokeText(line, tx, y);
       }
