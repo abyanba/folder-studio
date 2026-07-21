@@ -87,7 +87,7 @@ function stylePatch(target: FolderElement, src: FolderElement): Partial<FolderEl
   if (target.type === src.type) {
     // Same type: replace the whole style key set (undefined clears a key).
     const patch: Record<string, unknown> = {};
-    for (const k of STYLE_KEYS[target.type]) patch[k] = (src as Record<string, unknown>)[k];
+    for (const k of STYLE_KEYS[target.type]) patch[k] = (src as unknown as Record<string, unknown>)[k];
     return patch as Partial<FolderElement>;
   }
   return crossTypePatch(target, src);
