@@ -1,13 +1,13 @@
 /**
  * Icon-body cache with LOCAL-FIRST resolution (Phase 6): bodies come from the
  * baked asset modules in `src/data/generated/` (Phosphor via @iconify-json/ph,
- * mono logos via the simple-icons npm package, color logos via thesvg.org),
+ * mono logos via the simple-icons npm package, color logos via svgl.app),
  * loaded through lazy `import()` so they ship as split chunks off the main
  * bundle. The app therefore works fully offline.
  *
  * The Iconify REST fetch survives only as a defensive fallback for Phosphor
  * names outside the baked subset (shouldn't happen — the catalogs are closed).
- * Mono/color logos have no network path at all: simple-icons and thesvg are
+ * Mono/color logos have no network path at all: simple-icons and svgl are
  * the only sources.
  *
  * Cache keys keep the legacy scheme so `_getIconBody` semantics carry over:
@@ -62,6 +62,10 @@ export function getColorLogoBody(name: string): IconBody | null {
   return resolvedBody(cache.get(`logoc:${name}`));
 }
 
+export function getColorLogoDarkBody(name: string): IconBody | null {
+  return resolvedBody(cache.get(`logocd:${name}`));
+}
+
 /** A cache entry is a real body only if it isn't one of the string sentinels. */
 function resolvedBody(v: CacheEntry | undefined): IconBody | null {
   return v && v !== "pending" && v !== "failed" ? v : null;
@@ -104,6 +108,7 @@ export function retryIcon(name: string, variant: IconVariant | string): Promise<
 let phAssets: Promise<Record<string, IconBody>> | null = null;
 let monoAssets: Promise<Record<string, IconBody>> | null = null;
 let colorAssets: Promise<Record<string, IconBody>> | null = null;
+let colorDarkAssets: Promise<Record<string, IconBody>> | null = null;
 
 const loadPhAssets = () =>
   (phAssets ??= import("@/data/generated/phBodies").then((m) => m.PH_BODIES));
@@ -111,6 +116,10 @@ const loadMonoAssets = () =>
   (monoAssets ??= import("@/data/generated/logoBodies").then((m) => m.LOGO_BODIES));
 const loadColorAssets = () =>
   (colorAssets ??= import("@/data/generated/colorLogoBodies").then((m) => m.COLOR_LOGO_BODIES));
+const loadColorDarkAssets = () =>
+  (colorDarkAssets ??= import("@/data/generated/colorLogoDarkBodies").then(
+    (m) => m.COLOR_LOGO_DARK_BODIES,
+  ));
 
 // ------------------------------------------------------- fetch fallback
 
@@ -195,12 +204,38 @@ export function requestMonoLogos(names: string[]): Promise<void> {
   );
 }
 
-/** Resolve full-color (thesvg) logo bodies — baked only, no network. */
+/** Resolve full-color (svgl) logo bodies — baked only, no network. */
 export function requestColorLogos(names: string[]): Promise<void> {
   return resolve(
     names.map((n) => ({ cacheKey: `logoc:${n}`, assetKey: n })),
     loadColorAssets,
   );
+}
+
+/** Resolve dark-theme color-logo variants (only some brands ship one). */
+export function requestColorLogosDark(names: string[]): Promise<void> {
+  return resolve(
+    names.map((n) => ({ cacheKey: `logocd:${n}`, assetKey: n })),
+    loadColorDarkAssets,
+  );
+}
+
+// ------------------------------------------------------- custom assets
+
+/**
+ * Seed a user-added tintable body directly into the cache (custom assets have
+ * no baked module or network source). Keyed exactly like a placed element's
+ * lookup so the editor and export both resolve it via {@link getIconBody}.
+ */
+export function seedCustomBody(name: string, variant: IconVariant | string, body: IconBody): void {
+  cache.set(iconCacheKey(name, variant), body);
+  notify();
+}
+
+/** Drop a custom body when its library entry is removed. */
+export function evictCustomBody(name: string, variant: IconVariant | string): void {
+  cache.delete(iconCacheKey(name, variant));
+  notify();
 }
 
 /** Test-only: reset the module cache between cases. */

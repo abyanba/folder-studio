@@ -10,15 +10,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   __resetIconCacheForTests,
   getColorLogoBody,
+  getColorLogoDarkBody,
   getIconBody,
   iconStatus,
   isIconPending,
   phCacheKey,
   requestColorLogos,
+  requestColorLogosDark,
   requestMonoLogos,
   requestPhosphorIcons,
   retryIcon,
 } from "@/lib/iconify";
+import { COLOR_LOGO_DARK_NAMES } from "@/data/generated/colorLogoDarkNames";
 import { MONO_LOGO_NAMES } from "@/data/generated/monoLogoNames";
 
 const fetchMock = vi.fn();
@@ -114,18 +117,18 @@ describe("baked mono logos (simple-icons, offline)", () => {
   });
 
   it("brands removed from simple-icons resolve to null (color-only), never fetch", async () => {
-    expect(MONO_LOGO_NAMES).not.toContain("microsoft");
-    await requestMonoLogos(["microsoft", "adobephotoshop"]);
-    expect(getIconBody("microsoft", "logo")).toBeNull();
-    expect(isIconPending("logo:microsoft")).toBe(false);
+    expect(MONO_LOGO_NAMES).not.toContain("microsoft-word");
+    await requestMonoLogos(["microsoft-word", "photoshop"]);
+    expect(getIconBody("microsoft-word", "logo")).toBeNull();
+    expect(isIconPending("logo:microsoft-word")).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
-describe("baked color logos (thesvg, offline)", () => {
+describe("baked color logos (svgl, offline)", () => {
   it("covers the whole catalog, including simple-icons removals", async () => {
-    await requestColorLogos(["github", "microsoft", "amazon", "adobephotoshop", "windows11"]);
-    for (const name of ["github", "microsoft", "amazon", "adobephotoshop", "windows11"]) {
+    await requestColorLogos(["github", "microsoft-word", "photoshop", "windows"]);
+    for (const name of ["github", "microsoft-word", "photoshop", "windows"]) {
       const body = getColorLogoBody(name);
       expect(body, name).not.toBeNull();
       expect(body!.width).toBeGreaterThan(0);
@@ -136,6 +139,16 @@ describe("baked color logos (thesvg, offline)", () => {
   it("unknown names resolve to null without fetching", async () => {
     await requestColorLogos(["not-a-brand"]);
     expect(getColorLogoBody("not-a-brand")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves dark-theme variants for brands that ship one", async () => {
+    const name = COLOR_LOGO_DARK_NAMES[0];
+    await requestColorLogosDark([name]);
+    expect(getColorLogoDarkBody(name), name).not.toBeNull();
+    // A brand with no dark variant stays null.
+    await requestColorLogosDark(["not-a-brand"]);
+    expect(getColorLogoDarkBody("not-a-brand")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

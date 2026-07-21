@@ -141,6 +141,8 @@ export interface ImageElement extends BaseElement {
    * absent on ordinary images. Mono logos are `icon` elements instead.
    */
   logoName?: string;
+  /** Which svgl theme variant a color logo is showing (dark default where one exists). */
+  logoVariant?: "light" | "dark";
   blendMode?: BlendMode;
   stroke?: { color: string; enabled: boolean; width: number };
   dropShadow?: DropShadow;
@@ -153,7 +155,11 @@ export type IconVariant =
   | "light"
   | "fill"
   | "duotone"
-  | "logo";
+  | "logo"
+  // A user-added single-body tintable icon (custom asset). Like "logo" it has
+  // no style variants, but it is NOT a brand logo — it lives in the icon
+  // library and routes to the Icons panel (see isLogoElement).
+  | "custom";
 
 export interface IconElement extends BaseElement {
   type: "icon";

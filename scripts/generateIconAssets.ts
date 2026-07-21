@@ -4,14 +4,14 @@
  *
  *   1. Phosphor icons  — @iconify-json/ph (node_modules, no network)
  *   2. Mono logos      — simple-icons npm package (node_modules, no network)
- *   3. Color logos     — thesvg.org via its jsDelivr CDN (network at
- *                        generation time only; slugs from THESVG_SLUGS)
+ *   3. Color logos     — svgl.app via its CDN (network at generation time
+ *                        only; slugs from SVGL_SLUGS)
  *
  * Output: src/data/generated/{phBodies,logoBodies,colorLogoBodies}.ts —
  * checked in, lazily imported by lib/iconify.ts. Re-run after editing the
  * catalogs:  npm run generate:icons
  *
- * The script FAILS if a Phosphor name or a thesvg logo doesn't resolve
+ * The script FAILS if a Phosphor name or an svgl logo doesn't resolve
  * (catalog typo). Mono logos missing from simple-icons (trademark removals:
  * Microsoft/Adobe/LinkedIn/…) are expected and reported — those brands are
  * color-only.
@@ -24,10 +24,9 @@ import { getIconData } from "@iconify/utils";
 import phJson from "@iconify-json/ph/icons.json" with { type: "json" };
 import * as simpleIcons from "simple-icons";
 import { ICON_NAMES } from "../src/data/iconNames";
-import { LOGO_NAMES, thesvgSlug } from "../src/data/logos";
+import { LOGO_NAMES, SVGL_DARK_SLUGS, SVGL_SLUGS, svglSlug } from "../src/data/logos";
 
-const THESVG_REF = "main";
-const THESVG_CDN = `https://cdn.jsdelivr.net/gh/glincker/thesvg@${THESVG_REF}/public/icons`;
+const SVGL_CDN = "https://svgl.app/library";
 const PH_VARIANT_SUFFIXES = ["", "-bold", "-thin", "-light", "-fill", "-duotone"];
 
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "data", "generated");
@@ -126,10 +125,10 @@ function generateMonoLogos(): string[] {
 }
 
 // ------------------------------------------------------------- Color logos
-async function fetchSvg(slug: string, variant: string): Promise<string | null> {
+async function fetchSvg(slug: string): Promise<string | null> {
   for (let attempt = 1; attempt <= 4; attempt++) {
     try {
-      const res = await fetch(`${THESVG_CDN}/${slug}/${variant}.svg`);
+      const res = await fetch(`${SVGL_CDN}/${slug}.svg`);
       if (res.status === 404) return null;
       if (res.ok) return await res.text();
     } catch {
@@ -171,11 +170,14 @@ function parseSvg(svg: string, name: string): BodyData {
 
 async function generateColorLogos(names: string[]): Promise<void> {
   const bodies: Record<string, BodyData> = {};
+  const dark: Record<string, BodyData> = {};
   const failed: string[] = [];
   for (const name of names) {
-    const slug = thesvgSlug(name);
-    // Prefer an explicit color variant, else the default artwork.
-    const svg = (await fetchSvg(slug, "color")) ?? (await fetchSvg(slug, "default"));
+    // Mono-only catalog entries (e.g. Google Docs — in simple-icons but not on
+    // svgl) have no svgl slug; skip them so the fetch doesn't 404 and fail.
+    if (!(name in SVGL_SLUGS)) continue;
+    const slug = svglSlug(name);
+    const svg = await fetchSvg(slug);
     if (!svg) {
       failed.push(`${name} (slug: ${slug})`);
       continue;
@@ -185,16 +187,38 @@ async function generateColorLogos(names: string[]): Promise<void> {
     } catch (e) {
       failed.push(`${name} (slug: ${slug}) — ${(e as Error).message}`);
     }
+    // Optional dark-theme variant. The light one is the default, so a missing
+    // or malformed dark body is non-fatal — just skip it.
+    const darkSlug = SVGL_DARK_SLUGS[name];
+    if (darkSlug) {
+      const dsvg = await fetchSvg(darkSlug);
+      if (dsvg) {
+        try {
+          dark[name] = parseSvg(dsvg, `${name}_dark`);
+        } catch {
+          // Keep the light default; ignore a broken dark variant.
+        }
+      }
+    }
   }
   if (failed.length) {
-    throw new Error(`thesvg logos failed to fetch: ${failed.join(", ")}`);
+    throw new Error(`svgl logos failed to fetch: ${failed.join(", ")}`);
   }
-  emit("colorLogoBodies.ts", `thesvg.org (glincker/thesvg@${THESVG_REF} via jsDelivr)`, [
+  emit("colorLogoBodies.ts", "svgl.app", [
     `import type { IconBody } from "@/lib/export/elementSvg";`,
     ``,
     `export const COLOR_LOGO_BODIES: Record<string, IconBody> = ${JSON.stringify(bodies)};`,
   ]);
-  console.log(`  ${Object.keys(bodies).length} color logos from thesvg`);
+  emit("colorLogoDarkBodies.ts", "svgl.app (dark-theme variants)", [
+    `import type { IconBody } from "@/lib/export/elementSvg";`,
+    ``,
+    `export const COLOR_LOGO_DARK_BODIES: Record<string, IconBody> = ${JSON.stringify(dark)};`,
+  ]);
+  emit("colorLogoDarkNames.ts", "svgl.app (dark-theme variants)", [
+    `/** Catalog ids that ship a dark-theme color variant (light is the default). */`,
+    `export const COLOR_LOGO_DARK_NAMES: string[] = ${JSON.stringify(Object.keys(dark))};`,
+  ]);
+  console.log(`  ${Object.keys(bodies).length} color logos from svgl (${Object.keys(dark).length} with dark variant)`);
 }
 
 const logoNames = (generatePhosphor(), generateMonoLogos());

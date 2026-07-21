@@ -129,6 +129,7 @@ describe("IconPanel", () => {
 describe("LogosPanel", () => {
   it("mono mode lists only simple-icons brands and adds a tintable icon", async () => {
     const user = userEvent.setup();
+    useUiStore.getState().setLogoMode("mono");
     render(<LogosPanel />);
     // Social: linkedin was removed from simple-icons → hidden in mono.
     expect(await screen.findByRole("button", { name: "Facebook" })).toBeInTheDocument();
@@ -142,9 +143,13 @@ describe("LogosPanel", () => {
 
   it("color mode shows removed brands and adds them as SVG images", async () => {
     const user = userEvent.setup();
+    useUiStore.getState().setLogoMode("color");
     render(<LogosPanel />);
-    await user.click(screen.getByRole("radio", { name: "Color" }));
-    await user.click(screen.getByRole("button", { name: "LinkedIn" }));
+    const btn = await screen.findByRole("button", { name: "LinkedIn" });
+    // Wait for the color body's async import so the click adds an image, not
+    // the mono fallback icon.
+    await waitFor(() => expect(btn.querySelector("img")).not.toBeNull());
+    await user.click(btn);
 
     await waitFor(() => {
       const els = useDocumentStore.getState().doc.elements;
