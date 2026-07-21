@@ -113,6 +113,11 @@ describe("buildPatternLayerSvg", () => {
     expect(svg).toContain('fill="url(#ptile)"');
   });
 
+  it("shifts the tiling origin via the pattern's x/y", () => {
+    const svg = buildPatternLayerSvg(settings({ offsetX: 12, offsetY: -7 }), body, MASK);
+    expect(svg).toContain('x="12" y="-7"');
+  });
+
   it("rotates the tiling via patternTransform, leaving a gradient fixed to the folder", () => {
     const svg = buildPatternLayerSvg(settings({ fgColor: gradient, rotation: 45 }), body, MASK);
     expect(svg).toContain('patternTransform="rotate(45 190 190)"');

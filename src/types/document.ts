@@ -98,6 +98,9 @@ export interface PatternSettings {
   /** Multiplies the pattern's baked `defaultScale` — 1 is the tuned default. */
   scale: number;
   rotation: number;
+  /** Shifts the tiling origin, in workspace units. 0 is the baked alignment. */
+  offsetX: number;
+  offsetY: number;
   /**
    * Front-only spans just the folder's front panel, like an image fill. Only
    * windows/macOS have a front/back split; other shapes always render full.
@@ -226,6 +229,8 @@ export function createEmptyDocument(): FolderDocument {
       bgOpacity: 0,
       scale: 1,
       rotation: 0,
+      offsetX: 0,
+      offsetY: 0,
       span: DEFAULT_WINDOWS_IMAGE_MODE,
     },
     material: {

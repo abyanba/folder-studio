@@ -92,7 +92,7 @@ export function buildPatternLayerSvg(
     : "";
 
   const defs: string[] = [
-    `<pattern id="${ids.tile}" patternUnits="userSpaceOnUse" width="${num(t.w)}" height="${num(t.h)}"${transform}>` +
+    `<pattern id="${ids.tile}" patternUnits="userSpaceOnUse" x="${num(pattern.offsetX || 0)}" y="${num(pattern.offsetY || 0)}" width="${num(t.w)}" height="${num(t.h)}"${transform}>` +
       // The viewBox is load-bearing: the tile carries its own natural size, so
       // without it the motif paints at that size in the corner of a scaled cell.
       `<svg x="0" y="0" width="${num(t.w)}" height="${num(t.h)}" viewBox="0 0 ${num(body.w)} ${num(body.h)}" preserveAspectRatio="none">${tile}</svg>` +
