@@ -18,6 +18,7 @@ import {
   Lock,
   LockOpen,
   MousePointerClick,
+  Paintbrush,
   Trash2,
 } from "lucide-react";
 import {
@@ -32,6 +33,11 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { hasClipboard, pasteClipboard, selectAll } from "@/lib/clipboard";
+import {
+  copyElementStyle,
+  hasStyleClipboard,
+  pasteElementStyle,
+} from "@/lib/styleClipboard";
 
 /** Render a shortcut as shadcn Kbd chips, e.g. ["Ctrl","D"]. */
 function Shortcut({ keys }: { keys: string[] }) {
@@ -92,6 +98,19 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
             <Copy />
             Duplicate
             <Shortcut keys={["Ctrl", "D"]} />
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem className="text-xs" onSelect={() => copyElementStyle(el)}>
+            <Paintbrush />
+            Copy style
+          </ContextMenuItem>
+          <ContextMenuItem
+            className="text-xs"
+            disabled={!hasStyleClipboard()}
+            onSelect={pasteElementStyle}
+          >
+            <ClipboardPaste />
+            Paste style
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
