@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 const GLOW_RADIUS = 260;
 const CELL = 40;
 
-export function WorkspaceGrid() {
+export function WorkspaceGrid({ light = false }: { light?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [glow, setGlow] = useState({ x: -1, y: -1, o: 0 });
 
@@ -54,7 +54,7 @@ export function WorkspaceGrid() {
 
   return (
     <div ref={ref} className="pointer-events-none absolute inset-0 overflow-hidden">
-      <svg className="absolute inset-0 h-full w-full text-foreground/[0.07]" aria-hidden>
+      <svg className={`absolute inset-0 h-full w-full ${light ? "text-black/[0.12]" : "text-foreground/[0.07]"}`} aria-hidden>
         <defs>
           <pattern id="wsGrid" width={CELL} height={CELL} patternUnits="userSpaceOnUse">
             <path d={`M ${CELL} 0 L 0 0 0 ${CELL}`} fill="none" stroke="currentColor" strokeWidth="0.8" />
@@ -63,7 +63,7 @@ export function WorkspaceGrid() {
         <rect width="100%" height="100%" fill="url(#wsGrid)" />
       </svg>
       <svg
-        className="absolute inset-0 h-full w-full text-primary"
+        className={`absolute inset-0 h-full w-full ${light ? "text-green-700" : "text-primary"}`}
         style={{ opacity: glow.o }}
         aria-hidden
       >

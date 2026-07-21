@@ -126,7 +126,7 @@ export function Workspace() {
           beginMarquee(e);
         }}
       >
-        <WorkspaceGrid />
+        <WorkspaceGrid light={canvasLight} />
         <AlignBar />
         <div
           ref={wsRef}
