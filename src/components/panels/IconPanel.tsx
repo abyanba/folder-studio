@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, RotateCw } from "lucide-react";
+import { RotateCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,12 +25,14 @@ import { TransformFields } from "@/components/controls/TransformFields";
 import { ICON_CATEGORIES, ICON_NAMES } from "@/data/iconNames";
 import {
   getIconBody,
+  iconCacheKey,
   iconStatus,
   phCacheKey,
   requestPhosphorIcons,
   retryIcon,
   useIconCacheVersion,
 } from "@/lib/iconify";
+import { useCustomAssetsStore } from "@/store/customAssetsStore";
 import { getHex } from "@/lib/color";
 import { isGradient, type ColorValue } from "@/types/gradient";
 import { useDocumentStore } from "@/store/documentStore";
@@ -38,8 +40,17 @@ import { useSelectionStore } from "@/store/selectionStore";
 import type { IconElement, IconVariant } from "@/types/element";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
+import { AddAssetTile } from "./AddAssetTile";
 
 const VARIANTS: IconVariant[] = ["regular", "bold", "thin", "light", "fill", "duotone"];
+
+/** Small heading above a filter dropdown. */
+const FILTER_LABEL = "block text-[10px] font-medium uppercase tracking-wide text-muted-foreground";
+
+/** Category sentinel: show every icon across all categories. */
+const ALL_CATEGORY = "All";
+/** Category bucket for user-added icons. */
+const CUSTOM_CATEGORY = "Custom";
 
 function iconTint(color: ColorValue): string {
   if (isGradient(color)) {
@@ -92,7 +103,6 @@ function IconGlyph({
 
 export function SelectedIconEditor({ el }: { el: IconElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
-  const clear = useSelectionStore((s) => s.clear);
   useIconCacheVersion();
 
   const switchVariant = (variant: IconVariant) => {
@@ -105,15 +115,6 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
 
   return (
     <div className="space-y-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-xs text-muted-foreground"
-        onClick={clear}
-      >
-        <ChevronLeft className="size-3.5" /> Back to library
-      </Button>
-
       <div className="flex items-center gap-3">
         <div
           className="flex size-16 shrink-0 items-center justify-center rounded-md border p-2"
@@ -156,7 +157,7 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
         </div>
       )}
 
-      {el.iconVariant !== "logo" && (
+      {el.iconVariant !== "logo" && el.iconVariant !== "custom" && (
         <PanelSection title="Style">
           <Select value={el.iconVariant} onValueChange={(v) => switchVariant(v as IconVariant)}>
             <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon style">
@@ -194,7 +195,7 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
 
 function IconLibrary() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState(ICON_CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(ALL_CATEGORY);
   const [variant, setVariant] = useState<IconVariant>("regular");
   const iconDefaults = useDocumentStore((s) => s.doc.iconDefaults);
   const setIconDefaults = useDocumentStore((s) => s.setIconDefaults);
@@ -202,14 +203,23 @@ function IconLibrary() {
   const select = useSelectionStore((s) => s.select);
   useIconCacheVersion();
 
+  const customAssets = useCustomAssetsStore((s) => s.assets);
+  const removeCustom = useCustomAssetsStore((s) => s.remove);
+
   const q = search.trim().toLowerCase();
   const names = useMemo(() => {
-    if (q) {
-      const all = [...new Set(Object.values(ICON_NAMES).flat())];
-      return all.filter((n) => n.includes(q));
-    }
+    const all = [...new Set(Object.values(ICON_NAMES).flat())];
+    if (q) return all.filter((n) => n.includes(q));
+    if (category === ALL_CATEGORY) return all;
     return ICON_NAMES[category] ?? [];
   }, [q, category]);
+
+  const customIcons = useMemo(() => {
+    const mine = customAssets.filter((a) => a.target === "icon");
+    if (q) return mine.filter((a) => a.name.toLowerCase().includes(q));
+    if (category === ALL_CATEGORY) return mine;
+    return mine.filter((a) => a.category === category);
+  }, [customAssets, q, category]);
 
   useEffect(() => {
     if (names.length) void requestPhosphorIcons(names, variant);
@@ -234,40 +244,84 @@ function IconLibrary() {
         />
       </div>
 
-      <Select value={variant} onValueChange={(v) => setVariant(v as IconVariant)}>
-        <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon style">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent position="popper" side="bottom" sideOffset={4}>
-          {VARIANTS.map((v) => (
-            <SelectItem key={v} value={v} className="text-xs capitalize">
-              {v}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {!q && (
-        <div className="flex flex-wrap gap-1">
-          {ICON_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setCategory(cat)}
-              className={cn(
-                "rounded-full border px-2 py-0.5 text-[10px] transition-colors",
-                cat === category
-                  ? "border-primary bg-primary/10 font-semibold text-primary"
-                  : "border-transparent bg-muted/40 text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {cat}
-            </button>
-          ))}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <span className={FILTER_LABEL}>Style</span>
+          <Select value={variant} onValueChange={(v) => setVariant(v as IconVariant)}>
+            <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon style">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" sideOffset={4}>
+              {VARIANTS.map((v) => (
+                <SelectItem key={v} value={v} className="text-xs capitalize">
+                  {v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
+        <div className="space-y-1">
+          <span className={FILTER_LABEL}>Category</span>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger size="sm" className="h-7 w-full text-xs" aria-label="Icon category">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" sideOffset={4}>
+              <SelectItem value={ALL_CATEGORY} className="text-xs">
+                {ALL_CATEGORY}
+              </SelectItem>
+              <SelectItem value={CUSTOM_CATEGORY} className="text-xs">
+                {CUSTOM_CATEGORY}
+              </SelectItem>
+              {ICON_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat} className="text-xs">
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-1.5">
+        <AddAssetTile target="icon" categories={ICON_CATEGORIES} />
+
+        {customIcons.map((a) => (
+          <div key={a.id} className="group relative">
+            <button
+              type="button"
+              title={a.name}
+              className="flex aspect-square w-full items-center justify-center rounded-lg border border-transparent bg-muted/40 p-2.5 transition-colors hover:border-border hover:bg-muted"
+              onClick={() => {
+                const id = addIcon({
+                  iconName: a.id,
+                  iconVariant: "custom",
+                  iconCacheKey: iconCacheKey(a.id, "custom"),
+                  color: iconDefaults.color,
+                  name: a.name,
+                });
+                select(id);
+              }}
+            >
+              <IconGlyph
+                name={a.id}
+                variant="custom"
+                tint={iconTint(iconDefaults.color)}
+                className="size-7"
+              />
+            </button>
+            <button
+              type="button"
+              aria-label={`Remove ${a.name}`}
+              title="Remove from library"
+              className="absolute -right-1 -top-1 hidden rounded-full border bg-background p-0.5 text-muted-foreground shadow-sm hover:text-foreground group-hover:block"
+              onClick={() => removeCustom(a.id)}
+            >
+              <X className="size-3" />
+            </button>
+          </div>
+        ))}
+
         {names.map((name) => (
           <button
             key={name}
@@ -299,13 +353,14 @@ function IconLibrary() {
 
 export function IconPanel() {
   const selectedId = useSelectionStore((s) => s.selectedId);
+  const clear = useSelectionStore((s) => s.clear);
   const el = useDocumentStore((s) =>
     s.doc.elements.find((e) => e.id === selectedId && e.type === "icon"),
   ) as IconElement | undefined;
 
   return (
     <div>
-      <PanelHeader title="Icons" />
+      <PanelHeader title="Icons" onBack={el ? clear : undefined} />
       <div className="p-3">{el ? <SelectedIconEditor el={el} /> : <IconLibrary />}</div>
     </div>
   );
