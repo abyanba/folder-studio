@@ -32,7 +32,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
@@ -519,22 +519,28 @@ async function renderElement(
     if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
     else skipped.push(elementLabel(el));
   } else if (el.type === "image") {
-    const img = await loadImage(el.src);
+    const hasStroke = el.stroke?.enabled && (el.stroke.width || 0) > 0;
+    // With a stroke, render the shape-hugging outline SVG (feMorphology dilate
+    // of the logo's own alpha) — the same builder the editor injects. Without
+    // one, the fast path draws el.src directly.
+    const img = hasStroke
+      ? await loadImage(toSvgDataUrl(buildImageStrokeSvg(el, ew, eh)))
+      : await loadImage(el.src);
     if (img) {
       if (el.blendMode && el.blendMode !== "normal") {
         ctx.globalCompositeOperation = el.blendMode;
       }
-      // Letterbox to preserve aspect ratio, matching the editor's
-      // `object-fit: contain` (EXP-02) instead of stretching to the box.
-      const natW = img.naturalWidth ?? ew;
-      const natH = img.naturalHeight ?? eh;
-      const r = containRect(natW, natH, ew, eh);
-      ctx.drawImage(img, -ew / 2 + r.dx, -eh / 2 + r.dy, r.dw, r.dh);
-      if (el.stroke?.enabled && (el.stroke.width || 0) > 0) {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = el.stroke.color || "#000000";
-        ctx.lineWidth = (el.stroke.width || 2) * (size / FW);
-        ctx.strokeRect(-ew / 2, -eh / 2, ew, eh);
+      if (hasStroke) {
+        // The outline SVG already letterboxes the image (xMidYMid meet) inside
+        // the element box, so draw it to fill the box.
+        ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+      } else {
+        // Letterbox to preserve aspect ratio, matching the editor's
+        // `object-fit: contain` (EXP-02) instead of stretching to the box.
+        const natW = img.naturalWidth ?? ew;
+        const natH = img.naturalHeight ?? eh;
+        const r = containRect(natW, natH, ew, eh);
+        ctx.drawImage(img, -ew / 2 + r.dx, -eh / 2 + r.dy, r.dw, r.dh);
       }
     } else {
       skipped.push(elementLabel(el));
