@@ -112,6 +112,34 @@ describe("documentStore ordering and toggles", () => {
   it("duplicateElement returns null for unknown ids", () => {
     expect(store().duplicateElement("nope")).toBeNull();
   });
+
+  it("moveGroup shifts a selection as a block, keeping relative order", () => {
+    const a = addRect(0, 0);
+    const b = addRect(10, 10);
+    const c = addRect(20, 20);
+    const d = addRect(30, 30);
+    const order = () => store().doc.elements.map((e) => e.id);
+
+    // {a,c} up one: each hops past the next unselected neighbor toward front.
+    store().moveGroup([a, c], "up");
+    expect(order()).toEqual([b, a, d, c]);
+    store().moveGroup([a, c], "front");
+    expect(order()).toEqual([b, d, a, c]);
+    store().moveGroup([a, c], "back");
+    expect(order()).toEqual([a, c, b, d]);
+    store().moveGroup([a, c], "down"); // already at back → no-op
+    expect(order()).toEqual([a, c, b, d]);
+  });
+
+  it("duplicateElements clones a set in one entry, offset by 10", () => {
+    const a = addRect(5, 5);
+    const b = addRect(15, 15);
+    const newIds = store().duplicateElements([a, b]);
+    expect(newIds).toHaveLength(2);
+    expect(store().doc.elements).toHaveLength(4);
+    const copy = store().doc.elements.find((e) => e.id === newIds[0])!;
+    expect([copy.x, copy.y]).toEqual([15, 15]);
+  });
 });
 
 describe("documentStore folder setters", () => {

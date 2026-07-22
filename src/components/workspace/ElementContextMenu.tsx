@@ -34,6 +34,13 @@ import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
 import { hasClipboard, pasteClipboard, selectAll } from "@/lib/clipboard";
 import {
+  deleteFor,
+  duplicateFor,
+  moveGroupFor,
+  toggleLockFor,
+  toggleVisibleFor,
+} from "@/lib/multiSelectOps";
+import {
   copyElementStyle,
   hasStyleClipboard,
   pasteElementStyle,
@@ -90,10 +97,7 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
         <ContextMenuContent className="w-52">
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => {
-              const newId = useDocumentStore.getState().duplicateElement(el.id);
-              if (newId) useSelectionStore.getState().select(newId);
-            }}
+            onSelect={() => duplicateFor(el.id)}
           >
             <Copy />
             Duplicate
@@ -115,14 +119,14 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().bringToFront(el.id)}
+            onSelect={() => moveGroupFor(el.id, "front")}
           >
             <ArrowUpToLine />
             Bring to front
           </ContextMenuItem>
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().moveUp(el.id)}
+            onSelect={() => moveGroupFor(el.id, "up")}
           >
             <ChevronUp />
             Bring forward
@@ -130,7 +134,7 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
           </ContextMenuItem>
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().moveDown(el.id)}
+            onSelect={() => moveGroupFor(el.id, "down")}
           >
             <ChevronDown />
             Send backward
@@ -138,7 +142,7 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
           </ContextMenuItem>
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().sendToBack(el.id)}
+            onSelect={() => moveGroupFor(el.id, "back")}
           >
             <ArrowDownToLine />
             Send to back
@@ -146,14 +150,14 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().toggleLock(el.id)}
+            onSelect={() => toggleLockFor(el.id)}
           >
             {el.locked ? <LockOpen /> : <Lock />}
             {el.locked ? "Unlock" : "Lock"}
           </ContextMenuItem>
           <ContextMenuItem
             className="text-xs"
-            onSelect={() => useDocumentStore.getState().toggleVisible(el.id)}
+            onSelect={() => toggleVisibleFor(el.id)}
           >
             {el.visible === false ? <Eye /> : <EyeOff />}
             {el.visible === false ? "Show" : "Hide"}
@@ -162,10 +166,7 @@ export function ElementContextMenu({ children }: { children: ReactNode }) {
           <ContextMenuItem
             variant="destructive"
             className="text-xs"
-            onSelect={() => {
-              useDocumentStore.getState().removeElements([el.id]);
-              useSelectionStore.getState().clear();
-            }}
+            onSelect={() => deleteFor(el.id)}
           >
             <Trash2 />
             Delete

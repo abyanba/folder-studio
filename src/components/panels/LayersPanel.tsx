@@ -25,6 +25,7 @@ import {
   SortableItemHandle,
 } from "@/components/ui/sortable";
 import { MultiSelectControls, useHasMultiSelection } from "./MultiSelectControls";
+import { deleteFor, toggleLockFor, toggleVisibleFor } from "@/lib/multiSelectOps";
 import { buildDrawSvg, buildShapeSvg } from "@/lib/export/elementSvg";
 import { getIconBody, useIconCacheVersion } from "@/lib/iconify";
 import { getHex } from "@/lib/color";
@@ -38,6 +39,14 @@ import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
 
 const PATTERN_KEY = "__pattern__";
+
+/** Move one item within an array from index `from` to index `to`. */
+function arrayMove<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
 
 /** Plural label for the "Select all of type" action, per element type. */
 const TYPE_PLURAL: Record<FolderElement["type"], string> = {
@@ -193,7 +202,7 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
               aria-label={el.visible === false ? "Show layer" : "Hide layer"}
               onClick={(e) => {
                 e.stopPropagation();
-                useDocumentStore.getState().toggleVisible(el.id);
+                toggleVisibleFor(el.id);
               }}
             >
               {el.visible === false ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
@@ -205,7 +214,7 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
               aria-label={el.locked ? "Unlock layer" : "Lock layer"}
               onClick={(e) => {
                 e.stopPropagation();
-                useDocumentStore.getState().toggleLock(el.id);
+                toggleLockFor(el.id);
               }}
             >
               {el.locked ? <Lock className="size-3" /> : <LockOpen className="size-3" />}
@@ -217,8 +226,7 @@ function ElementRow({ el, displayKeys }: { el: FolderElement; displayKeys: strin
               aria-label={`Delete ${getElementLabel(el)}`}
               onClick={(e) => {
                 e.stopPropagation();
-                useDocumentStore.getState().removeElements([el.id]);
-                useSelectionStore.getState().clear();
+                deleteFor(el.id);
               }}
             >
               <Trash2 className="size-3" />
@@ -287,7 +295,35 @@ export function LayersPanel() {
         ) : (
           <Sortable
             value={keys}
-            onValueChange={(next) => applyLayerOrder(next)}
+            onMove={({ active, activeIndex, overIndex }) => {
+              const moved = arrayMove(keys, activeIndex, overIndex);
+              const activeKey = String(active.id);
+              const sel = useSelectionStore.getState().selectedIds;
+              // Not a grouped drag → plain single-row reorder.
+              if (!(sel.length > 1 && sel.includes(activeKey))) {
+                applyLayerOrder(moved);
+                return;
+              }
+              // Grouped drag: lift the whole selection out and re-insert it as a
+              // contiguous block where the dragged row landed, keeping its order.
+              const group = new Set(sel);
+              const groupOrdered = keys.filter((k) => group.has(k));
+              const withoutGroup = moved.filter((k) => !group.has(k));
+              const activePos = moved.indexOf(activeKey);
+              let anchor: string | null = null;
+              for (let i = activePos + 1; i < moved.length; i++) {
+                if (!group.has(moved[i])) {
+                  anchor = moved[i];
+                  break;
+                }
+              }
+              const at = anchor ? withoutGroup.indexOf(anchor) : withoutGroup.length;
+              applyLayerOrder([
+                ...withoutGroup.slice(0, at),
+                ...groupOrdered,
+                ...withoutGroup.slice(at),
+              ]);
+            }}
             orientation="vertical"
           >
             <SortableContent className="flex flex-col gap-1">

@@ -84,12 +84,20 @@ export interface DocumentStore {
   updateElements: (patches: Record<string, Partial<FolderElement>>) => void;
   removeElements: (ids: string[]) => void;
   duplicateElement: (id: string) => string | null;
+  /** Duplicate several elements as ONE undo entry; returns the new ids. */
+  duplicateElements: (ids: string[]) => string[];
 
   // Ordering
   moveUp: (id: string) => void;
   moveDown: (id: string) => void;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
+  /**
+   * Reorder a set of elements as one undo entry, preserving their relative
+   * order. "up"/"down" shift the block one step toward front/back; "front"/
+   * "back" send it all the way. Higher array index = nearer the front.
+   */
+  moveGroup: (ids: string[], dir: "up" | "down" | "front" | "back") => void;
   reorder: (fromId: string, toId: string) => void;
   /**
    * Apply a full layer order from the layers panel, given TOP-FIRST keys
@@ -309,6 +317,73 @@ export const useDocumentStore = create<DocumentStore>()(
         });
         return newId;
       },
+
+      duplicateElements: (ids) => {
+        const newIds: string[] = [];
+        set((s) => {
+          const want = new Set(ids);
+          const copies = s.doc.elements
+            .filter((e) => want.has(e.id))
+            .map((el) => {
+              const nid = createId();
+              newIds.push(nid);
+              return {
+                ...structuredClone(el),
+                id: nid,
+                x: el.x + 10,
+                y: el.y + 10,
+              } as FolderElement;
+            });
+          if (!copies.length) return s;
+          return { doc: { ...s.doc, elements: [...s.doc.elements, ...copies] } };
+        });
+        return newIds;
+      },
+
+      moveGroup: (ids, dir) =>
+        set((s) => {
+          const sel = new Set(ids);
+          const next = [...s.doc.elements];
+          if (!next.some((e) => sel.has(e.id))) return s;
+          if (dir === "front") {
+            return {
+              doc: {
+                ...s.doc,
+                elements: [
+                  ...next.filter((e) => !sel.has(e.id)),
+                  ...next.filter((e) => sel.has(e.id)),
+                ],
+              },
+            };
+          }
+          if (dir === "back") {
+            return {
+              doc: {
+                ...s.doc,
+                elements: [
+                  ...next.filter((e) => sel.has(e.id)),
+                  ...next.filter((e) => !sel.has(e.id)),
+                ],
+              },
+            };
+          }
+          if (dir === "up") {
+            // Walk top-down so each selected element hops past one unselected
+            // neighbor toward the front without members overtaking each other.
+            for (let i = next.length - 2; i >= 0; i--) {
+              if (sel.has(next[i].id) && !sel.has(next[i + 1].id)) {
+                [next[i], next[i + 1]] = [next[i + 1], next[i]];
+              }
+            }
+          } else {
+            for (let i = 1; i < next.length; i++) {
+              if (sel.has(next[i].id) && !sel.has(next[i - 1].id)) {
+                [next[i], next[i - 1]] = [next[i - 1], next[i]];
+              }
+            }
+          }
+          return { doc: { ...s.doc, elements: next } };
+        }),
 
       moveUp: (id) =>
         set((s) => {

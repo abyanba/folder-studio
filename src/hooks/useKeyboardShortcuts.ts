@@ -148,10 +148,10 @@ export function useKeyboardShortcuts(): void {
         return;
       }
       if (mod && k === "d") {
-        if (sel.selectedId) {
+        if (sel.selectedIds.length) {
           e.preventDefault();
-          const newId = store.duplicateElement(sel.selectedId);
-          if (newId) sel.select(newId);
+          const newIds = store.duplicateElements(sel.selectedIds);
+          if (newIds.length) sel.setMany(newIds);
         }
         return;
       }
@@ -170,11 +170,10 @@ export function useKeyboardShortcuts(): void {
       // below, which is the only place that can see the system clipboard. Doing
       // both would paste copied elements AND a pasted image on the same press.
       if (mod && k === "v") return;
-      // Z-order on the primary selection: [ sends back one, ] brings forward one.
-      if ((k === "[" || k === "]") && sel.selectedId) {
+      // Z-order on the whole selection: [ sends back one, ] brings forward one.
+      if ((k === "[" || k === "]") && sel.selectedIds.length) {
         e.preventDefault();
-        if (k === "]") store.moveUp(sel.selectedId);
-        else store.moveDown(sel.selectedId);
+        store.moveGroup(sel.selectedIds, k === "]" ? "up" : "down");
         return;
       }
       if (ARROW_KEYS.has(k) && sel.selectedIds.length && !isInteractiveTarget(e.target)) {
