@@ -32,7 +32,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, shapeStrokePadPx } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, imageStrokePadPx, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
@@ -531,9 +531,11 @@ async function renderElement(
         ctx.globalCompositeOperation = el.blendMode;
       }
       if (hasStroke) {
-        // The outline SVG already letterboxes the image (xMidYMid meet) inside
-        // the element box, so draw it to fill the box.
-        ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
+        // The outline SVG letterboxes the image (xMidYMid meet) inside the
+        // element box, but is inflated by the outline's outward reach so the
+        // ring isn't cropped — draw it offset by that same pad.
+        const { px, py } = imageStrokePadPx(el, ew, eh);
+        ctx.drawImage(img, -ew / 2 - px, -eh / 2 - py, ew + px * 2, eh + py * 2);
       } else {
         // Letterbox to preserve aspect ratio, matching the editor's
         // `object-fit: contain` (EXP-02) instead of stretching to the box.

@@ -73,11 +73,17 @@ export function buildImageStrokeSvg(el: ImageElement, ew: number, eh: number): s
   const r = el.stroke?.width || 0;
   const color = el.stroke?.color || "#000000";
   const id = "isk" + el.id;
+  // The dilate paints the outline OUTSIDE the logo's silhouette, and the logo
+  // can touch the element box edge — so inflate the viewBox by `r` on every side
+  // or the ring is cropped at the box (matches buildShapeSvg). Callers size/
+  // offset by imageStrokePadPx to keep it centered on the box.
+  const vbW = W + r * 2;
+  const vbH = H + r * 2;
   // el.src is a data:/blob: URL; color-logo data URLs are encodeURIComponent'd
   // (no literal quotes) and base64/blob URLs never contain quotes, so it embeds
   // safely in a double-quoted attribute.
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew * (vbW / W))}" height="${Math.ceil(eh * (vbH / H))}" viewBox="${-r} ${-r} ${vbW} ${vbH}" preserveAspectRatio="none">` +
     `<defs><filter id="${id}" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">` +
     `<feMorphology in="SourceAlpha" operator="dilate" radius="${r}" result="d"/>` +
     `<feFlood flood-color="${color}"/>` +
@@ -87,6 +93,24 @@ export function buildImageStrokeSvg(el: ImageElement, ew: number, eh: number): s
     `<g filter="url(#${id})"><image href="${el.src}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/></g>` +
     `</svg>`
   );
+}
+
+/**
+ * How far a stroked image's outline reaches OUTSIDE its element box, in element
+ * pixels per axis. The outline dilates the logo's alpha by `stroke.width`
+ * workspace units and the logo can touch the box edge, so the ring extends that
+ * far beyond it. Callers size/offset the SVG by this or it's cropped — mirrors
+ * {@link shapeStrokePadPx}.
+ */
+export function imageStrokePadPx(
+  el: ImageElement,
+  ew: number,
+  eh: number,
+): { px: number; py: number } {
+  const r = el.stroke?.enabled ? el.stroke.width || 0 : 0;
+  const W = el.width || ew;
+  const H = el.height || eh;
+  return { px: (ew * r) / W, py: (eh * r) / H };
 }
 
 /** Build the SVG for an icon element, applying its solid/gradient color. */

@@ -12,7 +12,7 @@ import { hexA, textGradientCss } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import { DEFAULT_ELEMENT_MATERIAL, elementMaterial } from "@/types/element";
 import type { FolderElement, TextElement } from "@/types/element";
-import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "@/lib/export/elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, imageStrokePadPx, innerShadowFilter, shapeStrokePadPx } from "@/lib/export/elementSvg";
 import { buildElementMaterialFilter } from "@/lib/export/materials";
 import { getIconBody, iconStatus, useIconCacheVersion } from "@/lib/iconify";
 import { useDocumentStore } from "@/store/documentStore";
@@ -280,7 +280,11 @@ function ElementViewImpl({ el, override, onPointerDown }: Props) {
     [el, width, height, iconVersion, materialPreview],
   );
   const svgPad =
-    el.type === "shape" ? shapeStrokePadPx(el, width, height) : { px: 0, py: 0 };
+    el.type === "shape"
+      ? shapeStrokePadPx(el, width, height)
+      : el.type === "image" && el.stroke?.enabled && (el.stroke.width || 0) > 0
+        ? imageStrokePadPx(el, width, height)
+        : { px: 0, py: 0 };
   // Live-preview of a hovered blend mode (image panel) on the selected image.
   const blendPreview = useUiStore((s) =>
     el.type === "image" ? s.blendPreview : null,
