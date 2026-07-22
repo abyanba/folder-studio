@@ -191,6 +191,28 @@ describe("buildIconSvg", () => {
     expect(svg).toContain('stdDeviation="6 6"'); // 3 * 2
     expect(svg).toContain("<feComponentTransfer");
   });
+
+  it("outlines the silhouette with a dilate filter and grows the viewBox", () => {
+    const el = iconEl("#000000");
+    el.width = 128;
+    el.height = 128;
+    el.stroke = { enabled: true, width: 8, color: "#ff0000" };
+    const svg = buildIconSvg(el, fillBody, 128, 128);
+    // 256 viewBox, 128 workspace units → 8 units = 16 viewBox units.
+    expect(svg).toContain(`<filter id="iks${el.id}"`);
+    expect(svg).toContain('operator="dilate" radius="16 16"');
+    expect(svg).toContain('flood-color="#ff0000"');
+    // viewBox inflated by the radius on every side (256 + 16*2 = 288).
+    expect(svg).toContain('viewBox="-16 -16 288 288"');
+  });
+
+  it("leaves the viewBox untouched when the stroke is disabled", () => {
+    const el = iconEl("#000000");
+    el.stroke = { enabled: false, width: 8, color: "#ff0000" };
+    const svg = buildIconSvg(el, fillBody, 80, 80);
+    expect(svg).toContain('viewBox="0 0 256 256"');
+    expect(svg).not.toContain("dilate");
+  });
 });
 
 const drawEl = (color: Gradient | string) =>

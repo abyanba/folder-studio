@@ -172,6 +172,8 @@ export interface IconElement extends BaseElement {
   dropShadow?: DropShadow;
   /** Inner shadow, cast inside the icon's own alpha (independent of dropShadow). */
   innerShadow?: DropShadow;
+  /** Silhouette outline (mono logos), same shape-hugging dilate as images. */
+  stroke?: { color: string; enabled: boolean; width: number };
 }
 
 export interface DrawElement extends BaseElement {

@@ -21,6 +21,7 @@ import { ColorField } from "@/components/color/ColorField";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { MaterialControls } from "@/components/controls/MaterialControls";
 import { DEFAULT_INNER_SHADOW, ShadowControls } from "@/components/controls/ShadowControls";
+import { StrokeControls } from "@/components/controls/StrokeControls";
 import { TransformFields } from "@/components/controls/TransformFields";
 import { ICON_CATEGORIES, ICON_NAMES } from "@/data/iconNames";
 import {
@@ -172,6 +173,23 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
             </SelectContent>
           </Select>
         </PanelSection>
+      )}
+
+      {el.iconVariant === "logo" && (
+        <StrokeControls
+          enabled={el.stroke?.enabled ?? false}
+          width={el.stroke?.width ?? 2}
+          color={el.stroke?.color ?? "#000000"}
+          onChange={(patch) =>
+            updateElement(el.id, {
+              stroke: {
+                enabled: patch.enabled ?? el.stroke?.enabled ?? false,
+                width: patch.width ?? el.stroke?.width ?? 2,
+                color: patch.color ?? el.stroke?.color ?? "#000000",
+              },
+            })
+          }
+        />
       )}
 
       <ShadowControls

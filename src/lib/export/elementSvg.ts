@@ -113,6 +113,21 @@ export function imageStrokePadPx(
   return { px: (ew * r) / W, py: (eh * r) / H };
 }
 
+/**
+ * How far a stroked icon's outline reaches OUTSIDE its element box, in element
+ * pixels per axis — mirrors {@link imageStrokePadPx}. buildIconSvg grows its
+ * viewBox by the stroke radius, so the injected SVG overhangs the box by this
+ * much; callers size/offset by it or the ring is cropped.
+ */
+export function iconStrokePadPx(
+  el: IconElement,
+  ew: number,
+  eh: number,
+): { px: number; py: number } {
+  const r = el.stroke?.enabled ? el.stroke.width || 0 : 0;
+  return { px: (ew * r) / (el.width || ew), py: (eh * r) / (el.height || eh) };
+}
+
 /** Build the SVG for an icon element, applying its solid/gradient color. */
 export function buildIconSvg(
   el: IconElement,
@@ -140,8 +155,38 @@ export function buildIconSvg(
     defsInner += innerShadowFilter(fid, el.innerShadow, vw / ew, vh / eh);
     body = `<g filter="url(#${fid})">${body}</g>`;
   }
+
+  // Silhouette outline: dilate the icon's own alpha and flood it behind the
+  // body, hugging the glyph like the color-logo image stroke (buildImageStrokeSvg).
+  // stroke.width is in workspace units, converted to viewBox units per axis so
+  // it scales with the element; the viewBox grows by that radius or the ring is
+  // cropped at the box edge. Callers offset by iconStrokePadPx to keep it centered.
+  let vbMinX = 0;
+  let vbMinY = 0;
+  let vbW = vw;
+  let vbH = vh;
+  if (el.stroke?.enabled && (el.stroke.width || 0) > 0) {
+    const rx = (el.stroke.width * vw) / (el.width || vw);
+    const ry = (el.stroke.width * vh) / (el.height || vh);
+    const sid = "iks" + el.id;
+    defsInner +=
+      `<filter id="${sid}" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">` +
+      `<feMorphology in="SourceAlpha" operator="dilate" radius="${n(rx)} ${n(ry)}" result="d"/>` +
+      `<feFlood flood-color="${el.stroke.color || "#000000"}"/>` +
+      `<feComposite in2="d" operator="in" result="o"/>` +
+      `<feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+      `</filter>`;
+    body = `<g filter="url(#${sid})">${body}</g>`;
+    vbMinX = -rx;
+    vbMinY = -ry;
+    vbW = vw + rx * 2;
+    vbH = vh + ry * 2;
+  }
+
   const defs = defsInner ? `<defs>${defsInner}</defs>` : "";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(ew)}" height="${Math.ceil(eh)}" viewBox="0 0 ${vw} ${vh}">${defs}${body}</svg>`;
+  const w = Math.ceil(ew * (vbW / vw));
+  const h = Math.ceil(eh * (vbH / vh));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${n(vbMinX)} ${n(vbMinY)} ${n(vbW)} ${n(vbH)}">${defs}${body}</svg>`;
   // Grain frequency is expressed in workspace units, so it is converted with
   // the element's WORKSPACE size — using `ew` would make the grain finer at
   // every export scale than it looks in the editor.
@@ -151,7 +196,7 @@ export function buildIconSvg(
     "im" + el.id,
     (el.width || vw) / vw,
     (el.height || vh) / vh,
-    materialRegion(vw, vh),
+    materialRegion(vbW, vbH, 0.15, vbMinX, vbMinY),
   );
 }
 

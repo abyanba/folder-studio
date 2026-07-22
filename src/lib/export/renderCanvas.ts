@@ -32,7 +32,7 @@ import {
   getFrontMask,
   isFrontImage,
 } from "./baseShapes";
-import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, imageStrokePadPx, shapeStrokePadPx } from "./elementSvg";
+import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, iconStrokePadPx, imageStrokePadPx, shapeStrokePadPx } from "./elementSvg";
 import type { IconBody } from "./elementSvg";
 import { containRect } from "./containRect";
 import { gradientLine } from "./gradientSvg";
@@ -516,8 +516,12 @@ async function renderElement(
   if (el.type === "icon") {
     const body = deps.getIconBody(el.iconName, el.iconVariant || "regular");
     const img = body ? await loadImage(toSvgDataUrl(buildIconSvg(el, body, ew, eh))) : null;
-    if (img) ctx.drawImage(img, -ew / 2, -eh / 2, ew, eh);
-    else skipped.push(elementLabel(el));
+    if (img) {
+      // A stroke grows buildIconSvg's viewBox beyond the box (like images), so
+      // draw it inflated by that same outward reach or the ring is cropped.
+      const { px, py } = iconStrokePadPx(el, ew, eh);
+      ctx.drawImage(img, -ew / 2 - px, -eh / 2 - py, ew + px * 2, eh + py * 2);
+    } else skipped.push(elementLabel(el));
   } else if (el.type === "image") {
     const hasStroke = el.stroke?.enabled && (el.stroke.width || 0) > 0;
     // With a stroke, render the shape-hugging outline SVG (feMorphology dilate
