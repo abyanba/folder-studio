@@ -16,6 +16,8 @@ export interface GradientStop {
   sat: number;
   /** Brightness/value, 0..1. */
   bri: number;
+  /** Alpha, 0..1. Optional; undefined = fully opaque (backward compatible). */
+  alpha?: number;
 }
 
 export interface Gradient {

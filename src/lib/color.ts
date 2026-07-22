@@ -83,10 +83,20 @@ export function hexA(hex: string, alpha = 1): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/**
+ * HSV(+alpha) → a color string: hex when opaque, `rgba(...)` when the stop
+ * carries an alpha < 1. The single place stop color+alpha is formatted, shared
+ * by CSS, and mirrored (as `stop-opacity`) by the SVG/canvas paths.
+ */
+export function stopColor(h: number, s: number, v: number, alpha?: number): string {
+  const hex = getHex(h, s, v);
+  return alpha === undefined || alpha >= 1 ? hex : hexA(hex, alpha);
+}
+
 function stopList(gradient: Gradient): string {
   return [...gradient.stops]
     .sort((a, b) => a.pos - b.pos)
-    .map((s) => `${getHex(s.hue, s.sat, s.bri)} ${Math.round(s.pos * 100)}%`)
+    .map((s) => `${stopColor(s.hue, s.sat, s.bri, s.alpha)} ${Math.round(s.pos * 100)}%`)
     .join(",");
 }
 

@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useDocumentStore } from "@/store/documentStore";
@@ -51,6 +52,12 @@ const ICO_MAX = 256;
 /** ICO and ICNS are packed as one multi-resolution file (size picker n/a). */
 const isMultiRes = (f: ExportFormat) => f === "ico" || f === "icns";
 
+/** Strip path separators / illegal filename chars; fall back to the default. */
+function sanitizeName(raw: string): string {
+  const clean = raw.replace(/[/\\?%*:|"<>]/g, "").trim();
+  return clean || "folder-icon";
+}
+
 const deps: RenderDeps = { getIconBody, prepare: prepareDocumentAssets };
 
 export function ExportDialog() {
@@ -62,6 +69,7 @@ export function ExportDialog() {
   // same icon for each platform.
   const [batchSizes, setBatchSizes] = useState<string[]>(["256"]);
   const [batchFormats, setBatchFormats] = useState<string[]>([...FORMATS]);
+  const [name, setName] = useState("folder-icon");
   const [busy, setBusy] = useState(false);
 
   // ICO is capped at 256px (EXP-08): restrict single-mode sizes and, in batch,
@@ -108,20 +116,21 @@ export function ExportDialog() {
   function exportSingle() {
     return run(async () => {
       const doc = useDocumentStore.getState().doc;
+      const base = sanitizeName(name);
       // ICO is always packed as one multi-resolution file (Windows picks the
       // sharpest size per context), so the size picker doesn't apply to it.
       if (format === "ico") {
-        deliver(await exportIcoMulti(doc, ICO_SIZES, deps), "folder-icon.ico");
+        deliver(await exportIcoMulti(doc, ICO_SIZES, deps), `${base}.ico`);
         return;
       }
       if (format === "icns") {
-        deliver(await exportIcns(doc, ICNS_EXPORT_SIZES, deps), "folder-icon.icns");
+        deliver(await exportIcns(doc, ICNS_EXPORT_SIZES, deps), `${base}.icns`);
         return;
       }
       const sz = Number(size);
       const result =
         format === "png" ? await exportPng(doc, sz, deps) : await exportSvg(doc, sz, deps);
-      deliver(result, `folder-icon-${sz}.${format}`);
+      deliver(result, `${base}-${sz}.${format}`);
     });
   }
 
@@ -134,7 +143,7 @@ export function ExportDialog() {
         batchFormats as ExportFormat[],
         deps,
       );
-      deliver(result, "folder-icons.zip");
+      deliver(result, `${sanitizeName(name)}.zip`);
     });
   }
 
@@ -155,6 +164,11 @@ export function ExportDialog() {
             Download one file, or a ZIP with every selected size and format.
           </DialogDescription>
         </DialogHeader>
+
+        <label className="grid gap-1.5 text-sm">
+          <span className="text-muted-foreground">File name</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="folder-icon" />
+        </label>
 
         <Tabs value={mode} onValueChange={(v) => setMode(v as "single" | "batch")}>
           <TabsList className="w-full">

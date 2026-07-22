@@ -54,6 +54,19 @@ describe("gradientStops", () => {
       '<stop offset="0%" stop-color="#ff0000"/><stop offset="100%" stop-color="#0000ff"/>',
     );
   });
+  it("adds stop-opacity only for stops with alpha < 1 (fade to transparent)", () => {
+    const g: Gradient = {
+      kind: "linear",
+      angle: 90,
+      stops: [
+        { id: "a", pos: 0, hue: 0, sat: 1, bri: 1, alpha: 1 },
+        { id: "b", pos: 1, hue: 0, sat: 1, bri: 1, alpha: 0 },
+      ],
+    };
+    expect(gradientStops(g)).toBe(
+      '<stop offset="0%" stop-color="#ff0000"/><stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>',
+    );
+  });
 });
 
 describe("gradientElement", () => {

@@ -56,10 +56,10 @@ export function gradientLine(angleDeg: number, w: number, h: number): GradientLi
 export function gradientStops(gradient: Gradient): string {
   return [...gradient.stops]
     .sort((a, b) => a.pos - b.pos)
-    .map(
-      (s) =>
-        `<stop offset="${Math.round(s.pos * 100)}%" stop-color="${getHex(s.hue, s.sat, s.bri)}"/>`,
-    )
+    .map((s) => {
+      const op = s.alpha === undefined || s.alpha >= 1 ? "" : ` stop-opacity="${s.alpha}"`;
+      return `<stop offset="${Math.round(s.pos * 100)}%" stop-color="${getHex(s.hue, s.sat, s.bri)}"${op}/>`;
+    })
     .join("");
 }
 

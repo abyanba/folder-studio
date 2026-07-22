@@ -94,7 +94,7 @@ describe("batch export", () => {
     const [, sizes, formats] = mocks.batchExportZip.mock.calls[0];
     expect(sizes).toEqual([256, 128]); // selection order, 256 preselected
     expect(formats).toEqual(["png", "ico"]);
-    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icons.zip");
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "folder-icon.zip");
   });
 
   it("cannot deselect the last format", async () => {

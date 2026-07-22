@@ -29,11 +29,13 @@ export function interpolateStop(stops: GradientStop[], pos: number): Omit<Gradie
   if (!prev) return { pos, hue: next!.hue, sat: next!.sat, bri: next!.bri };
   if (!next || next === prev) return { pos, hue: prev.hue, sat: prev.sat, bri: prev.bri };
   const t = next.pos === prev.pos ? 0 : (pos - prev.pos) / (next.pos - prev.pos);
+  const a = (s: GradientStop) => s.alpha ?? 1;
   return {
     pos,
     hue: prev.hue + (next.hue - prev.hue) * t,
     sat: prev.sat + (next.sat - prev.sat) * t,
     bri: prev.bri + (next.bri - prev.bri) * t,
+    alpha: a(prev) + (a(next) - a(prev)) * t,
   };
 }
 
@@ -190,6 +192,17 @@ export function GradientEditor({
               updateStop(selected.id, { hue: h, sat: s, bri: v });
             }}
           />
+          <div {...previewDrag}>
+            <SliderField
+              label="Opacity"
+              value={selected.alpha ?? 1}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) => updateStop(selected.id, { alpha: v })}
+              format={(v) => `${Math.round(v * 100)}%`}
+            />
+          </div>
         </>
       )}
     </div>

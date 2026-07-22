@@ -16,7 +16,7 @@
  */
 
 import { CDX, CDY, FH, FW } from "@/lib/constants";
-import { getHex, hexA } from "@/lib/color";
+import { getHex, hexA, stopColor } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { FolderDocument } from "@/types/document";
 import { elementMaterial } from "@/types/element";
@@ -224,7 +224,7 @@ function renderText(
       const gl = gradientLine(el.color.angle || 90, ew, eh);
       tg = ctx.createLinearGradient(gl.x1 - ew / 2, gl.y1 - eh / 2, gl.x2 - ew / 2, gl.y2 - eh / 2);
     }
-    sortedStops.forEach((st) => tg.addColorStop(st.pos, getHex(st.hue, st.sat, st.bri)));
+    sortedStops.forEach((st) => tg.addColorStop(st.pos, stopColor(st.hue, st.sat, st.bri, st.alpha)));
     ctx.fillStyle = tg;
   } else {
     ctx.fillStyle = el.color;
