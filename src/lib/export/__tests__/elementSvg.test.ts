@@ -238,6 +238,11 @@ describe("buildImageStrokeSvg", () => {
     // The logo is embedded and letterboxed like object-fit: contain.
     expect(svg).toContain('preserveAspectRatio="xMidYMid meet"');
     expect(svg).toContain(`href="${el.src}"`);
-    expect(svg).toContain('viewBox="0 0 100 80"');
+    // viewBox is inflated by the 3-unit outline reach on every side so the ring
+    // isn't cropped at the box (100+6 × 80+6, origin −3,−3); the <image> still
+    // sits at 0,0,100,80.
+    expect(svg).toContain('viewBox="-3 -3 106 86"');
+    expect(svg).toContain('width="106" height="86"');
+    expect(svg).toContain('<image href="' + el.src + '" x="0" y="0" width="100" height="80"');
   });
 });
