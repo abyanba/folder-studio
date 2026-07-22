@@ -139,18 +139,68 @@ async function fetchSvg(slug: string): Promise<string | null> {
   return null;
 }
 
+/**
+ * Presentation attributes that INHERIT into children. When svgl sets these on
+ * the root `<svg>` (e.g. Docker's blue `fill`, dark logos' white `fill`/`color`
+ * that `currentColor` reads), stripping the root tag would drop them and the
+ * body would render with the default black fill — so they're carried onto the
+ * body's wrapping `<g>`.
+ */
+const ROOT_PAINT_ATTRS = [
+  "fill",
+  "fill-opacity",
+  "fill-rule",
+  "color",
+  "stroke",
+  "stroke-width",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-miterlimit",
+  "stroke-opacity",
+  "stroke-dasharray",
+];
+
+/** Inheritable paints set on the root `<svg>` tag, as `attr="value"` strings. */
+function rootPaints(openTag: string): string {
+  const paints = new Map<string, string>();
+  for (const a of ROOT_PAINT_ATTRS) {
+    const m = openTag.match(new RegExp(`\\s${a}="([^"]*)"`, "i"));
+    if (m) paints.set(a, m[1]);
+  }
+  // Inline `style` wins over the presentation attribute, per CSS precedence.
+  const style = openTag.match(/\sstyle="([^"]*)"/i)?.[1];
+  if (style) {
+    for (const seg of style.split(";")) {
+      const i = seg.indexOf(":");
+      if (i < 0) continue;
+      const prop = seg.slice(0, i).trim().toLowerCase();
+      const val = seg.slice(i + 1).trim();
+      if (val && ROOT_PAINT_ATTRS.includes(prop)) paints.set(prop, val);
+    }
+  }
+  return [...paints].map(([k, v]) => `${k}="${v}"`).join(" ");
+}
+
 function parseSvg(svg: string, name: string): BodyData {
   const open = svg.match(/<svg[^>]*>/i);
   if (!open) throw new Error("no <svg> tag");
   let body = svg.slice(svg.indexOf(open[0]) + open[0].length, svg.lastIndexOf("</svg>")).trim();
   if (!body) throw new Error("empty body");
+  // `xlink:href` only resolves when the `xlink` namespace is declared, which the
+  // consumers' wrapper `<svg>` doesn't carry — so gradient-template inheritance
+  // (`<radialGradient xlink:href>`) and `<use>` silently break in a standalone
+  // data-URL <img>. Rewrite to the plain SVG2 `href`, which needs no namespace.
+  body = body.replaceAll("xlink:href", "href");
   // Consumers render the body in a `0 0 w h` viewBox, so a source viewBox with
   // a non-zero origin used to render offset/half-clipped. Shift it back here.
   const vb = open[0].match(/viewBox="([\d.\s,-]+)"/i)?.[1]?.split(/[\s,]+/).map(Number);
   const [minX, minY] = [vb?.[0] ?? 0, vb?.[1] ?? 0];
   const width = vb?.[2] ?? Number(open[0].match(/width="([\d.]+)"/i)?.[1] ?? 24);
   const height = vb?.[3] ?? Number(open[0].match(/height="([\d.]+)"/i)?.[1] ?? 24);
-  if (minX || minY) body = `<g transform="translate(${-minX} ${-minY})">${body}</g>`;
+  // Carry inherited root paints and any origin shift onto one wrapping `<g>`.
+  const paint = rootPaints(open[0]);
+  const transform = minX || minY ? ` transform="translate(${-minX} ${-minY})"` : "";
+  if (paint || transform) body = `<g${paint ? ` ${paint}` : ""}${transform}>${body}</g>`;
   // These bodies are rasterized as standalone `<img>` data-URLs, where external
   // references never load — such a logo would ship as a blank.
   if (/<image\b[^>]*href="https?:/i.test(body)) throw new Error("external <image> reference");
