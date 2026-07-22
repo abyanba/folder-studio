@@ -825,6 +825,6 @@ describe("BASE_SHAPES ordering", () => {
     expect(BASE_SHAPES[0].id).toBe("windows");
     expect(BASE_SHAPES.map((s) => s.id)).toContain("macos");
     // Temporarily trimmed to the enabled focus bases.
-    expect(BASE_SHAPES.map((s) => s.id)).toEqual(["windows", "macos", "yaru"]);
+    expect(BASE_SHAPES.map((s) => s.id)).toEqual(["windows", "macos", "yaru", "papirus"]);
   });
 });

@@ -30,6 +30,7 @@ import {
   macDerivedTabColor,
   WINDOWS_GRADIENT_ALGOS,
   WINDOWS_IMAGE_MODES,
+  papirusDerivedTabColor,
   windowsDerivedTabColor,
   windowsImageModeName,
   yaruDerivedTabColor,
@@ -281,14 +282,17 @@ function BackTabColor() {
   const custom = backColor != null;
   const isMac = doc.baseShape === "macos";
   const isYaru = doc.baseShape === "yaru";
+  const isPapirus = doc.baseShape === "papirus";
   const imageMode = isMac ? doc.macImageMode : doc.windowsImageMode;
-  // Yaru has no front-only image mode, so the tab is always colorable there.
-  const disabled = !isYaru && doc.folderFillMode === "image" && imageMode === "full";
+  // Yaru/Papirus have no front-only image mode, so the tab is always colorable.
+  const disabled = !isYaru && !isPapirus && doc.folderFillMode === "image" && imageMode === "full";
   const derived = isMac
     ? macDerivedTabColor(doc)
     : isYaru
       ? yaruDerivedTabColor(doc)
-      : windowsDerivedTabColor(doc);
+      : isPapirus
+        ? papirusDerivedTabColor(doc)
+        : windowsDerivedTabColor(doc);
   return (
     <PanelSection
       title="Back (tab)"
@@ -546,9 +550,10 @@ export function ColorPanel() {
 
         <FolderMaterialSection />
 
-        {(doc.baseShape === "windows" || doc.baseShape === "macos" || doc.baseShape === "yaru") && (
-          <BackTabColor />
-        )}
+        {(doc.baseShape === "windows" ||
+          doc.baseShape === "macos" ||
+          doc.baseShape === "yaru" ||
+          doc.baseShape === "papirus") && <BackTabColor />}
         {(doc.baseShape === "windows" || doc.baseShape === "macos") &&
           doc.folderState === "contents" && <PaperColorSection />}
       </div>

@@ -1063,6 +1063,89 @@ export function yaruDerivedTabColor(doc: FolderDocument): string {
   return getHex(t[0], t[1], t[2]);
 }
 
+/* ------------------------------------------------------------------------ *
+ * Papirus folder — a flat two-tone design.
+ *
+ * Geometry lifted verbatim from the official Papirus 64px folder SVG
+ * (docs/attachment/references/papirus-folder/folder-blue.svg), scaled into the
+ * 256 box via PAP_TF. Layers (bottom→top): a soft drop-shadow rect, the back
+ * panel/tab, a second shadow rect, an always-present light paper sheet peeking
+ * above the front, the front panel, and a faint white top-edge highlight — all
+ * flat fills (Papirus is a flat theme). Only the front (`folderColor`) and tab
+ * (`folderBackColor` custom, else a darker Auto derivation) are parameterized;
+ * the paper, shadows and highlight are the source's own color-independent
+ * overlays. Default pick = the signature Papirus blue.
+ * ------------------------------------------------------------------------ */
+
+/** Places the 64px source art (centered on 32,28) into the 256 box. */
+const PAP_TF = "translate(-13 5) scale(4.4)";
+/** Back panel + tab (source coords; Z added to close the fill explicitly). */
+const PAP_BACK = "M4,46.2 C4,47.751 5.2488,49 6.8,49 H57.2 C58.751,49 60,47.751 60,46.2 V15.8 C60,14.249 58.751,13 57.2,13 H32 C27.8,13 26.4,7 22.2,7 H6.8 C5.2488,7 4,8.2488 4,9.8Z";
+/** Faint white highlight tracing the tab top edge (source, opacity 0.1). */
+const PAP_HIGHLIGHT = "M6.8008,7 C5.2496,7 4,8.2496 4,9.8008 V10.801 C4,9.2496 5.2496,8 6.8008,8 H22.199 C26.399,8 27.8,14 32,14 H57.199 C58.75,14 60,15.25 60,16.801 V15.801 C60,14.25 58.75,13 57.199,13 H32 C27.8,13 26.399,7 22.199,7 Z";
+/** Bounding box of the back panel/tab (source coords), for a custom tab gradient. */
+const PAP_TAB_BBOX = { x0: 4, y0: 7, x1: 60, y1: 49 };
+
+/** Auto back-tab HSV derived from the front: darker (tuned so blue matches). */
+function papirusAutoBack([h, s, v]: Hsv3): Hsv3 {
+  return [h, clamp01(s * 0.93), clamp01(v * 0.78)];
+}
+
+/** The tab fill (custom gradient → its own angle; else a solid darker tone). */
+function papirusBackFill(cs: ShapeColorState, frontHsv: Hsv3): { defs: string; fill: string } {
+  const back = cs.backColor;
+  if (back && isGradient(back)) {
+    return { defs: angleGradientEl("pbg", back.angle, back.stops, PAP_TAB_BBOX), fill: "url(#pbg)" };
+  }
+  const c = back ? hexToHsv(back) : papirusAutoBack(frontHsv);
+  return { defs: "", fill: hsvHex(c) };
+}
+
+/** The Papirus render: exact source geometry, parameterized front + tab fills. */
+function buildPapirusSvg(cs: ShapeColorState): string {
+  let frontHsv: Hsv3;
+  let frontDefs = "";
+  let frontFill: string;
+  if (cs.mode === "solid") {
+    frontHsv = [cs.hue, cs.sat, cs.bri];
+    frontFill = getHex(cs.hue, cs.sat, cs.bri);
+  } else {
+    const rep = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
+    frontHsv = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
+    frontDefs = complexGradient("pfg", cs);
+    frontFill = "url(#pfg)";
+  }
+  const back = papirusBackFill(cs, frontHsv);
+  return (
+    `${SVG_OPEN}<defs>${back.defs}${frontDefs}</defs>` +
+    `<g transform="${PAP_TF}">` +
+    `<rect opacity="0.2" width="56" height="36" x="4" y="22" rx="2.8"/>` +
+    `<path d="${PAP_BACK}" fill="${back.fill}"/>` +
+    `<rect opacity="0.2" width="56" height="36" x="4" y="20" rx="2.8"/>` +
+    `<rect fill="#e4e4e4" width="48" height="22" x="8" y="16" rx="2.8"/>` +
+    `<rect fill="${frontFill}" width="56" height="36" x="4" y="21" rx="2.8"/>` +
+    `<path opacity="0.1" fill="#ffffff" d="${PAP_HIGHLIGHT}"/>` +
+    `</g></svg>`
+  );
+}
+
+/**
+ * The Auto (derived) tab color for the Papirus folder — seeds the custom-back
+ * field so it starts matching. Mirrors {@link windowsDerivedTabColor}.
+ */
+export function papirusDerivedTabColor(doc: FolderDocument): string {
+  const cs = toShapeColorState(doc.folderColor);
+  const hsv: Hsv3 =
+    cs.mode === "gradient"
+      ? (() => {
+          const l = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
+          return l ? ([l.hue, l.sat, l.bri] as Hsv3) : [0, 0, 0.6];
+        })()
+      : [cs.hue, cs.sat, cs.bri];
+  const c = papirusAutoBack(hsv);
+  return getHex(c[0], c[1], c[2]);
+}
+
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "classic",
@@ -1136,6 +1219,14 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultBackColor: SURU_GRADIENT,
     buildSvg: buildYaruSvg,
     mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${YARU_TF}"><path d="${YARU_BACK}" fill="white"/><path d="${YARU_FRONT}" fill="white"/></g></svg>`,
+  },
+  {
+    id: "papirus",
+    name: "Papirus",
+    defaultHsv: [213, 0.637, 0.886],
+    defaultClip: true,
+    buildSvg: buildPapirusSvg,
+    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
   },
   {
     id: "glass",
@@ -1232,7 +1323,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "yaru", "file-folder", "glass", "minimal"];
+const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "file-folder", "glass", "minimal"];
 
 /**
  * TEMPORARY: the picker is focused on the two highest-demand bases. Every shape
@@ -1240,7 +1331,7 @@ const _SOLID_ORDER = ["windows", "macos", "yaru", "file-folder", "glass", "minim
  * shapes keep working — they're just not offered in the panel. Widen this list
  * to bring the others back.
  */
-const _ENABLED_SHAPES = ["windows", "macos", "yaru"];
+const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [
