@@ -29,6 +29,7 @@ import {
   DEFAULT_WINDOWS_COLOR_PROFILE,
   DEFAULT_WINDOWS_GRADIENT_ALGO,
 } from "@/types/document";
+import { SURU_GRADIENT } from "@/data/gradientPresets";
 import { gradSVGCoords, gradientElement } from "./gradientSvg";
 
 export interface ShapeColorState {
@@ -81,6 +82,11 @@ export interface BaseShapeDef {
   defaultHsv: [h: number, s: number, v: number];
   /** clipToFolder applied when the shape is picked (legacy `defaultClip`). */
   defaultClip: boolean;
+  /**
+   * Custom back/tab color applied when the shape is picked. Absent → the pick
+   * clears any custom back to Auto (null). Yaru ships with the suru gradient.
+   */
+  defaultBackColor?: ColorValue | null;
 }
 
 /** Screen-% gradient `<defs>` for the simple shapes' `__DEFS__` slot (id "fg"). */
@@ -959,6 +965,104 @@ export function macColorProfileName(id: MacColorProfile): string {
   return MAC_COLOR_PROFILES.find((p) => p.id === id)?.name ?? id;
 }
 
+/* ------------------------------------------------------------------------ *
+ * Ubuntu Yaru folder.
+ *
+ * Geometry + detailing lifted verbatim from the official Yaru folder SVG
+ * (docs/attachment/references/yaru-suru.svg, a 246×230 art placed into the 256
+ * box via YARU_TF). Only the two fill colors are parameterized — the back/tab
+ * (`folderBackColor`, custom; else a deeper derivation of the front) and the
+ * front (`folderColor`). The white edge shines (both the tab top and the front
+ * notch), the faint bottom-right corner light and the bottom rim line are the
+ * source's own overlays, kept as-is (the rim line is retinted to the front so
+ * it reads on any color). Default Yaru pick = the "suru" look: a grey front
+ * with the aubergine→orange tab (custom back on by default; see SURU_GRADIENT).
+ * ------------------------------------------------------------------------ */
+
+/** Places the 246×230 source art (centered on 122.6,114.6) into the 256 box. */
+const YARU_TF = "translate(5 13)";
+/** Back panel (tab + top strip); its lower part is covered by the front. */
+const YARU_BACK = "M49.5941 10.6003C14.2256 10.6003 10.6 12.5995 10.6 47.8972V98.6003H234.6V67.5222C234.6 32.2245 230.974 26.6003 195.606 26.6003H108.6L92.6 10.6003H49.5941Z";
+/** Front panel (rounded body with the left-side tab notch). */
+const YARU_FRONT = "M49.5935 58.6003C14.225 58.6003 10.6 62.2253 10.6 97.5231V179.678C10.6 214.975 14.225 218.6 49.5935 218.6H195.606C230.975 218.6 234.6 214.975 234.6 179.678V81.5231C234.6 46.2253 230.975 42.6003 195.606 42.6003H114.35L98.3422 58.6003H49.5935Z";
+/** Thin white shine tracing the tab top edge (source paint2). */
+const YARU_TAB_SHINE = "M49.5941 10.6003C14.2256 10.6003 10.6 12.5995 10.6 47.8972V49.8972C10.6 14.5995 14.2256 12.6003 49.5941 12.6003H92.6L108.6 28.6003H195.606C230.974 28.6003 234.6 34.2245 234.6 69.5222V67.5222C234.6 32.2245 230.974 26.6003 195.606 26.6003H108.6L92.6 10.6003H49.5941Z";
+/** Thin white shine tracing the front notch/top edge (source paint3). */
+const YARU_FRONT_SHINE = "M114.35 42.6003L98.3422 58.6003H49.5941C14.2256 58.6003 10.6 62.2245 10.6 97.5222V99.5222C10.6 64.2245 14.2256 60.6003 49.5941 60.6003H98.3422L114.35 44.6003H195.606C230.974 44.6003 234.6 48.2245 234.6 83.5222V81.5222C234.6 46.2245 230.974 42.6003 195.606 42.6003H114.35Z";
+/** Faint white light in the bottom-right corner (source, opacity 0.05). */
+const YARU_BR_LIGHT = "M234.6 152.6L170.6 216.6H195.606C230.974 216.6 234.6 212.976 234.6 177.678V152.6Z";
+/** Thin darker line along the bottom rim (source, opacity 0.2; retinted to front). */
+const YARU_BOTTOM_LINE = "M10.6 177.678V179.678C10.6 214.976 14.2256 218.6 49.5941 218.6H195.606C230.974 218.6 234.6 214.976 234.6 179.678V177.678C234.6 212.976 230.974 216.6 195.606 216.6H49.5941C14.2256 216.6 10.6 212.976 10.6 177.678Z";
+/** Bounding box of the visible tab strip (source coords), for a custom tab gradient. */
+const YARU_TAB_BBOX = { x0: 10.6, y0: 10.6, x1: 234.6, y1: 60 };
+/** The source's white edge shimmer (faint → bright → faint across the width). */
+const YARU_SHINE_GRAD = `<linearGradient id="ysg" x1="10.6" y1="0" x2="234.6" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0.2"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.2"/></linearGradient>`;
+
+/** Auto back-tab HSV derived from the front: deeper + more saturated. */
+function yaruAutoTab([h, s, v]: Hsv3): Hsv3 {
+  return [h, clamp01(s + 0.16), clamp01(v * 0.72)];
+}
+
+/** The tab `<defs>` + fill (custom gradient → its own angle; else a solid tone). */
+function yaruBackFill(cs: ShapeColorState, frontHsv: Hsv3): { defs: string; fill: string } {
+  const back = cs.backColor;
+  if (back && isGradient(back)) {
+    return { defs: angleGradientEl("ybg", back.angle, back.stops, YARU_TAB_BBOX), fill: "url(#ybg)" };
+  }
+  const top = back ? hexToHsv(back) : yaruAutoTab(frontHsv);
+  return { defs: "", fill: hsvHex(top) };
+}
+
+/** The Yaru render: exact source geometry, parameterized front + tab fills. */
+function buildYaruSvg(cs: ShapeColorState): string {
+  let frontHsv: Hsv3;
+  let frontDefs = "";
+  let frontFill: string;
+  if (cs.mode === "solid") {
+    frontHsv = [cs.hue, cs.sat, cs.bri];
+    // Subtle diagonal shading like the source's #666→#7a7a7a grey front.
+    const deep = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 0.9)]);
+    const lite = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 1.06)]);
+    frontDefs = `<linearGradient id="yfg" x1="10.6" y1="42.6" x2="234.6" y2="218.6" gradientUnits="userSpaceOnUse"><stop stop-color="${deep}"/><stop offset="1" stop-color="${lite}"/></linearGradient>`;
+    frontFill = "url(#yfg)";
+  } else {
+    const rep = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
+    frontHsv = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
+    frontDefs = complexGradient("yfg", cs);
+    frontFill = "url(#yfg)";
+  }
+  const back = yaruBackFill(cs, frontHsv);
+  const rim = hsvHex([frontHsv[0], frontHsv[1], clamp01(frontHsv[2] * 0.4)]);
+  return (
+    `${SVG_OPEN}<defs>${back.defs}${frontDefs}${YARU_SHINE_GRAD}</defs>` +
+    `<g transform="${YARU_TF}">` +
+    `<path d="${YARU_BACK}" fill="${back.fill}"/>` +
+    `<path d="${YARU_FRONT}" fill="${frontFill}"/>` +
+    `<path d="${YARU_TAB_SHINE}" fill="url(#ysg)"/>` +
+    `<path d="${YARU_FRONT_SHINE}" fill="url(#ysg)"/>` +
+    `<path opacity="0.05" d="${YARU_BR_LIGHT}" fill="#ffffff"/>` +
+    `<path opacity="0.2" d="${YARU_BOTTOM_LINE}" fill="${rim}"/>` +
+    `</g></svg>`
+  );
+}
+
+/**
+ * The Auto (derived) tab color for the Yaru folder — seeds the custom-back
+ * field so it starts matching. Mirrors {@link windowsDerivedTabColor}.
+ */
+export function yaruDerivedTabColor(doc: FolderDocument): string {
+  const cs = toShapeColorState(doc.folderColor);
+  const hsv: Hsv3 =
+    cs.mode === "gradient"
+      ? (() => {
+          const l = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
+          return l ? ([l.hue, l.sat, l.bri] as Hsv3) : [0, 0, 0.6];
+        })()
+      : [cs.hue, cs.sat, cs.bri];
+  const t = yaruAutoTab(hsv);
+  return getHex(t[0], t[1], t[2]);
+}
+
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "classic",
@@ -1023,6 +1127,15 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultClip: true,
     buildSvg: buildMacSvg,
     mask: '<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M39.3 228.5H216.7C226.781 228.5 231.821 228.5 235.672 226.538C239.059 224.812 241.812 222.059 243.538 218.672C245.5 214.821 245.5 209.781 245.5 199.7V78.3C245.5 68.2191 245.5 63.1786 243.538 59.3282C241.812 55.9413 239.059 53.1876 235.672 51.4619C231.821 49.5 226.781 49.5 216.7 49.5H119.375C114 49.5 107.125 49 100.375 43.875C93.625 38.75 99.375 43.125 92.25 37.625C85.125 32.125 81.4915 31 75.25 31H39.3C29.2191 31 24.1786 31 20.3282 32.9619C16.9413 34.6876 14.1876 37.4413 12.4619 40.8282C10.5 44.6786 10.5 49.7191 10.5 59.8V199.7C10.5 209.781 10.5 214.821 12.4619 218.672C14.1876 222.059 16.9413 224.812 20.3282 226.538C24.1786 228.5 29.2191 228.5 39.3 228.5Z" fill="white"/></svg>',
+  },
+  {
+    id: "yaru",
+    name: "Ubuntu",
+    defaultHsv: [0, 0, 0.44],
+    defaultClip: true,
+    defaultBackColor: SURU_GRADIENT,
+    buildSvg: buildYaruSvg,
+    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${YARU_TF}"><path d="${YARU_BACK}" fill="white"/><path d="${YARU_FRONT}" fill="white"/></g></svg>`,
   },
   {
     id: "glass",
@@ -1119,7 +1232,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "file-folder", "glass", "minimal"];
+const _SOLID_ORDER = ["windows", "macos", "yaru", "file-folder", "glass", "minimal"];
 
 /**
  * TEMPORARY: the picker is focused on the two highest-demand bases. Every shape
@@ -1127,7 +1240,7 @@ const _SOLID_ORDER = ["windows", "macos", "file-folder", "glass", "minimal"];
  * shapes keep working — they're just not offered in the panel. Widen this list
  * to bring the others back.
  */
-const _ENABLED_SHAPES = ["windows", "macos"];
+const _ENABLED_SHAPES = ["windows", "macos", "yaru"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [

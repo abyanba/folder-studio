@@ -123,7 +123,11 @@ export interface DocumentStore {
    */
   applyBaseShape: (
     baseShape: string,
-    defaults?: { folderColor?: ColorValue; clipToFolder?: boolean },
+    defaults?: {
+      folderColor?: ColorValue;
+      clipToFolder?: boolean;
+      folderBackColor?: ColorValue | null;
+    },
   ) => void;
   /** Patch the folder fill (color and/or fill mode) in one undo entry. */
   setFolderFill: (
@@ -542,6 +546,9 @@ export const useDocumentStore = create<DocumentStore>()(
               : {}),
             ...(defaults?.clipToFolder !== undefined
               ? { clipToFolder: defaults.clipToFolder }
+              : {}),
+            ...(defaults && "folderBackColor" in defaults
+              ? { folderBackColor: defaults.folderBackColor ?? null }
               : {}),
           },
         })),

@@ -5,7 +5,7 @@
  * array index (legacy `fs_hidden_grad_presets` stores indices).
  */
 
-import type { GradientStop } from "@/types/gradient";
+import type { Gradient, GradientStop } from "@/types/gradient";
 
 export interface GradientPreset {
   name: string;
@@ -19,6 +19,20 @@ const stop = (
   sat: number,
   bri: number,
 ): GradientStop => ({ id, pos, hue, sat, bri });
+
+/**
+ * Ubuntu "Suru" gradient — the aubergine → orange brand gradient. Doubles as
+ * the default tab color for the Yaru base folder (its stops are reused below as
+ * a preset). Aubergine #5E2750, Ubuntu orange #E95420.
+ */
+export const SURU_GRADIENT: Gradient = {
+  kind: "linear",
+  angle: 90,
+  stops: [
+    stop("0", 0, 315, 0.59, 0.37),
+    stop("1", 1, 16, 0.86, 0.91),
+  ],
+};
 
 export const GRADIENT_PRESETS: GradientPreset[] = [
   { name: "Sunset", stops: [stop("0", 0, 20, 0.9, 0.98), stop("1", 1, 44, 1, 1)] },
@@ -40,4 +54,5 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
   { name: "Mango", stops: [stop("0", 0, 48, 0.95, 1), stop("1", 1, 24, 0.92, 0.93)] },
   { name: "Mint", stops: [stop("0", 0, 155, 0.65, 0.92), stop("1", 1, 180, 0.55, 0.75)] },
   { name: "Candy", stops: [stop("0", 0, 338, 0.75, 0.98), stop("1", 1, 207, 0.55, 0.98)] },
+  { name: "Ubuntu Suru", stops: SURU_GRADIENT.stops },
 ];

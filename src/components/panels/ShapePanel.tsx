@@ -81,6 +81,7 @@ export function ShapePanel() {
                 applyBaseShape(shape.id, {
                   folderColor: getHex(...shape.defaultHsv),
                   clipToFolder: shape.defaultClip,
+                  folderBackColor: shape.defaultBackColor ?? null,
                 })
               }
               className={cn(
