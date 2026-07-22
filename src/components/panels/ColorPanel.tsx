@@ -432,19 +432,18 @@ export function ColorPanel() {
           </TabsList>
         </Tabs>
 
-        <SliderField
-          label="Folder opacity"
-          value={doc.folderOpacity}
-          min={0.05}
-          max={1}
-          step={0.05}
-          onChange={setFolderOpacity}
-          format={(v) => `${Math.round(v * 100)}%`}
-        />
-
         {mode === "solid" && (
           <>
             <SolidColorPicker hex={hex} onChange={setFolderColor} />
+            <SliderField
+              label="Opacity"
+              value={doc.folderOpacity}
+              min={0.05}
+              max={1}
+              step={0.05}
+              onChange={setFolderOpacity}
+              format={(v) => `${Math.round(v * 100)}%`}
+            />
             {doc.baseShape === "windows" && <WindowsSolidProfile />}
             {doc.baseShape === "macos" && <MacColorProfile />}
             <PresetRow

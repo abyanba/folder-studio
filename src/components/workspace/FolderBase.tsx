@@ -15,6 +15,7 @@ import {
   buildFrontImageBackSvg,
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
+  folderGroupOpacity,
   getBaseShapeMask,
   getFrontMask,
   isFrontImage,
@@ -57,7 +58,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // Front-only: the image is masked to the front panel and the tab/back is
     // painted with the adaptive color; full: image spans the whole silhouette.
     const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape) : getBaseShapeMask(doc.baseShape));
-    const opacity = doc.folderOpacity ?? 1;
+    const opacity = folderGroupOpacity(doc);
     const fill: CSSProperties = { position: "absolute", inset: 0, width: FW, height: FH, pointerEvents: "none" };
     const style: CSSProperties = {
       ...fill,
@@ -121,7 +122,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
         width: FW,
         height: FH,
         pointerEvents: "none",
-        opacity: doc.folderOpacity ?? 1,
+        opacity: folderGroupOpacity(doc),
       }}
       dangerouslySetInnerHTML={{ __html: responsive(buildBaseShapeSvg(doc)) }}
     />

@@ -26,6 +26,7 @@ import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
   buildBaseShapeSvg,
+  folderGroupOpacity,
   buildFrontImageBackSvg,
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
@@ -257,7 +258,8 @@ function elementMarkup(
 
 /** Base folder markup: cropped background image, or the colored base shape. */
 function baseMarkup(doc: FolderDocument, bgRatio: number): string {
-  const op = doc.folderOpacity != null && doc.folderOpacity !== 1 ? ` opacity="${num(doc.folderOpacity)}"` : "";
+  const groupOp = folderGroupOpacity(doc);
+  const op = groupOp !== 1 ? ` opacity="${num(groupOp)}"` : "";
   if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const zm = doc.folderBgZoom || 1;
     const bpx = (doc.folderBgX ?? 50) / 100;

@@ -104,6 +104,22 @@ describe("buildBaseShapeSvg — complex (generator) shapes", () => {
     expect(Math.max(...channels)).toBeLessThan(0xa5 * 0.85);
   });
 
+  it("wraps the folder in an alpha mask only when a gradient stop is translucent", () => {
+    const opaque = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: gradient }));
+    expect(opaque).not.toContain("#fldA");
+
+    const fade: Gradient = {
+      ...gradient,
+      stops: gradient.stops.map((s, i) => ({ ...s, alpha: i === 0 ? 1 : 0 })),
+    };
+    const svg = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: fade }));
+    expect(svg).toContain('mask="url(#fldA)"');
+    expect(svg).toContain('stop-opacity="0"');
+    // The wrap must preserve a well-formed single <svg> root.
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg.endsWith("</svg>")).toBe(true);
+  });
+
   it("windows gradient fill emits front + back gradients and the shine", () => {
     const svg = buildBaseShapeSvg(doc({ baseShape: "windows", folderColor: gradient }));
     expect(svg).toContain('<linearGradient id="wg"');

@@ -29,7 +29,7 @@ import {
   DEFAULT_WINDOWS_COLOR_PROFILE,
   DEFAULT_WINDOWS_GRADIENT_ALGO,
 } from "@/types/document";
-import { gradientElement } from "./gradientSvg";
+import { gradSVGCoords, gradientElement } from "./gradientSvg";
 
 export interface ShapeColorState {
   mode: "solid" | "gradient";
@@ -1142,6 +1142,46 @@ function findShape(id: string): BaseShapeDef {
 }
 
 /** Build the colored base-folder SVG for a document (solid or gradient fill). */
+/**
+ * When the folder gradient has translucent stops, an alpha `<mask>` that fades
+ * the whole folder along the user's gradient — the folder is recolored through
+ * the anchored palettes (which ignore stop alpha), so per-stop transparency is
+ * applied as a separate luminance mask. Solid/uniform opacity stays on the
+ * folder group (`folderOpacity`). Returns null when nothing is translucent.
+ */
+function folderAlphaMask(folderColor: ColorValue): { def: string; ref: string } | null {
+  if (!isGradient(folderColor)) return null;
+  if (!folderColor.stops.some((s) => s.alpha !== undefined && s.alpha < 1)) return null;
+  const stops = [...folderColor.stops]
+    .sort((a, b) => a.pos - b.pos)
+    .map(
+      (s) =>
+        `<stop offset="${Math.round(s.pos * 100)}%" stop-color="#ffffff" stop-opacity="${s.alpha ?? 1}"/>`,
+    )
+    .join("");
+  let grad: string;
+  if (folderColor.kind === "radial") {
+    grad = `<radialGradient id="fldAg" cx="50%" cy="50%" r="50%">${stops}</radialGradient>`;
+  } else {
+    const c = gradSVGCoords(folderColor.angle);
+    grad = `<linearGradient id="fldAg" x1="${c.x1}" y1="${c.y1}" x2="${c.x2}" y2="${c.y2}">${stops}</linearGradient>`;
+  }
+  return {
+    def: `${grad}<mask id="fldA"><rect width="256" height="256" fill="url(#fldAg)"/></mask>`,
+    ref: "url(#fldA)",
+  };
+}
+
+/**
+ * Group opacity applied to the whole folder. Opacity is a solid-color property
+ * (the "Opacity" slider under the solid picker); a gradient fill fades via its
+ * own per-stop alpha, so its group stays fully opaque.
+ */
+export function folderGroupOpacity(doc: FolderDocument): number {
+  if (doc.folderFillMode === "color" && isGradient(doc.folderColor)) return 1;
+  return doc.folderOpacity ?? 1;
+}
+
 export function buildBaseShapeSvg(doc: FolderDocument): string {
   const def = findShape(doc.baseShape);
   const cs = toShapeColorState(doc.folderColor);
@@ -1152,12 +1192,22 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
   cs.backColor = doc.folderBackColor;
   cs.folderState = doc.folderState;
   cs.paperColor = doc.folderPaperColor;
-  if (def.buildSvg) return def.buildSvg(cs);
-  if (cs.mode === "solid") {
+  let svg: string;
+  if (def.buildSvg) svg = def.buildSvg(cs);
+  else if (cs.mode === "solid") {
     const color = getHex(cs.hue, cs.sat, cs.bri);
-    return (def.svg ?? "").replace(/__DEFS__/g, "").replace(/__COLOR__/g, color);
+    svg = (def.svg ?? "").replace(/__DEFS__/g, "").replace(/__COLOR__/g, color);
+  } else {
+    svg = (def.svg ?? "").replace(/__DEFS__/g, fgDefs(cs)).replace(/__COLOR__/g, "url(#fg)");
   }
-  return (def.svg ?? "").replace(/__DEFS__/g, fgDefs(cs)).replace(/__COLOR__/g, "url(#fg)");
+  const am = folderAlphaMask(doc.folderColor);
+  // Wrap the folder body in the alpha mask (keeps its own <defs>/<g> intact).
+  return am
+    ? svg.replace(
+        /^(<svg[^>]*>)([\s\S]*)(<\/svg>)$/,
+        `$1<defs>${am.def}</defs><g mask="${am.ref}">$2</g>$3`,
+      )
+    : svg;
 }
 
 /** The white silhouette mask SVG for a base shape (used for clip-to-folder). */

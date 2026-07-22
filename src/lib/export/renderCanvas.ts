@@ -25,6 +25,7 @@ import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
   buildBaseShapeSvg,
+  folderGroupOpacity,
   buildFrontImageBackSvg,
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
@@ -106,7 +107,7 @@ async function recolorCanvas(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.clearRect(0, 0, size, size);
-  ctx.globalAlpha = doc.folderOpacity ?? 1;
+  ctx.globalAlpha = folderGroupOpacity(doc);
   if (doc.folderFillMode === "image" && doc.folderBgImage) {
     const bi = await loadImage(doc.folderBgImage);
     if (bi) {
