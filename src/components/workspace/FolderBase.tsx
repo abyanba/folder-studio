@@ -41,9 +41,18 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
   const macSolidPreview = useUiStore((s) => s.macColorProfilePreview);
   const macGradientPreview = useUiStore((s) => s.macGradientPreview);
   const papirusSolidPreview = useUiStore((s) => s.papirusColorProfilePreview);
+  const yaruProfilePreview = useUiStore((s) => s.yaruColorProfilePreview);
+  const imageSpanPreview = useUiStore((s) => s.imageSpanPreview);
   const isColor = rawDoc.folderFillMode === "color";
   const isGrad = isColor && isGradient(rawDoc.folderColor);
   let doc = rawDoc;
+  // Preview the hovered image span on the folder base (mac uses its own field).
+  if (imageSpanPreview && rawDoc.folderFillMode === "image") {
+    doc =
+      rawDoc.baseShape === "macos"
+        ? { ...rawDoc, macImageMode: imageSpanPreview }
+        : { ...rawDoc, windowsImageMode: imageSpanPreview };
+  }
   if (winGradientPreview && rawDoc.baseShape === "windows" && isGrad) {
     doc = { ...rawDoc, windowsGradientAlgo: winGradientPreview };
   } else if (winSolidPreview && rawDoc.baseShape === "windows" && isColor && !isGrad) {
@@ -54,6 +63,8 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     doc = { ...rawDoc, macColorProfile: macSolidPreview };
   } else if (papirusSolidPreview && rawDoc.baseShape === "papirus" && isColor && !isGrad) {
     doc = { ...rawDoc, papirusColorProfile: papirusSolidPreview };
+  } else if (yaruProfilePreview && rawDoc.baseShape === "yaru" && isColor) {
+    doc = { ...rawDoc, yaruColorProfile: yaruProfilePreview };
   }
 
   if (doc.folderFillMode === "image" && doc.folderBgImage) {

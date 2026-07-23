@@ -831,9 +831,9 @@ describe("yaru + papirus image / material front support", () => {
 
   it("getFrontMask returns a variant-aware front for yaru and a front rect for papirus", () => {
     expect(getFrontMask("yaru", "sharp")).toContain("white");
-    // Rounded uses the mate transform; sharp uses the suru transform.
+    // Sharp and rounded use different transforms but the same rendered footprint.
     expect(getFrontMask("yaru", "rounded")).toContain("translate(-3 18)");
-    expect(getFrontMask("yaru", "sharp")).toContain("translate(5 13)");
+    expect(getFrontMask("yaru", "sharp")).toContain("translate(-5.5 10.6)");
     expect(getFrontMask("papirus")).toContain("<rect");
   });
 

@@ -12,6 +12,8 @@ import type {
   PapirusColorProfile,
   WindowsColorProfile,
   WindowsGradientAlgo,
+  WindowsImageMode,
+  YaruColorProfile,
 } from "@/types/document";
 import type { ColorValue } from "@/types/gradient";
 import type { ControlPoint, Point } from "@/lib/smoothing";
@@ -48,6 +50,10 @@ export interface UiStore {
   windowsColorProfilePreview: WindowsColorProfile | null;
   /** Papirus solid color profile being hovered — live-previewed on the folder base. */
   papirusColorProfilePreview: PapirusColorProfile | null;
+  /** Yaru front-fill profile being hovered — live-previewed on the folder base. */
+  yaruColorProfilePreview: YaruColorProfile | null;
+  /** Image span (full/front) being hovered — live-previewed on the folder base. */
+  imageSpanPreview: WindowsImageMode | null;
   /** Logos panel: mono (tinted simple-icons) vs full-color artwork. */
   logoMode: "mono" | "color";
   /** Tint for mono logos (legacy `logoColor`). */
@@ -86,6 +92,8 @@ export interface UiStore {
   setMacGradientPreview: (algo: MacGradientAlgo | null) => void;
   setWindowsColorProfilePreview: (profile: WindowsColorProfile | null) => void;
   setPapirusColorProfilePreview: (profile: PapirusColorProfile | null) => void;
+  setYaruColorProfilePreview: (profile: YaruColorProfile | null) => void;
+  setImageSpanPreview: (mode: WindowsImageMode | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
   setCanvasLight: (light: boolean) => void;
@@ -119,6 +127,8 @@ export const useUiStore = create<UiStore>()((set) => ({
   macGradientPreview: null,
   windowsColorProfilePreview: null,
   papirusColorProfilePreview: null,
+  yaruColorProfilePreview: null,
+  imageSpanPreview: null,
   logoMode: "mono",
   logoColor: "#ffffff",
   canvasLight: false,
@@ -147,6 +157,8 @@ export const useUiStore = create<UiStore>()((set) => ({
   setMacGradientPreview: (algo) => set({ macGradientPreview: algo }),
   setWindowsColorProfilePreview: (profile) => set({ windowsColorProfilePreview: profile }),
   setPapirusColorProfilePreview: (profile) => set({ papirusColorProfilePreview: profile }),
+  setYaruColorProfilePreview: (profile) => set({ yaruColorProfilePreview: profile }),
+  setImageSpanPreview: (mode) => set({ imageSpanPreview: mode }),
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
   setCanvasLight: (light) => set({ canvasLight: light }),

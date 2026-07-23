@@ -1003,22 +1003,27 @@ export const YARU_COLOR_PROFILES: Array<{ id: YaruColorProfile; name: string }> 
  * with the aubergine→orange tab (custom back on by default; see SURU_GRADIENT).
  * ------------------------------------------------------------------------ */
 
-/** Places the 246×230 source art (centered on 122.6,114.6) into the 256 box. */
-const YARU_TF = "translate(5 13)";
+/**
+ * Places the 246×215 source art into the 256 box at the SAME rendered footprint
+ * as the rounded (mate) variant, so the two variants are pixel-for-pixel the
+ * same size (scale 1.083 matches; the translate aligns the two silhouettes).
+ * Corrected dimensions from yaru-suru-correct-dimension.svg.
+ */
+const YARU_TF = "translate(-5.5 10.6) scale(1.083)";
 /** Back panel (tab + top strip); its lower part is covered by the front. */
-const YARU_BACK = "M49.5941 10.6003C14.2256 10.6003 10.6 12.5995 10.6 47.8972V98.6003H234.6V67.5222C234.6 32.2245 230.974 26.6003 195.606 26.6003H108.6L92.6 10.6003H49.5941Z";
+const YARU_BACK = "M49.5941 10.6003C14.2256 10.6003 10.6 12.456 10.6 45.2211V92.2862H234.6V63.438C234.6 30.6729 230.974 25.4523 195.606 25.4523H108.6L92.6 10.6003H49.5941Z";
 /** Front panel (rounded body with the left-side tab notch). */
-const YARU_FRONT = "M49.5935 58.6003C14.225 58.6003 10.6 62.2253 10.6 97.5231V179.678C10.6 214.975 14.225 218.6 49.5935 218.6H195.606C230.975 218.6 234.6 214.975 234.6 179.678V81.5231C234.6 46.2253 230.975 42.6003 195.606 42.6003H114.35L98.3422 58.6003H49.5935Z";
-/** Thin white shine tracing the tab top edge (source paint2). */
-const YARU_TAB_SHINE = "M49.5941 10.6003C14.2256 10.6003 10.6 12.5995 10.6 47.8972V49.8972C10.6 14.5995 14.2256 12.6003 49.5941 12.6003H92.6L108.6 28.6003H195.606C230.974 28.6003 234.6 34.2245 234.6 69.5222V67.5222C234.6 32.2245 230.974 26.6003 195.606 26.6003H108.6L92.6 10.6003H49.5941Z";
-/** Thin white shine tracing the front notch/top edge (source paint3). */
-const YARU_FRONT_SHINE = "M114.35 42.6003L98.3422 58.6003H49.5941C14.2256 58.6003 10.6 62.2245 10.6 97.5222V99.5222C10.6 64.2245 14.2256 60.6003 49.5941 60.6003H98.3422L114.35 44.6003H195.606C230.974 44.6003 234.6 48.2245 234.6 83.5222V81.5222C234.6 46.2245 230.974 42.6003 195.606 42.6003H114.35Z";
+const YARU_FRONT = "M49.5935 55.1562C14.225 55.1562 10.6 58.5211 10.6 91.2861V167.546C10.6 200.311 14.225 203.676 49.5935 203.676H195.607C230.975 203.676 234.6 200.311 234.6 167.546V76.4342C234.6 43.6691 230.975 40.3042 195.607 40.3042H114.35L98.3422 55.1562H49.5935Z";
+/** Thin white shine tracing the tab top edge (source paint1). */
+const YARU_TAB_SHINE = "M49.5941 10.6003C14.2256 10.6003 10.6 12.456 10.6 45.2211V47.0776C10.6 14.3125 14.2256 12.4568 49.5941 12.4568H92.6L108.6 27.3088H195.606C230.974 27.3088 234.6 32.5294 234.6 65.2945V63.438C234.6 30.6729 230.974 25.4523 195.606 25.4523H108.6L92.6 10.6003H49.5941Z";
+/** Thin white shine tracing the front notch/top edge (source paint2). */
+const YARU_FRONT_SHINE = "M114.35 40.3042L98.3422 55.1562H49.5941C14.2256 55.1562 10.6 58.5203 10.6 91.2853V93.1418C10.6 60.3768 14.2256 57.0127 49.5941 57.0127H98.3422L114.35 42.1607H195.606C230.974 42.1607 234.6 45.5248 234.6 78.2899V76.4334C234.6 43.6683 230.974 40.3042 195.606 40.3042H114.35Z";
 /** Faint white light in the bottom-right corner (source, opacity 0.05). */
-const YARU_BR_LIGHT = "M234.6 152.6L170.6 216.6H195.606C230.974 216.6 234.6 212.976 234.6 177.678V152.6Z";
+const YARU_BR_LIGHT = "M234.6 142.412L170.6 201.82H195.606C230.974 201.82 234.6 198.455 234.6 165.69V142.412Z";
 /** Thin darker line along the bottom rim (source, opacity 0.2; retinted to front). */
-const YARU_BOTTOM_LINE = "M10.6 177.678V179.678C10.6 214.976 14.2256 218.6 49.5941 218.6H195.606C230.974 218.6 234.6 214.976 234.6 179.678V177.678C234.6 212.976 230.974 216.6 195.606 216.6H49.5941C14.2256 216.6 10.6 212.976 10.6 177.678Z";
+const YARU_BOTTOM_LINE = "M10.6 165.69V167.547C10.6 200.312 14.2256 203.676 49.5941 203.676H195.606C230.974 203.676 234.6 200.312 234.6 167.547V165.69C234.6 198.456 230.974 201.82 195.606 201.82H49.5941C14.2256 201.82 10.6 198.456 10.6 165.69Z";
 /** Bounding box of the visible tab strip (source coords), for a custom tab gradient. */
-const YARU_TAB_BBOX = { x0: 10.6, y0: 10.6, x1: 234.6, y1: 60 };
+const YARU_TAB_BBOX = { x0: 10.6, y0: 10.6, x1: 234.6, y1: 55 };
 /** The source's white edge shimmer (faint → bright → faint across the width). */
 const YARU_SHINE_GRAD = `<linearGradient id="ysg" x1="10.6" y1="0" x2="234.6" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0.2"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.2"/></linearGradient>`;
 
@@ -1085,7 +1090,7 @@ function yaruFrontFill(
 
 /** The sharp/suru Yaru render (angular tag, edge shimmer). */
 function buildYaruSharp(cs: ShapeColorState, profile: YaruColorProfile): string {
-  const front = yaruFrontFill(cs, profile, { x1: 10.6, y1: 42.6, x2: 234.6, y2: 218.6 });
+  const front = yaruFrontFill(cs, profile, { x1: 10.6, y1: 55, x2: 234.6, y2: 203 });
   const back = yaruBackFill(cs, front.hsv, YARU_TAB_BBOX);
   const rim = hsvHex([front.hsv[0], front.hsv[1], clamp01(front.hsv[2] * 0.4)]);
   return (
@@ -1156,8 +1161,14 @@ export function yaruDerivedTabColor(doc: FolderDocument): string {
  * the front so grey never hits pure black/white; `flat` removes the clamp.
  * ------------------------------------------------------------------------ */
 
-/** Places the 64px source art (centered on 32,28) into the 256 box. */
-const PAP_TF = "translate(-13 5) scale(4.4)";
+/**
+ * Places the 64px source art into the 256 box, scaled so the whole icon —
+ * INCLUDING the bottom drop shadow (which pokes ~1.6px below the front) — fits
+ * within the viewBox with margin, instead of the drop shadow spilling past 256
+ * and being cropped. The silhouette mask includes the drop shadow too (see
+ * getBaseShapeMask), so clip-to-folder can't clip it either.
+ */
+const PAP_TF = "translate(-9.6 -13) scale(4.3)";
 /** Back panel + tab (source coords; Z added to close the fill explicitly). */
 const PAP_BACK = "M4,46.2 C4,47.751 5.2488,49 6.8,49 H57.2 C58.751,49 60,47.751 60,46.2 V15.8 C60,14.249 58.751,13 57.2,13 H32 C27.8,13 26.4,7 22.2,7 H6.8 C5.2488,7 4,8.2488 4,9.8Z";
 /** Thin highlight tracing the tab top edge (source paint; now a solid tint). */
@@ -1291,13 +1302,14 @@ function buildPapirusSvg(cs: ShapeColorState): string {
   return (
     `${SVG_OPEN}<defs>${backDefs}${frontDefs}${paper.defs}</defs>` +
     `<g transform="${PAP_TF}">` +
-    // Light drop shadow peeking below the folder bottom.
+    // Light drop shadow peeking below the folder bottom (inside the mask + viewBox).
     `<rect fill="#cccccc" width="56" height="36" x="4" y="22.6" rx="2.8"/>` +
     `<path d="${PAP_BACK}" fill="${backFill}"/>` +
     `<path fill="${hlHex}" d="${PAP_HIGHLIGHT}"/>` +
-    `<rect fill="${paper.fill}" width="48" height="22" x="8" y="16" rx="2.8"/>` +
-    // Shadow line where the front meets the back (peeks above the front top).
+    // Shadow line where the front meets the back — BELOW the paper (the paper
+    // sits on top of it, so it darkens the seam, not the paper's edge).
     `<rect fill="${shadowHex}" width="56" height="36" x="4" y="19.8" rx="2.8"/>` +
+    `<rect fill="${paper.fill}" width="48" height="22" x="8" y="16" rx="2.8"/>` +
     `<rect fill="${frontFill}" width="56" height="36" x="4" y="21" rx="2.8"/>` +
     `</g></svg>`
   );
@@ -1401,7 +1413,9 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultHsv: [213, 0.637, 0.886],
     defaultClip: true,
     buildSvg: buildPapirusSvg,
-    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
+    // Silhouette includes the drop-shadow rect (y22.6) so clip-to-folder keeps
+    // the bottom shadow — it's part of the icon, not clipped away with clip on.
+    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="22.6" width="56" height="36" rx="2.8" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
   },
   {
     id: "glass",

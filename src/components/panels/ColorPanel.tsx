@@ -181,8 +181,9 @@ function WindowsSolidProfile() {
 function YaruColorProfileControl() {
   const profile = useDocumentStore((s) => s.doc.yaruColorProfile);
   const setProfile = useDocumentStore((s) => s.setYaruColorProfile);
+  const setPreview = useUiStore((s) => s.setYaruColorProfilePreview);
   return (
-    <ProfileDropdown value={profile} options={YARU_COLOR_PROFILES} onSelect={setProfile} onPreview={() => {}} />
+    <ProfileDropdown value={profile} options={YARU_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
   );
 }
 
@@ -230,6 +231,7 @@ function ImageSpan() {
   const bgImage = useDocumentStore((s) => s.doc.folderBgImage);
   const bgColor = useDocumentStore((s) => s.doc.folderBgImageColor);
   const setFolderFill = useDocumentStore((s) => s.setFolderFill);
+  const setPreview = useUiStore((s) => s.setImageSpanPreview);
 
   const pick = (m: WindowsImageMode) => {
     // Front mode needs the adaptive color(s); compute for images captured before
@@ -244,7 +246,7 @@ function ImageSpan() {
 
   return (
     <PanelSection title="Image span">
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(open) => !open && setPreview(null)}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-7 w-full justify-between text-xs">
             {windowsImageModeName(mode)}
@@ -253,7 +255,16 @@ function ImageSpan() {
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
           {WINDOWS_IMAGE_MODES.map((opt) => (
-            <DropdownMenuItem key={opt.id} className="text-xs" onSelect={() => pick(opt.id)}>
+            <DropdownMenuItem
+              key={opt.id}
+              className="text-xs"
+              onMouseEnter={() => setPreview(opt.id)}
+              onMouseLeave={() => setPreview(null)}
+              onSelect={() => {
+                setPreview(null);
+                pick(opt.id);
+              }}
+            >
               {opt.name}
             </DropdownMenuItem>
           ))}
