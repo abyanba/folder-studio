@@ -889,8 +889,16 @@ describe("fluent + its tela variant", () => {
     expect(flat).toContain("url(#tcg)"); // Tela's corner wedge
   });
 
-  it("derives the Auto tab per variant (Fluent's is the front itself)", () => {
-    expect(telaDerivedTabColor(doc({ baseShape: "fluent", folderColor: "#198ee6" }))).toBe("#198ee6");
+  it("derives the Auto tab per variant (Fluent lighter, Tela darker)", () => {
+    // Fluent's tab is a lighter tint of the base (value up, hue kept, not gray).
+    const fluentTab = hexToHsv(
+      telaDerivedTabColor(doc({ baseShape: "fluent", folderColor: "#198ee6" })),
+    );
+    const base = hexToHsv("#198ee6");
+    expect(fluentTab[0]).toBeCloseTo(base[0], 0); // same hue
+    expect(fluentTab[1]).toBeGreaterThan(0.3); // still saturated, not washed to gray
+    expect(fluentTab[2]).toBeGreaterThan(base[2]); // lighter
+    // Tela's is the base under its 18% black wash.
     expect(telaDerivedTabColor(tela({ folderColor: "#5677fc" }))).toBe("#4762cf");
   });
 

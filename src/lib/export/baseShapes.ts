@@ -1491,20 +1491,22 @@ function buildFluentImageBackSvg(
 ): string {
   const flat = isFlatTela(variant);
   const paper = fluPaperFill(paperColor);
-  // Tab: the adaptive color under the variant's wash (Tela 18% black, Fluent
-  // 40% white — the tone its 0.6-alpha tab resolves to). A custom back replaces it.
+  // Tab: a custom back wins; else Tela darkens the adaptive color under an 18%
+  // black wash (keeps its hue), and Fluent uses a lighter *tint* of it — value
+  // up, saturation kept — so a colorful photo's tab tracks the image instead of
+  // washing out to gray the way a flat white overlay did.
   let backDefs = "";
   let backFill = frontAdaptive;
-  let wash = flat
-    ? `<path d="${FLU_BACK}" fill="#000000" opacity="0.18"/>`
-    : `<path d="${FLU_BACK}" fill="#ffffff" opacity="0.4"/>`;
+  let wash = "";
   if (backColor && isGradient(backColor)) {
     backDefs = angleGradientEl("tbg", backColor.angle, backColor.stops, FLU_TAB_BBOX);
     backFill = "url(#tbg)";
-    wash = "";
   } else if (backColor) {
     backFill = backColor;
-    wash = "";
+  } else if (flat) {
+    wash = `<path d="${FLU_BACK}" fill="#000000" opacity="0.18"/>`;
+  } else {
+    backFill = hsvHex(fluentAutoTab(hexToHsv(frontAdaptive)));
   }
   const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
   const blur = flat ? "" : `<filter id="tfb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>`;
@@ -1520,6 +1522,15 @@ function buildFluentImageBackSvg(
     sheet +
     `</g></svg>`
   );
+}
+
+/**
+ * Fluent's Auto tab tone: a lighter tint of the base color — value lifted,
+ * saturation kept — so the tab reads like the acrylic (lighter than the front)
+ * without a flat white overlay, which desaturated colorful bases toward gray.
+ */
+function fluentAutoTab([h, s, v]: Hsv3): Hsv3 {
+  return [h, clamp01(s * 0.92), clamp01(v * 0.72 + 0.28)];
 }
 
 /**
@@ -1552,13 +1563,14 @@ function fluStructureOverlay(variant?: string): string {
 
 /**
  * The Auto (derived) tab color — the color that reproduces the current tab if
- * the user switches to a custom one. Fluent paints the tab at the same alpha
- * as the front, so that is the front color itself; Tela's is the front under
- * its 18% black wash. Mirrors {@link windowsDerivedTabColor}.
+ * the user switches to a custom one. Tela's is the base under its 18% black
+ * wash; Fluent's is its lighter {@link fluentAutoTab} tint (the same tone the
+ * image tab uses, so the seed matches what's on screen). Mirrors
+ * {@link windowsDerivedTabColor}.
  */
 export function telaDerivedTabColor(doc: FolderDocument): string {
   const cs = toShapeColorState(doc.folderColor);
-  const [h, s, v]: Hsv3 =
+  const base: Hsv3 =
     doc.folderFillMode === "image"
       ? hexToHsv(doc.folderBgImageColor ?? "#888888")
       : cs.mode === "gradient"
@@ -1567,7 +1579,8 @@ export function telaDerivedTabColor(doc: FolderDocument): string {
             return l ? ([l.hue, l.sat, l.bri] as Hsv3) : [0, 0, 0.6];
           })()
         : [cs.hue, cs.sat, cs.bri];
-  return getHex(h, s, clamp01(isFlatTela(doc.fluentVariant) ? v * 0.82 : v));
+  if (isFlatTela(doc.fluentVariant)) return getHex(base[0], base[1], clamp01(base[2] * 0.82));
+  return hsvHex(fluentAutoTab(base));
 }
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
