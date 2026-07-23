@@ -1411,7 +1411,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "papirus",
     name: "Papirus",
-    defaultHsv: [213, 0.637, 0.886],
+    defaultHsv: [37.3, 0.399, 0.933], // paleorange (#eeca8f)
     defaultClip: true,
     buildSvg: buildPapirusSvg,
     // Silhouette includes the drop-shadow rect (y22.6) so clip-to-folder keeps
