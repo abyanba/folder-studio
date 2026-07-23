@@ -33,6 +33,7 @@ import {
   getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
+  getImageFillMask,
   frontImageAlpha,
   shapeVariant,
   isFrontImage,
@@ -128,7 +129,7 @@ async function recolorCanvas(
       const dx = -(dw - size) * bpx;
       const dy = -(dh - size) * bpy;
       // Color tint over the image (masked to the folder), below the structure.
-      const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
+      const tint = buildImageColorOverlaySvg(doc, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
       const tintImg = tint ? await loadImage(toSvgDataUrl(tint)) : null;
       if (isFrontImage(doc)) {
         // Compose the front-only base at full alpha on a temp canvas, then draw
@@ -181,13 +182,15 @@ async function recolorCanvas(
         const tctx = tmp.getContext("2d");
         if (tctx) {
           tctx.drawImage(bi, dx, dy, dw, dh);
-          const fm = await loadImage(toSvgDataUrl(getBaseShapeFillMask(doc)));
+          // The image mask is graded for Fluent (tab 0.6, front 0.8) so the
+          // photo keeps its acrylic translucency; opaque for every other shape.
+          const fm = await loadImage(toSvgDataUrl(getImageFillMask(doc)));
           if (fm) {
             tctx.globalCompositeOperation = "destination-in";
             tctx.drawImage(fm, 0, 0, size, size);
           }
           // Drop shadow (Papirus) below the image.
-          const underSvg = buildBaseShapeUnderlaySvg(doc.baseShape);
+          const underSvg = buildBaseShapeUnderlaySvg(doc);
           const under = underSvg ? await loadImage(toSvgDataUrl(underSvg)) : null;
           if (under) {
             tctx.globalCompositeOperation = "destination-over";

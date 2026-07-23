@@ -18,7 +18,7 @@ import {
   buildImageColorOverlaySvg,
   folderGroupOpacity,
   frontImageAlpha,
-  getBaseShapeFillMask,
+  getImageFillMask,
   getFrontMask,
   isFrontImage,
   shapeVariant,
@@ -75,7 +75,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // Front-only: the image is masked to the front panel and the tab/back is
     // painted with the adaptive color; full: image spans the fill silhouette
     // (everything except the fixed paper peek + drop shadow).
-    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, shapeVariant(doc)) : getBaseShapeFillMask(doc));
+    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, shapeVariant(doc)) : getImageFillMask(doc));
     const opacity = folderGroupOpacity(doc);
     // Fluent paints its front image translucent, so the covered paper frosts
     // through it (front-only mode only — full-span has nothing behind it).
@@ -110,7 +110,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
       ? buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc))
       : buildBaseShapeOverlaySvg(doc.baseShape, shapeVariant(doc));
     // Color tint over the image (masked to the folder), below the structure.
-    const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
+    const tint = buildImageColorOverlaySvg(doc, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
     // The paper peek is the top-most layer so the image, tint and shading never
     // affect it (it self-clips to the tab→front gap). Front mode already has it
     // in the reused back layer, so only draw the separate paper for full mode.
@@ -119,7 +119,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
         ? null
         : buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
     // Structure drawn BELOW the image (full mode only) — the Papirus drop shadow.
-    const underlay = frontMode ? null : buildBaseShapeUnderlaySvg(doc.baseShape);
+    const underlay = frontMode ? null : buildBaseShapeUnderlaySvg(doc);
     return (
       <>
         {underlay && (

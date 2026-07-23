@@ -35,6 +35,7 @@ import {
   getBaseShapeMask,
   frontImageAlpha,
   getFrontMask,
+  getImageFillMask,
   shapeVariant,
   isFrontImage,
 } from "./baseShapes";
@@ -277,7 +278,7 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
     const dy = -(dh - FH) * bpy;
     const img = `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"/>`;
     // Color tint over the image (masked to the folder), below the structure.
-    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
+    const tintSvg = buildImageColorOverlaySvg(doc, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
     const tint = tintSvg ? fillBase(tintSvg) : "";
     // Paper peek on top — the image, tint and shading never affect it.
     const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
@@ -307,8 +308,10 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
     // the fixed paper peek + drop shadow), the drop shadow drawn under it, the
     // structure shading and paper on top.
     const overlay = buildBaseShapeOverlaySvg(doc.baseShape, shapeVariant(doc));
-    const fillMaskDef = `<mask id="wfullimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getBaseShapeFillMask(doc))}</svg></mask>`;
-    const underSvg = buildBaseShapeUnderlaySvg(doc.baseShape);
+    // Fluent's image mask is graded (tab 0.6, front 0.8) for its acrylic look;
+    // opaque for every other shape.
+    const fillMaskDef = `<mask id="wfullimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getImageFillMask(doc))}</svg></mask>`;
+    const underSvg = buildBaseShapeUnderlaySvg(doc);
     const under = underSvg ? fillBase(underSvg) : "";
     return `<g${op}><defs>${fillMaskDef}</defs>${under}<g mask="url(#wfullimg)">${img}</g>${tint}${overlay ? fillBase(overlay) : ""}${paper}</g>`;
   }

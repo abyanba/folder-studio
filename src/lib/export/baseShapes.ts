@@ -1475,6 +1475,20 @@ function buildFluentSvg(cs: ShapeColorState): string {
 const FLU_MASK = `${SVG_OPEN}<g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/></g></svg>`;
 
 /**
+ * Opacity mask for a FULL-span image on Fluent: the tab region shows the image
+ * at 0.6 and the front at 0.8 — the acrylic alphas of the two panels — with the
+ * paper peek punched out. The front is painted at 0.5 *over* the 0.6 back, so it
+ * composites to exactly 0.8 without a doubled seam. (Tela keeps the plain opaque
+ * fill mask.)
+ */
+const FLU_IMAGE_MASK =
+  `${SVG_OPEN}<g transform="${FLU_TF}">` +
+  `<path d="${FLU_BACK}" fill="#ffffff" opacity="0.6"/>` +
+  `<g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="#ffffff" opacity="0.5"/></g>` +
+  `<g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="#000000"/></g>` +
+  `</g></svg>`;
+
+/**
  * The back layer painted behind a front-only image folder. Unlike the color
  * render, this deliberately omits the front panel — the image (drawn at
  * {@link frontImageAlpha} for Fluent) plays the front's role. It draws an
@@ -1492,9 +1506,9 @@ function buildFluentImageBackSvg(
   const flat = isFlatTela(variant);
   const paper = fluPaperFill(paperColor);
   // Tab: a custom back wins; else Tela darkens the adaptive color under an 18%
-  // black wash (keeps its hue), and Fluent uses a lighter *tint* of it — value
-  // up, saturation kept — so a colorful photo's tab tracks the image instead of
-  // washing out to gray the way a flat white overlay did.
+  // black wash. Fluent paints the raw adaptive color at 0.6 alpha (the same
+  // acrylic treatment as the color render) rather than an opaque tone — so the
+  // tab stays translucent AND keeps the image's hue instead of washing to gray.
   let backDefs = "";
   let backFill = frontAdaptive;
   let wash = "";
@@ -1505,9 +1519,9 @@ function buildFluentImageBackSvg(
     backFill = backColor;
   } else if (flat) {
     wash = `<path d="${FLU_BACK}" fill="#000000" opacity="0.18"/>`;
-  } else {
-    backFill = hsvHex(fluentAutoTab(hexToHsv(frontAdaptive)));
   }
+  // Fluent's back panel is translucent (0.6), like its color render; Tela is opaque.
+  const backOp = flat ? "" : ` opacity="0.6"`;
   const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
   const blur = flat ? "" : `<filter id="tfb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>`;
   const sheet = flat
@@ -1516,7 +1530,7 @@ function buildFluentImageBackSvg(
   return (
     `${SVG_OPEN}<defs>${backDefs}${paper.defs}${flat ? "" : clip + blur}</defs>` +
     `<g transform="${FLU_TF}">` +
-    `<path d="${FLU_BACK}" fill="${backFill}"/>${wash}` +
+    `<path d="${FLU_BACK}" fill="${backFill}"${backOp}/>${wash}` +
     `<g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="${paper.fill}"/></g>` +
     FLU_PILL +
     sheet +
@@ -1544,13 +1558,16 @@ export function frontImageAlpha(doc: FolderDocument): number {
 }
 
 /**
- * Whole-image structure overlay: the tab treatment (Tela's 18% black wash, or
- * the 40% white Fluent's 0.6-alpha tab resolves to), the pill and Tela's corner.
+ * Whole-image structure overlay (full-span image): darkens the tab strip to set
+ * it apart from the front — Tela by 18%, Fluent by a gentle 8% (its default tab
+ * is only slightly deeper than the front, and a heavier wash muddies the photo;
+ * a white wash, conversely, just looked bleached over an image). Plus the pill
+ * and — for Tela — the corner wedge.
  */
 function fluStructureOverlay(variant?: string): string {
   const flat = isFlatTela(variant);
   const mask = `<mask id="tvm"><g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/><g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="black"/></g></g></mask>`;
-  const wash = flat ? `fill="#000000" opacity="0.18"` : `fill="#ffffff" opacity="0.4"`;
+  const wash = flat ? `fill="#000000" opacity="0.18"` : `fill="#000000" opacity="0.08"`;
   const corner = flat
     ? `<g transform="${TELA_CORNER_TF}"><path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g>`
     : "";
@@ -1931,6 +1948,17 @@ export function getBaseShapeFillMask(doc: FolderDocument): string {
 }
 
 /**
+ * The mask for a full-span IMAGE fill specifically. Fluent uses a graded
+ * opacity mask (tab 0.6, front 0.8) so the photo keeps its acrylic translucency;
+ * every other shape (and Tela) uses the plain opaque {@link getBaseShapeFillMask}.
+ * Only the image layer uses this — material/pattern keep the opaque fill mask.
+ */
+export function getImageFillMask(doc: FolderDocument): string {
+  if (isFluent(findShape(doc.baseShape).id) && !isFlatTela(doc.fluentVariant)) return FLU_IMAGE_MASK;
+  return getBaseShapeFillMask(doc);
+}
+
+/**
  * Shading overlay drawn on top of an image folder fill so the folder's
  * structure survives the image: the back panel / tab / bottom rim darken (the
  * region of the back not covered by the front) and the front keeps its
@@ -2264,29 +2292,42 @@ export function buildBaseShapePaperSvg(
 }
 
 /**
- * Structure drawn BELOW an image fill (not masked to the fill) — currently just
- * the Papirus bottom drop shadow, which must survive a full-folder image the
- * same way it survives clip-to-folder. `null` for shapes with no underlay.
+ * Structure drawn BELOW an image fill (not masked to the fill): the Papirus
+ * bottom drop shadow, or — for a full-span Fluent image — the frosted covered
+ * sheet, which sits behind the translucent front image so the paper still
+ * frosts through the photo the way it does in the color and front-only renders.
+ * (Tela is flat, so it has no sheet.) `null` for shapes with no underlay.
  */
-export function buildBaseShapeUnderlaySvg(baseShapeId: string): string | null {
-  if (findShape(baseShapeId).id !== "papirus") return null;
-  return `${SVG_OPEN}<g transform="${PAP_TF}"><rect fill="#000000" opacity="0.2" width="56" height="36" x="4" y="22.6" rx="2.8"/></g></svg>`;
+export function buildBaseShapeUnderlaySvg(doc: FolderDocument): string | null {
+  const id = findShape(doc.baseShape).id;
+  if (id === "papirus") {
+    return `${SVG_OPEN}<g transform="${PAP_TF}"><rect fill="#000000" opacity="0.2" width="56" height="36" x="4" y="22.6" rx="2.8"/></g></svg>`;
+  }
+  if (isFluent(id) && !isFlatTela(doc.fluentVariant)) {
+    const paper = fluPaperFill(doc.folderPaperColor);
+    const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
+    const blur = `<filter id="tfb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>`;
+    return `${SVG_OPEN}<defs>${paper.defs}${clip}${blur}</defs><g transform="${FLU_TF}"><g clip-path="url(#tfc)"><g transform="${FLU_PAPER_TF}"><rect ${FLU_SHEET} fill="${paper.fill}" filter="url(#tfb)"/></g></g></g></svg>`;
+  }
+  return null;
 }
 
 /**
- * A solid color tinted over an image fill, masked to the folder silhouette
- * (any base shape). Drawn above the image (and adaptive back) but below the
- * structural shine, so a muting overlay tones down the photo without hiding
- * the folder's shape. `null` when the overlay is off (opacity ≤ 0).
+ * A solid color tinted over an image fill, masked to the folder's FILL
+ * silhouette — which punches out the paper peek (and the Papirus drop shadow),
+ * so the tint tones down the photo without ever coloring the paper. (Windows/
+ * macOS draw their paper as a separate top layer; the always-present sheets on
+ * Papirus/Fluent/Tela ride inside the back layer, so masking the tint here is
+ * what keeps their paper clean, in front-only span as well as full.) Drawn
+ * above the image but below the structural shine. `null` when off (opacity ≤ 0).
  */
 export function buildImageColorOverlaySvg(
-  baseShapeId: string,
+  doc: FolderDocument,
   color: string,
   opacity: number,
-  variant?: string,
 ): string | null {
   if (!(opacity > 0)) return null;
-  const maskInner = getBaseShapeMask(baseShapeId, variant);
+  const maskInner = getBaseShapeFillMask(doc);
   const op = Math.min(1, opacity).toFixed(3);
   return `${SVG_OPEN}<defs><mask id="ovm"><svg width="256" height="256" viewBox="0 0 256 256">${maskInner}</svg></mask></defs><rect width="256" height="256" fill="${color}" fill-opacity="${op}" mask="url(#ovm)"/></svg>`;
 }

@@ -15,7 +15,9 @@ import {
   getBaseShapeFillMask,
   getBaseShapeMask,
   frontImageAlpha,
+  buildBaseShapeUnderlaySvg,
   getFrontMask,
+  getImageFillMask,
   getWindowsFrontMask,
   isFrontImage,
   isWindowsFrontImage,
@@ -517,12 +519,12 @@ describe("windows front-only image mode", () => {
 
 describe("buildImageColorOverlaySvg — image color tint", () => {
   it("returns null when the overlay is off (opacity 0)", () => {
-    expect(buildImageColorOverlaySvg("windows", "#000000", 0)).toBeNull();
-    expect(buildImageColorOverlaySvg("windows", "#000000", -1)).toBeNull();
+    expect(buildImageColorOverlaySvg(doc({ baseShape: "windows" }), "#000000", 0)).toBeNull();
+    expect(buildImageColorOverlaySvg(doc({ baseShape: "windows" }), "#000000", -1)).toBeNull();
   });
 
   it("emits a colored rect masked to the folder silhouette at the given opacity", () => {
-    const svg = buildImageColorOverlaySvg("windows", "#123456", 0.4);
+    const svg = buildImageColorOverlaySvg(doc({ baseShape: "windows" }), "#123456", 0.4);
     expect(svg).not.toBeNull();
     expect(svg).toContain('fill="#123456"');
     expect(svg).toContain('fill-opacity="0.400"');
@@ -530,8 +532,15 @@ describe("buildImageColorOverlaySvg — image color tint", () => {
   });
 
   it("clamps opacity to 1 and works for any base shape", () => {
-    const svg = buildImageColorOverlaySvg("classic", "#ffffff", 5);
+    const svg = buildImageColorOverlaySvg(doc({ baseShape: "classic" }), "#ffffff", 5);
     expect(svg).toContain('fill-opacity="1.000"');
+  });
+
+  it("masks the tint to the FILL silhouette so it never colors the paper peek", () => {
+    // Fluent/Papirus always carry a paper sheet punched from the fill mask, so
+    // the tint (which uses that mask) excludes it — the bug was the full mask.
+    const svg = buildImageColorOverlaySvg(doc({ baseShape: "fluent" }), "#123456", 0.5)!;
+    expect(svg).toContain(`fill="black"`); // the paper peek, punched out of the tint
   });
 });
 
@@ -935,9 +944,16 @@ describe("fluent + its tela variant", () => {
     expect(isFrontImage(doc({ ...img, baseShape: "fluent", windowsImageMode: "front" }))).toBe(true);
     expect(isFrontImage(doc({ ...img, baseShape: "fluent", windowsImageMode: "full" }))).toBe(false);
     expect(getFrontMask("fluent")).toContain("white");
-    // The image back layer is flat in both variants — nothing shows through it.
-    expect(buildFrontImageBackSvg("fluent", "#5294e2", null, null)).not.toContain(`opacity="0.6"`);
-    expect(buildBaseShapeOverlaySvg("fluent")).toContain(`fill="#ffffff" opacity="0.4"`);
+    // The image back tab is the acrylic (0.6 translucent), keeping the image's
+    // hue; Tela's is opaque under an 18% black wash.
+    expect(buildFrontImageBackSvg("fluent", "#5294e2", null, null, "fluent")).toContain(
+      `fill="#5294e2" opacity="0.6"`,
+    );
+    expect(buildFrontImageBackSvg("fluent", "#5294e2", null, null, "tela")).not.toContain(
+      `opacity="0.6"`,
+    );
+    // Full-span overlay darkens the tab to distinguish it (Fluent 8%, Tela 18%).
+    expect(buildBaseShapeOverlaySvg("fluent")).toContain(`fill="#000000" opacity="0.08"`);
     expect(buildBaseShapeOverlaySvg("fluent", "tela")).toContain(`fill="#000000" opacity="0.18"`);
   });
 
@@ -958,6 +974,19 @@ describe("fluent + its tela variant", () => {
     // The image-back doesn't paint the front panel body — the image plays that
     // role — so the adaptive color is never laid down as a 0.8 front fill.
     expect(fluentBack).not.toContain(`fill="#e52e71" opacity="0.8"`);
+  });
+
+  it("full-span keeps the acrylic: graded image mask + frosted covered sheet", () => {
+    // The full-span image mask grades the opacity (tab 0.6, front 0.8) for
+    // Fluent; Tela keeps the plain opaque fill mask.
+    const fluentMask = getImageFillMask(doc({ baseShape: "fluent" }));
+    expect(fluentMask).toContain(`opacity="0.6"`);
+    expect(fluentMask).toContain(`opacity="0.5"`); // front painted at 0.5 over 0.6 → 0.8
+    expect(getImageFillMask(tela())).toBe(getBaseShapeFillMask(tela()));
+    // The frosted covered sheet is drawn below a full-span Fluent image (Tela flat).
+    const under = buildBaseShapeUnderlaySvg(doc({ baseShape: "fluent" }));
+    expect(under).toContain("feGaussianBlur");
+    expect(buildBaseShapeUnderlaySvg(tela())).toBeNull();
   });
 
   it("shapeVariant reads the field the shape actually uses", () => {
