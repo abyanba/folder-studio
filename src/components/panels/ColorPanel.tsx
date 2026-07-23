@@ -26,6 +26,7 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { FolderMaterialSection } from "@/components/controls/FolderMaterialSection";
 import { SliderField } from "@/components/controls/SliderField";
 import {
+  baseShapeHasSplit,
   MAC_COLOR_PROFILES,
   macDerivedTabColor,
   PAPIRUS_COLOR_PROFILES,
@@ -34,6 +35,7 @@ import {
   WINDOWS_IMAGE_MODES,
   windowsDerivedTabColor,
   windowsImageModeName,
+  telaDerivedTabColor,
   YARU_COLOR_PROFILES,
   yaruDerivedTabColor,
 } from "@/lib/export/baseShapes";
@@ -313,18 +315,17 @@ function BackTabColor() {
   const backColor = doc.folderBackColor;
   const custom = backColor != null;
   const isMac = doc.baseShape === "macos";
-  const isYaru = doc.baseShape === "yaru";
-  const isPapirus = doc.baseShape === "papirus";
   const imageMode = isMac ? doc.macImageMode : doc.windowsImageMode;
   // In full-image mode the image covers the tab, so a custom tab does nothing.
   const disabled = doc.folderFillMode === "image" && imageMode === "full";
-  const derived = isMac
-    ? macDerivedTabColor(doc)
-    : isYaru
-      ? yaruDerivedTabColor(doc)
-      : isPapirus
-        ? papirusDerivedTabColor(doc)
-        : windowsDerivedTabColor(doc);
+  const derivedFor: Record<string, (d: typeof doc) => string> = {
+    macos: macDerivedTabColor,
+    yaru: yaruDerivedTabColor,
+    papirus: papirusDerivedTabColor,
+    tela: telaDerivedTabColor,
+    fluent: telaDerivedTabColor,
+  };
+  const derived = (derivedFor[doc.baseShape] ?? windowsDerivedTabColor)(doc);
   return (
     <PanelSection
       title="Back (tab)"
@@ -575,24 +576,21 @@ export function ColorPanel() {
               onChange={onUpload}
             />
           </PanelSection>
-          {(doc.baseShape === "windows" ||
-            doc.baseShape === "macos" ||
-            doc.baseShape === "yaru" ||
-            doc.baseShape === "papirus") &&
-            doc.folderBgImage && <ImageSpan />}
+          {baseShapeHasSplit(doc.baseShape) && doc.folderBgImage && <ImageSpan />}
           {doc.folderBgImage && <ImageOverlayControls />}
           </>
         )}
 
         <FolderMaterialSection />
 
-        {(doc.baseShape === "windows" ||
-          doc.baseShape === "macos" ||
-          doc.baseShape === "yaru" ||
-          doc.baseShape === "papirus") && <BackTabColor />}
+        {baseShapeHasSplit(doc.baseShape) && <BackTabColor />}
+        {/* Papirus and Tela always carry a paper sheet; windows/macOS only in
+            the "with contents" state. */}
         {((doc.baseShape === "windows" || doc.baseShape === "macos") &&
           doc.folderState === "contents") ||
-        doc.baseShape === "papirus" ? (
+        doc.baseShape === "papirus" ||
+        doc.baseShape === "tela" ||
+        doc.baseShape === "fluent" ? (
           <PaperColorSection seed={doc.baseShape === "papirus" ? "#e4e4e4" : "#ffffff"} />
         ) : null}
       </div>

@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BASE_SHAPES,
+  baseShapeHasSplit,
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
   buildBaseShapeSvg,
@@ -11,6 +12,7 @@ import {
   buildWindowsImageBackSvg,
   buildWindowsPaperSvg,
   buildWindowsShineSvg,
+  getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
   getWindowsFrontMask,
@@ -19,6 +21,7 @@ import {
   MAC_COLOR_PROFILES,
   macColorProfileName,
   macDerivedTabColor,
+  telaDerivedTabColor,
   toShapeColorState,
   windowsDerivedTabColor,
 } from "@/lib/export/baseShapes";
@@ -858,6 +861,68 @@ describe("BASE_SHAPES ordering", () => {
     expect(BASE_SHAPES[0].id).toBe("windows");
     expect(BASE_SHAPES.map((s) => s.id)).toContain("macos");
     // Temporarily trimmed to the enabled focus bases.
-    expect(BASE_SHAPES.map((s) => s.id)).toEqual(["windows", "macos", "yaru", "papirus"]);
+    expect(BASE_SHAPES.map((s) => s.id)).toEqual([
+      "windows",
+      "macos",
+      "yaru",
+      "papirus",
+      "tela",
+      "fluent",
+    ]);
+  });
+});
+
+describe("tela + fluent", () => {
+  it("paints the source's washes: 18% black tab (Tela) / 40% white tab (Fluent)", () => {
+    const tela = buildBaseShapeSvg(doc({ baseShape: "tela", folderColor: "#5677fc" }));
+    expect(tela).toContain(`fill="#5677fc"`);
+    expect(tela).toContain(`fill="#000000" opacity="0.18"`); // → tab #4762cf
+    expect(tela).toContain(`fill="#000000" opacity="0.25"`); // pill → #35499b
+    const fluent = buildBaseShapeSvg(doc({ baseShape: "fluent", folderColor: "#5677fc" }));
+    expect(fluent).toContain(`fill="#ffffff" opacity="0.4"`);
+    expect(fluent).toContain("feGaussianBlur"); // the paper read through the glass
+    expect(fluent).toContain("clip-path=\"url(#tfc)\"");
+  });
+
+  it("derives the Auto tab from the front (Tela darker, Fluent lighter)", () => {
+    expect(telaDerivedTabColor(doc({ baseShape: "tela", folderColor: "#5677fc" }))).toBe("#4762cf");
+    const fluentTab = telaDerivedTabColor(doc({ baseShape: "fluent", folderColor: "#5677fc" }));
+    const [, , v] = hexToHsv(fluentTab);
+    expect(v).toBeGreaterThan(hexToHsv("#5677fc")[2]);
+  });
+
+  it("a custom back color replaces the tab verbatim (no wash)", () => {
+    const svg = buildBaseShapeSvg(
+      doc({ baseShape: "tela", folderColor: "#5677fc", folderBackColor: "#933331" }),
+    );
+    expect(svg).toContain(`fill="#933331"`);
+    expect(svg).not.toContain(`opacity="0.18"`);
+  });
+
+  it("the paper is always present and honors a custom color", () => {
+    expect(buildBaseShapeSvg(doc({ baseShape: "tela" }))).toContain(`fill="#ffffff"`);
+    expect(
+      buildBaseShapeSvg(doc({ baseShape: "tela", folderPaperColor: "#ffe082" })),
+    ).toContain(`fill="#ffe082"`);
+    // Present as a standalone layer for the image paths too (no contents state).
+    expect(buildBaseShapePaperSvg("tela", "empty", null)).toContain("<rect");
+    expect(buildBaseShapePaperSvg("fluent", "empty", null)).toContain("mask");
+  });
+
+  it("punches the paper out of the full-span fill mask", () => {
+    const mask = getBaseShapeFillMask(doc({ baseShape: "tela" }));
+    expect(mask).toContain(`fill="black"`); // the paper sheet
+    expect(mask.indexOf(`fill="black"`)).toBeLessThan(mask.lastIndexOf(`fill="white"`));
+  });
+
+  it("supports the front/back split (image, material and pattern span)", () => {
+    expect(baseShapeHasSplit("tela")).toBe(true);
+    expect(baseShapeHasSplit("fluent")).toBe(true);
+    const img = { folderFillMode: "image" as const, folderBgImage: "data:," };
+    expect(isFrontImage(doc({ ...img, baseShape: "tela", windowsImageMode: "front" }))).toBe(true);
+    expect(isFrontImage(doc({ ...img, baseShape: "fluent", windowsImageMode: "full" }))).toBe(false);
+    expect(getFrontMask("tela")).toContain("white");
+    expect(buildFrontImageBackSvg("tela", "#5294e2", null, null).startsWith("<svg")).toBe(true);
+    expect(buildBaseShapeOverlaySvg("fluent")).toContain(`fill="#ffffff" opacity="0.4"`);
   });
 });

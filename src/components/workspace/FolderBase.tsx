@@ -110,7 +110,8 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // affect it (it self-clips to the tab→front gap). Front mode already has it
     // in the reused back layer, so only draw the separate paper for full mode.
     const paper =
-      frontMode && doc.baseShape === "papirus"
+      frontMode &&
+      (doc.baseShape === "papirus" || doc.baseShape === "tela" || doc.baseShape === "fluent")
         ? null
         : buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
     // Structure drawn BELOW the image (full mode only) — the Papirus drop shadow.
