@@ -1369,13 +1369,15 @@ const FLU_FRONT_TF = "translate(0 28)";
 /** The paper's peeking strip (source `Vector-1`); its notch meets the front's. */
 const FLU_PEEK = "M8.00006 0.000605558C3.56628 0.000605558 0 3.56688 0 8.00066V24.0625H79.3202L84.0077 16.0313C86.2301 12.2065 87.5781 8.03906 92.0078 8.03906H184V8.00005C184 3.56643 180.434 0 176 0L8.00006 0.000605558Z";
 /**
- * Both paper parts share this space so one gradient spans them in sync: the
- * peek at its origin and the behind-the-front sheet (source `Rectangle`) at
- * (-16, 8) — i.e. (12, 28) in the composite.
+ * Both paper parts share this space so one gradient spans them in sync — the
+ * peek at its origin, and the sheet that continues down behind the front. The
+ * sheet is a single physical sheet with the peek, so it takes the peek's exact
+ * width (184, from x0) rather than the source `Rectangle`'s wider footprint,
+ * which spilled past the peek toward the tab.
  */
 const FLU_PAPER_TF = "translate(28 20)";
-const FLU_SHEET = `x="-16" y="8" width="216" height="148"`;
-const FLU_PAPER_BBOX = { x0: -16, y0: 0, x1: 200, y1: 156 };
+const FLU_SHEET = `x="0" y="8" width="184" height="148"`;
+const FLU_PAPER_BBOX = { x0: 0, y0: 0, x1: 184, y1: 156 };
 /** The darker pill on the tab — black 25% over the tab (source). */
 const FLU_PILL = `<rect x="48" y="4" width="48" height="8" rx="4" fill="#000000" opacity="0.25"/>`;
 /** Bounding box of the visible tab strip, for a custom tab gradient. */
