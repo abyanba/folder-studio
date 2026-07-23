@@ -12,7 +12,7 @@ import { memo } from "react";
 import type { CSSProperties } from "react";
 import { CDX, CDY, FH, FW } from "@/lib/constants";
 import type { MaterialSettings } from "@/types/document";
-import { buildMaterialLayerSvg, materialBlendMode } from "@/lib/export/materials";
+import { buildMaterialLayerSvg } from "@/lib/export/materials";
 
 function MaterialOverlayImpl({
   material,
@@ -31,7 +31,7 @@ function MaterialOverlayImpl({
     top: -CDY,
     width: FW,
     height: FH,
-    mixBlendMode: materialBlendMode(material.approach),
+    mixBlendMode: "soft-light",
     pointerEvents: "none",
   };
   return <div aria-hidden style={style} dangerouslySetInnerHTML={{ __html: svg }} />;

@@ -16,20 +16,8 @@
 
 import { FH, FW } from "@/lib/constants";
 import { baseShapeHasSplit } from "./baseShapes";
-import type { MaterialApproach, MaterialSettings } from "@/types/document";
+import type { MaterialSettings } from "@/types/document";
 import type { ElementMaterial } from "@/types/element";
-
-/** TEMPORARY (eval): the three compositing approaches, for the panel dropdown. */
-export const MATERIAL_APPROACHES: Array<{ id: MaterialApproach; name: string }> = [
-  { id: "lit", name: "Lit (current)" },
-  { id: "relief", name: "Relief (neutral)" },
-  { id: "grain", name: "Grain (darken)" },
-];
-
-/** The blend mode each approach composites with. `grain` darkens only. */
-export function materialBlendMode(approach: MaterialApproach | undefined): "soft-light" | "multiply" {
-  return approach === "grain" ? "multiply" : "soft-light";
-}
 
 /** Which knobs a material actually responds to — the panel shows only these. */
 export type MaterialControl = "intensity" | "scale" | "angle";
@@ -144,17 +132,12 @@ export function buildMaterialLayerSvg(
   const fId = `${idPrefix}f`;
   const maskId = `${idPrefix}mask`;
 
-  // TEMPORARY (eval): approach shifts the lit layer's flat level. A distant
-  // light gives a flat surface the level sin(elevation); shifting that to 0.5
-  // (relief) makes soft-light neutral on average, and to 1.0 (grain) makes
-  // multiply darken only the grooves.
-  const approach = material.approach ?? "lit";
-  const flat = Math.sin((recipe.elevation * Math.PI) / 180);
-  const shift = approach === "relief" ? 0.5 - flat : approach === "grain" ? 1 - flat : 0;
-  const transfer =
-    shift !== 0
-      ? `<feComponentTransfer><feFuncR type="linear" slope="1" intercept="${num(shift)}"/><feFuncG type="linear" slope="1" intercept="${num(shift)}"/><feFuncB type="linear" slope="1" intercept="${num(shift)}"/></feComponentTransfer>`
-      : "";
+  // Re-centre the lit surface on mid-grey so the soft-light blend neither
+  // lightens nor darkens the base colour on average — it only adds relief
+  // (lighter ridges + darker grooves). A distant light puts a flat surface at
+  // sin(elevation); shifting that to 0.5 makes soft-light neutral there.
+  const shift = 0.5 - Math.sin((recipe.elevation * Math.PI) / 180);
+  const transfer = `<feComponentTransfer><feFuncR type="linear" slope="1" intercept="${num(shift)}"/><feFuncG type="linear" slope="1" intercept="${num(shift)}"/><feFuncB type="linear" slope="1" intercept="${num(shift)}"/></feComponentTransfer>`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${FW}" height="${FH}" viewBox="0 0 ${FW} ${FH}">` +

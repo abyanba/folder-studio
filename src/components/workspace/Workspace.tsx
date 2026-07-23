@@ -48,11 +48,6 @@ export function Workspace() {
   const selectedId = useSelectionStore((s) => s.selectedId);
   const drawToolActive = useUiStore((s) => s.activeTool === "draw");
   const canvasLight = useUiStore((s) => s.canvasLight);
-  // TEMPORARY (eval): live-preview the hovered material approach.
-  const materialApproachPreview = useUiStore((s) => s.materialApproachPreview);
-  const previewMaterial = materialApproachPreview
-    ? { ...doc.material, approach: materialApproachPreview }
-    : doc.material;
   const wsRef = useRef<HTMLDivElement>(null);
   const { state, beginMove, beginResize, beginRotate, beginMarquee } = useInteraction(wsRef);
   const { overrides, marquee, snap } = state;
@@ -151,7 +146,7 @@ export function Workspace() {
                 <PatternOverlay pattern={doc.pattern} maskSvg={patternMaskSvg} />
               )}
               {doc.material.id !== "none" && (
-                <MaterialOverlay material={previewMaterial} maskSvg={materialMaskSvg} />
+                <MaterialOverlay material={doc.material} maskSvg={materialMaskSvg} />
               )}
               {(doc.pattern.id !== "none" || doc.material.id !== "none") && (
                 /* Highlights back on top so the surface treatment doesn't
