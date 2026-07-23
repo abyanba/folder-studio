@@ -1475,6 +1475,64 @@ function buildFluentSvg(cs: ShapeColorState): string {
 const FLU_MASK = `${SVG_OPEN}<g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/></g></svg>`;
 
 /**
+ * The back layer painted behind a front-only image folder. Unlike the color
+ * render, this deliberately omits the front panel — the image (drawn at
+ * {@link frontImageAlpha} for Fluent) plays the front's role. It draws an
+ * OPAQUE adaptive back (so no canvas shows through the tab), the peeking paper,
+ * the pill, and — for Fluent — the frosted covered sheet, so that sheet still
+ * frosts through the translucent image exactly as it does under the acrylic
+ * front. Tela stays flat (no sheet), keeping the two variants distinct.
+ */
+function buildFluentImageBackSvg(
+  frontAdaptive: string,
+  backColor?: ColorValue | null,
+  paperColor?: ColorValue | null,
+  variant?: string,
+): string {
+  const flat = isFlatTela(variant);
+  const paper = fluPaperFill(paperColor);
+  // Tab: the adaptive color under the variant's wash (Tela 18% black, Fluent
+  // 40% white — the tone its 0.6-alpha tab resolves to). A custom back replaces it.
+  let backDefs = "";
+  let backFill = frontAdaptive;
+  let wash = flat
+    ? `<path d="${FLU_BACK}" fill="#000000" opacity="0.18"/>`
+    : `<path d="${FLU_BACK}" fill="#ffffff" opacity="0.4"/>`;
+  if (backColor && isGradient(backColor)) {
+    backDefs = angleGradientEl("tbg", backColor.angle, backColor.stops, FLU_TAB_BBOX);
+    backFill = "url(#tbg)";
+    wash = "";
+  } else if (backColor) {
+    backFill = backColor;
+    wash = "";
+  }
+  const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
+  const blur = flat ? "" : `<filter id="tfb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>`;
+  const sheet = flat
+    ? ""
+    : `<g clip-path="url(#tfc)"><g transform="${FLU_PAPER_TF}"><rect ${FLU_SHEET} fill="${paper.fill}" filter="url(#tfb)"/></g></g>`;
+  return (
+    `${SVG_OPEN}<defs>${backDefs}${paper.defs}${flat ? "" : clip + blur}</defs>` +
+    `<g transform="${FLU_TF}">` +
+    `<path d="${FLU_BACK}" fill="${backFill}"/>${wash}` +
+    `<g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="${paper.fill}"/></g>` +
+    FLU_PILL +
+    sheet +
+    `</g></svg>`
+  );
+}
+
+/**
+ * Opacity of a front-only image over the folder's front panel. Fluent paints it
+ * translucent (0.8, mirroring its acrylic front) so the frosted covered paper
+ * frosts through the photo; every other shape and the flat Tela variant paint
+ * it opaque, so it isn't just Tela-with-a-picture.
+ */
+export function frontImageAlpha(doc: FolderDocument): number {
+  return isFluent(findShape(doc.baseShape).id) && !isFlatTela(doc.fluentVariant) ? 0.8 : 1;
+}
+
+/**
  * Whole-image structure overlay: the tab treatment (Tela's 18% black wash, or
  * the 40% white Fluent's 0.6-alpha tab resolves to), the pill and Tela's corner.
  */
@@ -2110,15 +2168,7 @@ export function buildFrontImageBackSvg(
     cs.paperColor = paperColor ?? null;
     return buildPapirusSvg(cs);
   }
-  if (isFluent(id)) {
-    const cs = toShapeColorState(frontAdaptive);
-    cs.backColor = backColor ?? null;
-    cs.paperColor = paperColor ?? null;
-    // Flat in both variants: the image covers the front, so painting the back
-    // at Fluent's 0.6 alpha would just let the canvas show through behind it.
-    cs.telaVariant = "tela";
-    return buildFluentSvg(cs);
-  }
+  if (isFluent(id)) return buildFluentImageBackSvg(frontAdaptive, backColor, paperColor, variant);
   return buildWindowsImageBackSvg(frontAdaptive, backColor, frontAdaptive2);
 }
 

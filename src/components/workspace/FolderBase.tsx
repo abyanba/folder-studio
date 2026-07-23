@@ -17,6 +17,7 @@ import {
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
   folderGroupOpacity,
+  frontImageAlpha,
   getBaseShapeFillMask,
   getFrontMask,
   isFrontImage,
@@ -76,13 +77,16 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // (everything except the fixed paper peek + drop shadow).
     const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, shapeVariant(doc)) : getBaseShapeFillMask(doc));
     const opacity = folderGroupOpacity(doc);
+    // Fluent paints its front image translucent, so the covered paper frosts
+    // through it (front-only mode only — full-span has nothing behind it).
+    const imgOpacity = frontMode ? opacity * frontImageAlpha(doc) : opacity;
     const fill: CSSProperties = { position: "absolute", inset: 0, width: FW, height: FH, pointerEvents: "none" };
     const style: CSSProperties = {
       ...fill,
       backgroundImage: `url("${doc.folderBgImage}")`,
       backgroundSize: `${(doc.folderBgZoom || 1) * 100}%`,
       backgroundPosition: `${doc.folderBgX ?? 50}% ${doc.folderBgY ?? 50}%`,
-      opacity,
+      opacity: imgOpacity,
       WebkitMaskImage: `url("${maskUrl}")`,
       maskImage: `url("${maskUrl}")`,
       WebkitMaskSize: "100% 100%",

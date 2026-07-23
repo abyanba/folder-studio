@@ -14,6 +14,7 @@ import {
   buildWindowsShineSvg,
   getBaseShapeFillMask,
   getBaseShapeMask,
+  frontImageAlpha,
   getFrontMask,
   getWindowsFrontMask,
   isFrontImage,
@@ -930,6 +931,25 @@ describe("fluent + its tela variant", () => {
     expect(buildFrontImageBackSvg("fluent", "#5294e2", null, null)).not.toContain(`opacity="0.6"`);
     expect(buildBaseShapeOverlaySvg("fluent")).toContain(`fill="#ffffff" opacity="0.4"`);
     expect(buildBaseShapeOverlaySvg("fluent", "tela")).toContain(`fill="#000000" opacity="0.18"`);
+  });
+
+  it("keeps the Fluent style under an image: translucent front + frosted covered paper", () => {
+    // Fluent's front image is translucent so the covered sheet frosts through;
+    // Tela's stays opaque, so the two don't collapse to the same look.
+    expect(frontImageAlpha(doc({ baseShape: "fluent" }))).toBe(0.8);
+    expect(frontImageAlpha(tela())).toBe(1);
+    expect(frontImageAlpha(doc({ baseShape: "windows" }))).toBe(1);
+    // The Fluent image-back keeps the frosted sheet (blurred, clipped to the
+    // front); the Tela image-back is flat, with no sheet.
+    const fluentBack = buildFrontImageBackSvg("fluent", "#e52e71", null, null, "fluent");
+    expect(fluentBack).toContain("feGaussianBlur");
+    expect(fluentBack).toContain("clipPath");
+    expect(buildFrontImageBackSvg("fluent", "#e52e71", null, null, "tela")).not.toContain(
+      "feGaussianBlur",
+    );
+    // The image-back doesn't paint the front panel body — the image plays that
+    // role — so the adaptive color is never laid down as a 0.8 front fill.
+    expect(fluentBack).not.toContain(`fill="#e52e71" opacity="0.8"`);
   });
 
   it("shapeVariant reads the field the shape actually uses", () => {

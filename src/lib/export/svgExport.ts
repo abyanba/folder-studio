@@ -33,6 +33,7 @@ import {
   buildImageColorOverlaySvg,
   getBaseShapeFillMask,
   getBaseShapeMask,
+  frontImageAlpha,
   getFrontMask,
   shapeVariant,
   isFrontImage,
@@ -297,7 +298,10 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
       );
       const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape, shapeVariant(doc)))}</svg></mask>`;
       const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc)));
-      return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)">${img}</g>${tint}${shine}${paper}</g>`;
+      // Fluent paints its front image translucent so the covered paper frosts through.
+      const ia = frontImageAlpha(doc);
+      const iop = ia !== 1 ? ` opacity="${num(ia)}"` : "";
+      return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)"${iop}>${img}</g>${tint}${shine}${paper}</g>`;
     }
     // Full folder: the image is masked to the FILL silhouette (everything but
     // the fixed paper peek + drop shadow), the drop shadow drawn under it, the

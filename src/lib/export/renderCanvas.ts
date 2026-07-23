@@ -33,6 +33,7 @@ import {
   getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
+  frontImageAlpha,
   shapeVariant,
   isFrontImage,
 } from "./baseShapes";
@@ -136,7 +137,11 @@ async function recolorCanvas(
         const tmp = createCanvas(size, size);
         const tctx = tmp.getContext("2d");
         if (tctx) {
+          // Fluent draws its front image translucent so the covered paper
+          // frosts through; every other shape paints it opaque.
+          tctx.globalAlpha = frontImageAlpha(doc);
           tctx.drawImage(bi, dx, dy, dw, dh);
+          tctx.globalAlpha = 1;
           const fm = await loadImage(toSvgDataUrl(getFrontMask(doc.baseShape, shapeVariant(doc))));
           if (fm) {
             tctx.globalCompositeOperation = "destination-in";
