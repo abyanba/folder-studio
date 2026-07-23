@@ -26,10 +26,12 @@ import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
   buildBaseShapeSvg,
+  buildBaseShapeUnderlaySvg,
   folderGroupOpacity,
   buildFrontImageBackSvg,
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
+  getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
   isFrontImage,
@@ -296,9 +298,14 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
       const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape));
       return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)">${img}</g>${tint}${shine}${paper}</g>`;
     }
-    // Folder-structure shading over the image (same builder as the editor).
+    // Full folder: the image is masked to the FILL silhouette (everything but
+    // the fixed paper peek + drop shadow), the drop shadow drawn under it, the
+    // structure shading and paper on top.
     const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
-    return `<g${op}>${img}${tint}${overlay ? fillBase(overlay) : ""}${paper}</g>`;
+    const fillMaskDef = `<mask id="wfullimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getBaseShapeFillMask(doc))}</svg></mask>`;
+    const underSvg = buildBaseShapeUnderlaySvg(doc.baseShape);
+    const under = underSvg ? fillBase(underSvg) : "";
+    return `<g${op}><defs>${fillMaskDef}</defs>${under}<g mask="url(#wfullimg)">${img}</g>${tint}${overlay ? fillBase(overlay) : ""}${paper}</g>`;
   }
   return `<g${op}>${fillBase(buildBaseShapeSvg(doc))}</g>`;
 }
@@ -336,7 +343,7 @@ export function buildExportSvg(
   if (patternBody) {
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
       ? getFrontMask(doc.baseShape, doc.yaruShape)
-      : getBaseShapeMask(doc.baseShape, doc.yaruShape);
+      : getBaseShapeFillMask(doc);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
   }
 
@@ -346,7 +353,7 @@ export function buildExportSvg(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
       ? getFrontMask(doc.baseShape, doc.yaruShape)
-      : getBaseShapeMask(doc.baseShape, doc.yaruShape),
+      : getBaseShapeFillMask(doc),
     "ml",
   );
   if (materialSvg) {

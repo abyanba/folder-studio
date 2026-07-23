@@ -9,7 +9,7 @@ import { useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY, CDW, CDH } from "@/lib/constants";
 import type { FolderElement } from "@/types/element";
-import { getBaseShapeMask, getFrontMask } from "@/lib/export/baseShapes";
+import { getBaseShapeFillMask, getBaseShapeMask, getFrontMask } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { isFrontPattern } from "@/lib/export/patterns";
 import { isFrontMaterial } from "@/lib/export/materials";
@@ -61,19 +61,21 @@ export function Workspace() {
   );
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
+  // Full-span material/pattern use the fill mask (excludes the paper peek + the
+  // Papirus drop shadow), so a surface treatment never covers that structure.
   const materialMaskSvg = useMemo(
     () =>
       isFrontMaterial(doc.baseShape, doc.material)
         ? getFrontMask(doc.baseShape, doc.yaruShape)
-        : getBaseShapeMask(doc.baseShape, doc.yaruShape),
-    [doc.baseShape, doc.material, doc.yaruShape],
+        : getBaseShapeFillMask(doc),
+    [doc.baseShape, doc.material, doc.yaruShape, doc.folderState],
   );
   const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
         ? getFrontMask(doc.baseShape, doc.yaruShape)
-        : getBaseShapeMask(doc.baseShape, doc.yaruShape),
-    [doc.baseShape, doc.pattern, doc.yaruShape],
+        : getBaseShapeFillMask(doc),
+    [doc.baseShape, doc.pattern, doc.yaruShape, doc.folderState],
   );
 
   const renderEl = (el: FolderElement) =>

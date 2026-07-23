@@ -25,10 +25,12 @@ import {
   buildBaseShapeOverlaySvg,
   buildBaseShapePaperSvg,
   buildBaseShapeSvg,
+  buildBaseShapeUnderlaySvg,
   folderGroupOpacity,
   buildFrontImageBackSvg,
   buildFrontImageOverlaySvg,
   buildImageColorOverlaySvg,
+  getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
   isFrontImage,
@@ -166,18 +168,38 @@ async function recolorCanvas(
           ctx.drawImage(tmp, 0, 0);
         }
       } else {
-        ctx.drawImage(bi, dx, dy, dw, dh);
-        if (tintImg) ctx.drawImage(tintImg, 0, 0, size, size);
-        // Folder-structure shading over the image (same builder as the editor).
-        const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
-        if (overlay) {
-          const oi = await loadImage(toSvgDataUrl(overlay));
-          if (oi) ctx.drawImage(oi, 0, 0, size, size);
+        // Compose on a temp canvas so the image can be masked to the FILL
+        // silhouette (everything except the fixed paper peek + drop shadow),
+        // with the drop shadow drawn under and the paper on top.
+        const tmp = createCanvas(size, size);
+        const tctx = tmp.getContext("2d");
+        if (tctx) {
+          tctx.drawImage(bi, dx, dy, dw, dh);
+          const fm = await loadImage(toSvgDataUrl(getBaseShapeFillMask(doc)));
+          if (fm) {
+            tctx.globalCompositeOperation = "destination-in";
+            tctx.drawImage(fm, 0, 0, size, size);
+          }
+          // Drop shadow (Papirus) below the image.
+          const underSvg = buildBaseShapeUnderlaySvg(doc.baseShape);
+          const under = underSvg ? await loadImage(toSvgDataUrl(underSvg)) : null;
+          if (under) {
+            tctx.globalCompositeOperation = "destination-over";
+            tctx.drawImage(under, 0, 0, size, size);
+          }
+          tctx.globalCompositeOperation = "source-over";
+          if (tintImg) tctx.drawImage(tintImg, 0, 0, size, size);
+          const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
+          if (overlay) {
+            const oi = await loadImage(toSvgDataUrl(overlay));
+            if (oi) tctx.drawImage(oi, 0, 0, size, size);
+          }
+          // Paper peek on top — the image never affects it (self-clipped).
+          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+          const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
+          if (paper) tctx.drawImage(paper, 0, 0, size, size);
+          ctx.drawImage(tmp, 0, 0);
         }
-        // Paper peek on top — the image never affects it (self-clipped).
-        const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
-        const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
-        if (paper) ctx.drawImage(paper, 0, 0, size, size);
       }
     } else {
       skipped.push("Folder background");
@@ -593,7 +615,7 @@ async function renderPattern(
   if (body) {
     const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
       ? getFrontMask(doc.baseShape, doc.yaruShape)
-      : getBaseShapeMask(doc.baseShape, doc.yaruShape);
+      : getBaseShapeFillMask(doc);
     const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
     if (layer) ctx.drawImage(layer, 0, 0, size, size);
   }
@@ -604,7 +626,7 @@ async function renderPattern(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
       ? getFrontMask(doc.baseShape, doc.yaruShape)
-      : getBaseShapeMask(doc.baseShape, doc.yaruShape),
+      : getBaseShapeFillMask(doc),
   );
   if (materialSvg) {
     const mImg = await loadImage(toSvgDataUrl(materialSvg));

@@ -1631,6 +1631,32 @@ export function getBaseShapeMask(baseShapeId: string, yaruShape?: YaruShape): st
 }
 
 /**
+ * The mask for a *fill* — image, material or pattern — which must NOT cover the
+ * folder's fixed structure: the paper sheet peek and (Papirus) the bottom drop
+ * shadow. Those always come from the base treatment, so a customization spans
+ * everything else. Built as white silhouette → black paper → white front, so
+ * only the paper's *peek* (the part above the front) is punched out, and the
+ * drop shadow is simply left out of the silhouette. Falls back to the full
+ * clip-to-folder mask for shapes with no paper/drop-shadow structure.
+ */
+export function getBaseShapeFillMask(doc: FolderDocument): string {
+  const id = findShape(doc.baseShape).id;
+  const contents = doc.folderState === "contents";
+  if (id === "windows" && contents) {
+    return `${SVG_OPEN}<path d="${WIN_T}" fill="white"/><path d="${WIN_PAPER}" fill="black"/><path d="${WIN_B}" fill="white"/></svg>`;
+  }
+  if (id === "macos" && contents) {
+    return `${SVG_OPEN}<path d="${MAC_F}" fill="white"/><path d="${MAC_PAPER}" fill="black"/><path d="${MAC_B}" fill="white"/></svg>`;
+  }
+  if (id === "papirus") {
+    // Front rect (not the drop-shadow rect) is the last white, so the drop
+    // shadow is excluded; the paper rect is punched from the tab region.
+    return `${SVG_OPEN}<g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="8" y="16" width="48" height="22" rx="2.8" fill="black"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
+  }
+  return getBaseShapeMask(doc.baseShape, doc.yaruShape);
+}
+
+/**
  * Shading overlay drawn on top of an image folder fill so the folder's
  * structure survives the image: the back panel / tab / bottom rim darken (the
  * region of the back not covered by the front) and the front keeps its
@@ -1923,8 +1949,18 @@ export function buildBaseShapePaperSvg(
   folderState: FolderState | undefined,
   paperColor?: ColorValue | null,
 ): string | null {
-  if (folderState !== "contents") return null;
   const id = findShape(baseShapeId).id;
+  // Papirus always has a paper sheet (no contents variant); self-clip to the
+  // peek (tab region minus front) so an image/tint never touches it.
+  if (id === "papirus") {
+    const fill =
+      paperColor && isGradient(paperColor)
+        ? { defs: angleGradientEl("ppL", paperColor.angle, paperColor.stops, PAP_PAPER_BBOX), ref: "url(#ppL)" }
+        : { defs: "", ref: paperColor ?? "#e4e4e4" };
+    const mask = `<mask id="ppl"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="black"/></g></mask>`;
+    return `${SVG_OPEN}<defs>${fill.defs}${mask}</defs><g mask="url(#ppl)"><g transform="${PAP_TF}"><rect x="8" y="16" width="48" height="22" rx="2.8" fill="${fill.ref}"/></g></g></svg>`;
+  }
+  if (folderState !== "contents") return null;
   if (id === "windows") return buildWindowsPaperSvg(baseShapeId, folderState, paperColor);
   if (id === "macos") {
     const paper = macPaperDef(paperColor);
@@ -1932,6 +1968,16 @@ export function buildBaseShapePaperSvg(
     return `${SVG_OPEN}<defs>${paper.defs}${mask}</defs><g mask="url(#mpm)">${paper.path}</g></svg>`;
   }
   return null;
+}
+
+/**
+ * Structure drawn BELOW an image fill (not masked to the fill) — currently just
+ * the Papirus bottom drop shadow, which must survive a full-folder image the
+ * same way it survives clip-to-folder. `null` for shapes with no underlay.
+ */
+export function buildBaseShapeUnderlaySvg(baseShapeId: string): string | null {
+  if (findShape(baseShapeId).id !== "papirus") return null;
+  return `${SVG_OPEN}<g transform="${PAP_TF}"><rect fill="#000000" opacity="0.2" width="56" height="36" x="4" y="22.6" rx="2.8"/></g></svg>`;
 }
 
 /**
