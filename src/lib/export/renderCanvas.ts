@@ -43,7 +43,7 @@ import { computeTextLayout, lineY, underlineX, underlineYOffset } from "./textLa
 import { toSvgDataUrl } from "./svgDataUrl";
 import { computeTrimBounds, computeTrimTransform } from "./trim";
 import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
-import { buildMaterialLayerSvg, isFrontMaterial } from "./materials";
+import { buildMaterialLayerSvg, isFrontMaterial, materialBlendMode } from "./materials";
 import { getPatternBody } from "@/lib/patternBodies";
 
 /** A loaded raster source; `naturalWidth`/`Height` present for `HTMLImageElement`. */
@@ -632,7 +632,7 @@ async function renderPattern(
     const mImg = await loadImage(toSvgDataUrl(materialSvg));
     if (mImg) {
       ctx.save();
-      ctx.globalCompositeOperation = "soft-light";
+      ctx.globalCompositeOperation = materialBlendMode(doc.material.approach);
       ctx.drawImage(mImg, 0, 0, size, size);
       ctx.restore();
     }

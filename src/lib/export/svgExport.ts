@@ -41,7 +41,7 @@ import type { IconBody } from "./elementSvg";
 import { gradientElement } from "./gradientSvg";
 import { computeTextLayout, lineY } from "./textLayout";
 import { buildPatternLayerSvg, isFrontPattern } from "./patterns";
-import { buildElementMaterialFilter, buildMaterialLayerSvg, isFrontMaterial } from "./materials";
+import { buildElementMaterialFilter, buildMaterialLayerSvg, isFrontMaterial, materialBlendMode } from "./materials";
 import type { MeasureText } from "./textLayout";
 
 export interface SvgExportDeps {
@@ -357,7 +357,7 @@ export function buildExportSvg(
     "ml",
   );
   if (materialSvg) {
-    body.push(`<g style="mix-blend-mode:soft-light">${materialSvg}</g>`);
+    body.push(`<g style="mix-blend-mode:${materialBlendMode(doc.material.approach)}">${materialSvg}</g>`);
   }
 
   if (patternBody || materialSvg) {

@@ -12,14 +12,28 @@
  * `buildMaterialLayerSvg` the workspace and both exports consume.
  */
 
+import { ChevronDown } from "lucide-react";
 import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { MATERIALS, buildMaterialLayerSvg, getMaterialRecipe } from "@/lib/export/materials";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MATERIAL_APPROACHES,
+  MATERIALS,
+  buildMaterialLayerSvg,
+  getMaterialRecipe,
+} from "@/lib/export/materials";
 import { baseShapeHasSplit } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { useDocumentStore } from "@/store/documentStore";
-import type { MaterialSettings, PatternSpan } from "@/types/document";
+import { useUiStore } from "@/store/uiStore";
+import type { MaterialApproach, MaterialSettings, PatternSpan } from "@/types/document";
 import { cn } from "@/lib/utils";
 
 /** All-white mask, so a swatch shows the material unclipped. */
@@ -29,6 +43,49 @@ const FULL_MASK =
 function swatch(id: string, settings: MaterialSettings): string | undefined {
   const svg = buildMaterialLayerSvg({ ...settings, id }, FULL_MASK);
   return svg ? `url("${toSvgDataUrl(svg)}")` : undefined;
+}
+
+/**
+ * TEMPORARY (eval): pick the material compositing approach — a dropdown that
+ * live-previews the hovered option on the folder. Remove once an approach wins.
+ */
+function MaterialApproachControl({
+  approach,
+  setMaterial,
+}: {
+  approach: MaterialApproach;
+  setMaterial: (patch: Partial<MaterialSettings>) => void;
+}) {
+  const setPreview = useUiStore((s) => s.setMaterialApproachPreview);
+  const name = MATERIAL_APPROACHES.find((a) => a.id === approach)?.name ?? approach;
+  return (
+    <PanelSection title="Approach (eval)">
+      <DropdownMenu onOpenChange={(open) => !open && setPreview(null)}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-7 w-full justify-between text-xs">
+            {name}
+            <ChevronDown className="size-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="start">
+          {MATERIAL_APPROACHES.map((opt) => (
+            <DropdownMenuItem
+              key={opt.id}
+              className="text-xs"
+              onMouseEnter={() => setPreview(opt.id)}
+              onMouseLeave={() => setPreview(null)}
+              onSelect={() => {
+                setPreview(null);
+                setMaterial({ approach: opt.id });
+              }}
+            >
+              {opt.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </PanelSection>
+  );
 }
 
 export function FolderMaterialSection() {
@@ -142,6 +199,8 @@ export function FolderMaterialSection() {
               </ToggleGroupItem>
             </ToggleGroup>
           )}
+
+          <MaterialApproachControl approach={material.approach ?? "lit"} setMaterial={setMaterial} />
 
           <p className="text-[10px] leading-snug text-muted-foreground">
             Shades the folder and anything patterned onto it, so a pattern picks

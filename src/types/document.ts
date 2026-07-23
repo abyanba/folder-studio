@@ -133,6 +133,15 @@ export interface PatternSettings {
   span: PatternSpan;
 }
 
+/**
+ * TEMPORARY (eval): how the material shading is composited over the folder.
+ * - lit    — the current look (white-lit surface, soft-light blend); brightens.
+ * - relief — the lit layer re-centred on mid-grey, soft-light blend; keeps the
+ *            base brightness, adds relief both ways (lighter ridges + darker pits).
+ * - grain  — flat areas pushed to white, multiply blend; darken-only.
+ */
+export type MaterialApproach = "lit" | "relief" | "grain";
+
 export interface MaterialSettings {
   /** `MATERIALS` recipe id, or `"none"`. */
   id: string;
@@ -144,6 +153,8 @@ export interface MaterialSettings {
    *  `"angle"` respond to it (brushed metal). */
   angle: number;
   span: PatternSpan;
+  /** TEMPORARY (eval): compositing approach; absent ⇒ `lit` (the current look). */
+  approach?: MaterialApproach;
 }
 
 export interface IconDefaults {

@@ -9,6 +9,7 @@ import type { BlendMode } from "@/types/element";
 import type {
   MacColorProfile,
   MacGradientAlgo,
+  MaterialApproach,
   PapirusColorProfile,
   WindowsColorProfile,
   WindowsGradientAlgo,
@@ -54,6 +55,8 @@ export interface UiStore {
   yaruColorProfilePreview: YaruColorProfile | null;
   /** Image span (full/front) being hovered — live-previewed on the folder base. */
   imageSpanPreview: WindowsImageMode | null;
+  /** TEMPORARY (eval): material approach being hovered — live-previewed. */
+  materialApproachPreview: MaterialApproach | null;
   /** Logos panel: mono (tinted simple-icons) vs full-color artwork. */
   logoMode: "mono" | "color";
   /** Tint for mono logos (legacy `logoColor`). */
@@ -94,6 +97,7 @@ export interface UiStore {
   setPapirusColorProfilePreview: (profile: PapirusColorProfile | null) => void;
   setYaruColorProfilePreview: (profile: YaruColorProfile | null) => void;
   setImageSpanPreview: (mode: WindowsImageMode | null) => void;
+  setMaterialApproachPreview: (approach: MaterialApproach | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
   setCanvasLight: (light: boolean) => void;
@@ -129,6 +133,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   papirusColorProfilePreview: null,
   yaruColorProfilePreview: null,
   imageSpanPreview: null,
+  materialApproachPreview: null,
   logoMode: "mono",
   logoColor: "#ffffff",
   canvasLight: false,
@@ -159,6 +164,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setPapirusColorProfilePreview: (profile) => set({ papirusColorProfilePreview: profile }),
   setYaruColorProfilePreview: (profile) => set({ yaruColorProfilePreview: profile }),
   setImageSpanPreview: (mode) => set({ imageSpanPreview: mode }),
+  setMaterialApproachPreview: (approach) => set({ materialApproachPreview: approach }),
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
   setCanvasLight: (light) => set({ canvasLight: light }),
