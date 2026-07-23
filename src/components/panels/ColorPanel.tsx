@@ -305,8 +305,8 @@ function BackTabColor() {
   const isYaru = doc.baseShape === "yaru";
   const isPapirus = doc.baseShape === "papirus";
   const imageMode = isMac ? doc.macImageMode : doc.windowsImageMode;
-  // Yaru/Papirus have no front-only image mode, so the tab is always colorable.
-  const disabled = !isYaru && !isPapirus && doc.folderFillMode === "image" && imageMode === "full";
+  // In full-image mode the image covers the tab, so a custom tab does nothing.
+  const disabled = doc.folderFillMode === "image" && imageMode === "full";
   const derived = isMac
     ? macDerivedTabColor(doc)
     : isYaru
@@ -564,9 +564,11 @@ export function ColorPanel() {
               onChange={onUpload}
             />
           </PanelSection>
-          {(doc.baseShape === "windows" || doc.baseShape === "macos") && doc.folderBgImage && (
-            <ImageSpan />
-          )}
+          {(doc.baseShape === "windows" ||
+            doc.baseShape === "macos" ||
+            doc.baseShape === "yaru" ||
+            doc.baseShape === "papirus") &&
+            doc.folderBgImage && <ImageSpan />}
           {doc.folderBgImage && <ImageOverlayControls />}
           </>
         )}

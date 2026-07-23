@@ -820,6 +820,39 @@ describe("front-only image adaptive gradient tab (Smart Auto)", () => {
   });
 });
 
+describe("yaru + papirus image / material front support", () => {
+  const img = { folderFillMode: "image" as const, folderBgImage: "data:," };
+
+  it("isFrontImage covers yaru and papirus via windowsImageMode", () => {
+    expect(isFrontImage(doc({ ...img, baseShape: "yaru", windowsImageMode: "front" }))).toBe(true);
+    expect(isFrontImage(doc({ ...img, baseShape: "papirus", windowsImageMode: "front" }))).toBe(true);
+    expect(isFrontImage(doc({ ...img, baseShape: "yaru", windowsImageMode: "full" }))).toBe(false);
+  });
+
+  it("getFrontMask returns a variant-aware front for yaru and a front rect for papirus", () => {
+    expect(getFrontMask("yaru", "sharp")).toContain("white");
+    // Rounded uses the mate transform; sharp uses the suru transform.
+    expect(getFrontMask("yaru", "rounded")).toContain("translate(-3 18)");
+    expect(getFrontMask("yaru", "sharp")).toContain("translate(5 13)");
+    expect(getFrontMask("papirus")).toContain("<rect");
+  });
+
+  it("buildFrontImageBackSvg reuses the color builders for yaru/papirus (non-empty, valid root)", () => {
+    for (const [shape, variant] of [["yaru", "sharp"], ["yaru", "rounded"], ["papirus", undefined]] as const) {
+      const svg = buildFrontImageBackSvg(shape, "#5294e2", null, null, variant);
+      expect(svg.startsWith("<svg")).toBe(true);
+      expect(svg.endsWith("</svg>")).toBe(true);
+      expect(svg.length).toBeGreaterThan(120);
+    }
+  });
+
+  it("buildBaseShapeOverlaySvg returns a structure overlay for yaru and papirus", () => {
+    expect(buildBaseShapeOverlaySvg("yaru", "sharp")).toContain("mask");
+    expect(buildBaseShapeOverlaySvg("yaru", "rounded")).toContain("mask");
+    expect(buildBaseShapeOverlaySvg("papirus")).toContain("mask");
+  });
+});
+
 describe("BASE_SHAPES ordering", () => {
   it("lists the solid-treatment shapes first", () => {
     expect(BASE_SHAPES[0].id).toBe("windows");

@@ -55,22 +55,25 @@ export function Workspace() {
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   // Pure function of the base shape — don't rebuild the mask data URL every
   // drag frame (PF-03).
-  const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape, doc.yaruShape)), [doc.baseShape]);
+  const maskUrl = useMemo(
+    () => toSvgDataUrl(getBaseShapeMask(doc.baseShape, doc.yaruShape)),
+    [doc.baseShape, doc.yaruShape],
+  );
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
   const materialMaskSvg = useMemo(
     () =>
       isFrontMaterial(doc.baseShape, doc.material)
-        ? getFrontMask(doc.baseShape)
+        ? getFrontMask(doc.baseShape, doc.yaruShape)
         : getBaseShapeMask(doc.baseShape, doc.yaruShape),
-    [doc.baseShape, doc.material],
+    [doc.baseShape, doc.material, doc.yaruShape],
   );
   const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
-        ? getFrontMask(doc.baseShape)
+        ? getFrontMask(doc.baseShape, doc.yaruShape)
         : getBaseShapeMask(doc.baseShape, doc.yaruShape),
-    [doc.baseShape, doc.pattern],
+    [doc.baseShape, doc.pattern, doc.yaruShape],
   );
 
   const renderEl = (el: FolderElement) =>
@@ -146,7 +149,7 @@ export function Workspace() {
               {(doc.pattern.id !== "none" || doc.material.id !== "none") && (
                 /* Highlights back on top so the surface treatment doesn't
                    flatten the folder — same treatment an image fill gets. */
-                <FolderStructureOverlay baseShape={doc.baseShape} />
+                <FolderStructureOverlay baseShape={doc.baseShape} yaruShape={doc.yaruShape} />
               )}
               {doc.elements.slice(tz).map(renderEl)}
             </div>

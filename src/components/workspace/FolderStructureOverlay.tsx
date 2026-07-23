@@ -17,6 +17,7 @@ import { memo } from "react";
 import type { CSSProperties } from "react";
 import { CDX, CDY, FH, FW } from "@/lib/constants";
 import { buildFrontImageOverlaySvg } from "@/lib/export/baseShapes";
+import type { YaruShape } from "@/types/document";
 
 function responsive(svg: string): string {
   return svg
@@ -25,8 +26,8 @@ function responsive(svg: string): string {
     .replace(/<svg\b/, `<svg width="100%" height="100%" preserveAspectRatio="none"`);
 }
 
-function FolderStructureOverlayImpl({ baseShape }: { baseShape: string }) {
-  const svg = buildFrontImageOverlaySvg(baseShape);
+function FolderStructureOverlayImpl({ baseShape, yaruShape }: { baseShape: string; yaruShape?: YaruShape }) {
+  const svg = buildFrontImageOverlaySvg(baseShape, yaruShape);
   if (!svg) return null; // shapes with no structural shading
   const style: CSSProperties = {
     position: "absolute",

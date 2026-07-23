@@ -60,7 +60,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     const frontMode = isFrontImage(doc);
     // Front-only: the image is masked to the front panel and the tab/back is
     // painted with the adaptive color; full: image spans the whole silhouette.
-    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape) : getBaseShapeMask(doc.baseShape, doc.yaruShape));
+    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, doc.yaruShape) : getBaseShapeMask(doc.baseShape, doc.yaruShape));
     const opacity = folderGroupOpacity(doc);
     const fill: CSSProperties = { position: "absolute", inset: 0, width: FW, height: FH, pointerEvents: "none" };
     const style: CSSProperties = {
@@ -84,13 +84,15 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
           doc.folderBgImageColor ?? "#888888",
           doc.folderBackColor,
           doc.folderBgImageColor2,
+          doc.yaruShape,
+          doc.folderPaperColor,
         )
       : null;
     const overlay = frontMode
-      ? buildFrontImageOverlaySvg(doc.baseShape)
-      : buildBaseShapeOverlaySvg(doc.baseShape);
+      ? buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape)
+      : buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
     // Color tint over the image (masked to the folder), below the structure.
-    const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
+    const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, doc.yaruShape);
     // The paper peek is the top-most layer so the image, tint and shading never
     // affect it (it self-clips to the tab→front gap).
     const paper = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);

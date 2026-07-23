@@ -273,7 +273,7 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
     const dy = -(dh - FH) * bpy;
     const img = `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"/>`;
     // Color tint over the image (masked to the folder), below the structure.
-    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
+    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, doc.yaruShape);
     const tint = tintSvg ? fillBase(tintSvg) : "";
     // Paper peek on top — the image, tint and shading never affect it.
     const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
@@ -288,14 +288,16 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
           doc.folderBgImageColor ?? "#888888",
           doc.folderBackColor,
           doc.folderBgImageColor2,
+          doc.yaruShape,
+          doc.folderPaperColor,
         ),
       );
-      const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape))}</svg></mask>`;
-      const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape));
+      const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape, doc.yaruShape))}</svg></mask>`;
+      const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape));
       return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)">${img}</g>${tint}${shine}${paper}</g>`;
     }
     // Folder-structure shading over the image (same builder as the editor).
-    const overlay = buildBaseShapeOverlaySvg(doc.baseShape);
+    const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
     return `<g${op}>${img}${tint}${overlay ? fillBase(overlay) : ""}${paper}</g>`;
   }
   return `<g${op}>${fillBase(buildBaseShapeSvg(doc))}</g>`;
@@ -333,7 +335,7 @@ export function buildExportSvg(
   const patternBody = doc.pattern.id !== "none" ? deps.getPatternBody?.(doc.pattern.id) : null;
   if (patternBody) {
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
-      ? getFrontMask(doc.baseShape)
+      ? getFrontMask(doc.baseShape, doc.yaruShape)
       : getBaseShapeMask(doc.baseShape, doc.yaruShape);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
   }
@@ -343,7 +345,7 @@ export function buildExportSvg(
   const materialSvg = buildMaterialLayerSvg(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
-      ? getFrontMask(doc.baseShape)
+      ? getFrontMask(doc.baseShape, doc.yaruShape)
       : getBaseShapeMask(doc.baseShape, doc.yaruShape),
     "ml",
   );
@@ -355,7 +357,7 @@ export function buildExportSvg(
     // Highlights back on top of the surface treatment (shine / rim stripes).
     // Not the full overlay — its vignette would double the colour base's own
     // shading.
-    const structure = buildFrontImageOverlaySvg(doc.baseShape);
+    const structure = buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape);
     if (structure) body.push(`<svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(structure)}</svg>`);
   }
 

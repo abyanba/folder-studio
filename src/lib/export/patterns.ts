@@ -135,5 +135,10 @@ export function buildPatternLayerSvg(
  */
 export function isFrontPattern(baseShape: string, pattern: PatternSettings): boolean {
   if (pattern.span !== "front") return false;
-  return baseShape === "windows" || baseShape === "macos";
+  return (
+    baseShape === "windows" ||
+    baseShape === "macos" ||
+    baseShape === "yaru" ||
+    baseShape === "papirus"
+  );
 }

@@ -1612,7 +1612,7 @@ export function getBaseShapeMask(baseShapeId: string, yaruShape?: YaruShape): st
  * without an overlay treatment. Consumed by the editor (`FolderBase`), the
  * raster export (`renderCanvas`) and the vector export (`svgExport`) alike.
  */
-export function buildBaseShapeOverlaySvg(baseShapeId: string): string | null {
+export function buildBaseShapeOverlaySvg(baseShapeId: string, yaruShape?: YaruShape): string | null {
   const id = findShape(baseShapeId).id;
   if (id === "windows") {
     const sh = winShineDefs(0.26, 6);
@@ -1629,7 +1629,31 @@ export function buildBaseShapeOverlaySvg(baseShapeId: string): string | null {
     const mask = `<mask id="mvm"><path d="${MAC_F}" fill="white"/><path d="${MAC_B}" fill="black"/></mask>`;
     return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#mvg)" mask="url(#mvm)"/>${macStructureOverlay()}</svg>`;
   }
+  if (id === "yaru") return yaruStructureOverlay(yaruShape !== "rounded");
+  if (id === "papirus") return papirusStructureOverlay();
   return null;
+}
+
+/** Whole-image structure overlay for Yaru: darkens the tab strip + edge shines. */
+function yaruStructureOverlay(sharp: boolean): string {
+  const back = sharp ? YARU_BACK : YARU_ROUND_BACK;
+  const front = sharp ? YARU_FRONT : YARU_ROUND_FRONT;
+  const tf = sharp ? YARU_TF : YARU_ROUND_TF;
+  const darken = `<linearGradient id="yvg" x1="0" y1="0" x2="0" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.3"/><stop offset="0.32" stop-color="#000000" stop-opacity="0.12"/></linearGradient>`;
+  const mask = `<mask id="yvm"><g transform="${tf}"><path d="${back}" fill="white"/><path d="${front}" fill="black"/></g></mask>`;
+  const shine = sharp
+    ? `<g transform="${tf}"><path d="${YARU_TAB_SHINE}" fill="url(#ysg)"/><path d="${YARU_FRONT_SHINE}" fill="url(#ysg)"/></g>`
+    : `<g transform="${tf}"><path d="${YARU_ROUND_TAB_HL}" fill="#ffffff" opacity="0.3"/><path d="${YARU_ROUND_FRONT_HL}" fill="#ffffff" opacity="0.35"/></g>`;
+  const shineDefs = sharp ? YARU_SHINE_GRAD : "";
+  return `${SVG_OPEN}<defs>${darken}${mask}${shineDefs}</defs><rect width="256" height="256" fill="url(#yvg)" mask="url(#yvm)"/>${shine}</svg>`;
+}
+
+/** Whole-image structure overlay for Papirus: darkens the tab strip + tab highlight. */
+function papirusStructureOverlay(): string {
+  const darken = `<linearGradient id="pvg" x1="0" y1="0" x2="0" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.24"/><stop offset="0.28" stop-color="#000000" stop-opacity="0.08"/></linearGradient>`;
+  const mask = `<mask id="pvm"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="black"/></g></mask>`;
+  const hl = `<g transform="${PAP_TF}"><path d="${PAP_HIGHLIGHT}" fill="#ffffff" opacity="0.25"/></g>`;
+  return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#pvg)" mask="url(#pvm)"/>${hl}</svg>`;
 }
 
 /**
@@ -1759,19 +1783,29 @@ export function buildWindowsShineSvg(): string {
  * Shape-aware front-only image mode (windows + macOS).
  * ------------------------------------------------------------------------ */
 
-/** Does this document render as a front-only image folder (windows or macOS)? */
+/** Does this document render as a front-only image folder? */
 export function isFrontImage(doc: FolderDocument): boolean {
   if (doc.folderFillMode !== "image") return false;
   const id = findShape(doc.baseShape).id;
-  if (id === "windows") return doc.windowsImageMode === "front";
   if (id === "macos") return doc.macImageMode === "front";
+  // windows, yaru and papirus all use the shared windowsImageMode.
+  if (id === "windows" || id === "yaru" || id === "papirus") return doc.windowsImageMode === "front";
   return false;
 }
 
 /** White silhouette of ONLY the front panel for the shape (masks the image). */
-export function getFrontMask(baseShapeId: string): string {
-  const path = findShape(baseShapeId).id === "macos" ? MAC_B : WIN_B;
-  return `${SVG_OPEN}<path d="${path}" fill="white"/></svg>`;
+export function getFrontMask(baseShapeId: string, yaruShape?: YaruShape): string {
+  const id = findShape(baseShapeId).id;
+  if (id === "macos") return `${SVG_OPEN}<path d="${MAC_B}" fill="white"/></svg>`;
+  if (id === "yaru") {
+    return yaruShape === "rounded"
+      ? `${SVG_OPEN}<g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_FRONT}" fill="white"/></g></svg>`
+      : `${SVG_OPEN}<g transform="${YARU_TF}"><path d="${YARU_FRONT}" fill="white"/></g></svg>`;
+  }
+  if (id === "papirus") {
+    return `${SVG_OPEN}<g transform="${PAP_TF}"><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
+  }
+  return `${SVG_OPEN}<path d="${WIN_B}" fill="white"/></svg>`;
 }
 
 /**
@@ -1784,8 +1818,11 @@ export function buildFrontImageBackSvg(
   frontAdaptive: string,
   backColor?: ColorValue | null,
   frontAdaptive2?: string | null,
+  yaruShape?: YaruShape,
+  paperColor?: ColorValue | null,
 ): string {
-  if (findShape(baseShapeId).id === "macos") {
+  const id = findShape(baseShapeId).id;
+  if (id === "macos") {
     const [h, s, v] = hexToHsv(frontAdaptive);
     const tab = macImageTab(h, s, v);
     const auto =
@@ -1796,12 +1833,38 @@ export function buildFrontImageBackSvg(
         : null;
     return `${SVG_OPEN}<defs>${macTabDef(tab, backColor ?? auto)}</defs><path d="${MAC_F}" fill="url(#mgt)"/></svg>`;
   }
+  // Yaru/Papirus: render the full colored folder with the image's adaptive color
+  // as the front — the image (masked to the front) draws on top, leaving the
+  // tab, paper and structure showing. Reuses the exact color builders.
+  if (id === "yaru") {
+    const cs = toShapeColorState(frontAdaptive);
+    cs.backColor = backColor ?? null;
+    cs.yaruShape = yaruShape;
+    cs.yaruColorProfile = "flat";
+    return buildYaruSvg(cs);
+  }
+  if (id === "papirus") {
+    const cs = toShapeColorState(frontAdaptive);
+    cs.backColor = backColor ?? null;
+    cs.paperColor = paperColor ?? null;
+    return buildPapirusSvg(cs);
+  }
   return buildWindowsImageBackSvg(frontAdaptive, backColor, frontAdaptive2);
 }
 
 /** The structure overlay drawn on TOP of a front-only image, per shape. */
-export function buildFrontImageOverlaySvg(baseShapeId: string): string {
-  if (findShape(baseShapeId).id === "macos") return `${SVG_OPEN}${macStructureOverlay()}</svg>`;
+export function buildFrontImageOverlaySvg(baseShapeId: string, yaruShape?: YaruShape): string {
+  const id = findShape(baseShapeId).id;
+  if (id === "macos") return `${SVG_OPEN}${macStructureOverlay()}</svg>`;
+  if (id === "yaru") {
+    // Redraw the front edge shine (the back layer's front is hidden by the image).
+    return yaruShape === "rounded"
+      ? `${SVG_OPEN}<g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_FRONT_HL}" fill="#ffffff" opacity="0.35"/></g></svg>`
+      : `${SVG_OPEN}<defs>${YARU_SHINE_GRAD}</defs><g transform="${YARU_TF}"><path d="${YARU_FRONT_SHINE}" fill="url(#ysg)"/><path opacity="0.05" d="${YARU_BR_LIGHT}" fill="#ffffff"/></g></svg>`;
+  }
+  // Papirus front is flat — the shadow line already peeks above the image from
+  // the back layer, so no on-top overlay is needed.
+  if (id === "papirus") return `${SVG_OPEN}</svg>`;
   return buildWindowsShineSvg();
 }
 
@@ -1855,9 +1918,10 @@ export function buildImageColorOverlaySvg(
   baseShapeId: string,
   color: string,
   opacity: number,
+  yaruShape?: YaruShape,
 ): string | null {
   if (!(opacity > 0)) return null;
-  const maskInner = getBaseShapeMask(baseShapeId);
+  const maskInner = getBaseShapeMask(baseShapeId, yaruShape);
   const op = Math.min(1, opacity).toFixed(3);
   return `${SVG_OPEN}<defs><mask id="ovm"><svg width="256" height="256" viewBox="0 0 256 256">${maskInner}</svg></mask></defs><rect width="256" height="256" fill="${color}" fill-opacity="${op}" mask="url(#ovm)"/></svg>`;
 }

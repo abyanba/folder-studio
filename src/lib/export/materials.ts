@@ -273,5 +273,10 @@ export function withElementMaterial(
  */
 export function isFrontMaterial(baseShape: string, material: MaterialSettings): boolean {
   if (material.span !== "front") return false;
-  return baseShape === "windows" || baseShape === "macos";
+  return (
+    baseShape === "windows" ||
+    baseShape === "macos" ||
+    baseShape === "yaru" ||
+    baseShape === "papirus"
+  );
 }
