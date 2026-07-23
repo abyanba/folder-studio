@@ -40,6 +40,7 @@ import type {
   WindowsImageMode,
   YaruColorProfile,
   YaruShape,
+  FluentVariant,
 } from "@/types/document";
 import { createEmptyDocument } from "@/types/document";
 
@@ -169,6 +170,7 @@ export interface DocumentStore {
   setWindowsColorProfile: (profile: WindowsColorProfile) => void;
   setPapirusColorProfile: (profile: PapirusColorProfile) => void;
   setYaruShape: (shape: YaruShape) => void;
+  setFluentVariant: (variant: FluentVariant) => void;
   setYaruColorProfile: (profile: YaruColorProfile) => void;
   /** Pick how an image fill maps onto the macOS folder (full vs front-only). */
   setMacImageMode: (mode: WindowsImageMode) => void;
@@ -575,6 +577,7 @@ export const useDocumentStore = create<DocumentStore>()(
       setPapirusColorProfile: (profile) =>
         set((s) => ({ doc: { ...s.doc, papirusColorProfile: profile } })),
       setYaruShape: (shape) => set((s) => ({ doc: { ...s.doc, yaruShape: shape } })),
+      setFluentVariant: (variant) => set((s) => ({ doc: { ...s.doc, fluentVariant: variant } })),
       setYaruColorProfile: (profile) =>
         set((s) => ({ doc: { ...s.doc, yaruColorProfile: profile } })),
       setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),

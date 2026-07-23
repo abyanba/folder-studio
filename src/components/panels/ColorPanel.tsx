@@ -322,7 +322,6 @@ function BackTabColor() {
     macos: macDerivedTabColor,
     yaru: yaruDerivedTabColor,
     papirus: papirusDerivedTabColor,
-    tela: telaDerivedTabColor,
     fluent: telaDerivedTabColor,
   };
   const derived = (derivedFor[doc.baseShape] ?? windowsDerivedTabColor)(doc);
@@ -589,7 +588,6 @@ export function ColorPanel() {
         {((doc.baseShape === "windows" || doc.baseShape === "macos") &&
           doc.folderState === "contents") ||
         doc.baseShape === "papirus" ||
-        doc.baseShape === "tela" ||
         doc.baseShape === "fluent" ? (
           <PaperColorSection seed={doc.baseShape === "papirus" ? "#e4e4e4" : "#ffffff"} />
         ) : null}

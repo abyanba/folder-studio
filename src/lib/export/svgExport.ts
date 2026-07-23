@@ -34,6 +34,7 @@ import {
   getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
+  shapeVariant,
   isFrontImage,
 } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildShapeSvg, innerShadowFilter, shapeStrokePadPx } from "./elementSvg";
@@ -275,7 +276,7 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
     const dy = -(dh - FH) * bpy;
     const img = `<image x="${num(dx)}" y="${num(dy)}" width="${num(dw)}" height="${num(dh)}" href="${escapeXml(doc.folderBgImage)}" preserveAspectRatio="none"/>`;
     // Color tint over the image (masked to the folder), below the structure.
-    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, doc.yaruShape);
+    const tintSvg = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
     const tint = tintSvg ? fillBase(tintSvg) : "";
     // Paper peek on top — the image, tint and shading never affect it.
     const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
@@ -290,18 +291,18 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
           doc.folderBgImageColor ?? "#888888",
           doc.folderBackColor,
           doc.folderBgImageColor2,
-          doc.yaruShape,
+          shapeVariant(doc),
           doc.folderPaperColor,
         ),
       );
-      const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape, doc.yaruShape))}</svg></mask>`;
-      const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape));
+      const maskDef = `<mask id="wfrontimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getFrontMask(doc.baseShape, shapeVariant(doc)))}</svg></mask>`;
+      const shine = fillBase(buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc)));
       return `<g${op}><defs>${maskDef}</defs>${back}<g mask="url(#wfrontimg)">${img}</g>${tint}${shine}${paper}</g>`;
     }
     // Full folder: the image is masked to the FILL silhouette (everything but
     // the fixed paper peek + drop shadow), the drop shadow drawn under it, the
     // structure shading and paper on top.
-    const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
+    const overlay = buildBaseShapeOverlaySvg(doc.baseShape, shapeVariant(doc));
     const fillMaskDef = `<mask id="wfullimg"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(getBaseShapeFillMask(doc))}</svg></mask>`;
     const underSvg = buildBaseShapeUnderlaySvg(doc.baseShape);
     const under = underSvg ? fillBase(underSvg) : "";
@@ -342,7 +343,7 @@ export function buildExportSvg(
   const patternBody = doc.pattern.id !== "none" ? deps.getPatternBody?.(doc.pattern.id) : null;
   if (patternBody) {
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
-      ? getFrontMask(doc.baseShape, doc.yaruShape)
+      ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
   }
@@ -352,7 +353,7 @@ export function buildExportSvg(
   const materialSvg = buildMaterialLayerSvg(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
-      ? getFrontMask(doc.baseShape, doc.yaruShape)
+      ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc),
     "ml",
   );
@@ -364,7 +365,7 @@ export function buildExportSvg(
     // Highlights back on top of the surface treatment (shine / rim stripes).
     // Not the full overlay — its vignette would double the colour base's own
     // shading.
-    const structure = buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape);
+    const structure = buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc));
     if (structure) body.push(`<svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(structure)}</svg>`);
   }
 
@@ -372,7 +373,7 @@ export function buildExportSvg(
 
   let content = body.join("");
   if (doc.clipToFolder) {
-    const mask = getBaseShapeMask(doc.baseShape, doc.yaruShape);
+    const mask = getBaseShapeMask(doc.baseShape, shapeVariant(doc));
     if (mask) {
       defs.push(
         `<mask id="folderclip"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(mask)}</svg></mask>`,

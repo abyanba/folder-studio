@@ -90,6 +90,33 @@ function YaruShapeControl() {
   );
 }
 
+/** Switch the Fluent folder between the acrylic (Fluent) and flat (Tela) paint. */
+function FluentVariantControl() {
+  const variant = useDocumentStore((s) => s.doc.fluentVariant);
+  const setVariant = useDocumentStore((s) => s.setFluentVariant);
+  return (
+    <PanelSection title="Shape variant" className="px-3 pb-3">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={variant}
+        onValueChange={(v) => {
+          if (v) setVariant(v as "fluent" | "tela");
+        }}
+        className="w-full"
+      >
+        <ToggleGroupItem value="fluent" className="flex-1 text-xs">
+          Fluent
+        </ToggleGroupItem>
+        <ToggleGroupItem value="tela" className="flex-1 text-xs">
+          Tela
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </PanelSection>
+  );
+}
+
 export function ShapePanel() {
   const baseShape = useDocumentStore((s) => s.doc.baseShape);
   const applyBaseShape = useDocumentStore((s) => s.applyBaseShape);
@@ -138,6 +165,7 @@ export function ShapePanel() {
       </div>
       {(baseShape === "windows" || baseShape === "macos") && <FolderStateControl />}
       {baseShape === "yaru" && <YaruShapeControl />}
+      {baseShape === "fluent" && <FluentVariantControl />}
     </div>
   );
 }

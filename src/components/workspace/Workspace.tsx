@@ -9,7 +9,7 @@ import { useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import { FW, FH, CDX, CDY, CDW, CDH } from "@/lib/constants";
 import type { FolderElement } from "@/types/element";
-import { getBaseShapeFillMask, getBaseShapeMask, getFrontMask } from "@/lib/export/baseShapes";
+import { getBaseShapeFillMask, getBaseShapeMask, getFrontMask, shapeVariant } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { isFrontPattern } from "@/lib/export/patterns";
 import { isFrontMaterial } from "@/lib/export/materials";
@@ -56,8 +56,8 @@ export function Workspace() {
   // Pure function of the base shape — don't rebuild the mask data URL every
   // drag frame (PF-03).
   const maskUrl = useMemo(
-    () => toSvgDataUrl(getBaseShapeMask(doc.baseShape, doc.yaruShape)),
-    [doc.baseShape, doc.yaruShape],
+    () => toSvgDataUrl(getBaseShapeMask(doc.baseShape, shapeVariant(doc))),
+    [doc.baseShape, shapeVariant(doc)],
   );
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
@@ -66,16 +66,16 @@ export function Workspace() {
   const materialMaskSvg = useMemo(
     () =>
       isFrontMaterial(doc.baseShape, doc.material)
-        ? getFrontMask(doc.baseShape, doc.yaruShape)
+        ? getFrontMask(doc.baseShape, shapeVariant(doc))
         : getBaseShapeFillMask(doc),
-    [doc.baseShape, doc.material, doc.yaruShape, doc.folderState],
+    [doc.baseShape, doc.material, shapeVariant(doc), doc.folderState],
   );
   const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
-        ? getFrontMask(doc.baseShape, doc.yaruShape)
+        ? getFrontMask(doc.baseShape, shapeVariant(doc))
         : getBaseShapeFillMask(doc),
-    [doc.baseShape, doc.pattern, doc.yaruShape, doc.folderState],
+    [doc.baseShape, doc.pattern, shapeVariant(doc), doc.folderState],
   );
 
   const renderEl = (el: FolderElement) =>
@@ -151,7 +151,7 @@ export function Workspace() {
               {(doc.pattern.id !== "none" || doc.material.id !== "none") && (
                 /* Highlights back on top so the surface treatment doesn't
                    flatten the folder — same treatment an image fill gets. */
-                <FolderStructureOverlay baseShape={doc.baseShape} yaruShape={doc.yaruShape} />
+                <FolderStructureOverlay baseShape={doc.baseShape} variant={shapeVariant(doc)} />
               )}
               {doc.elements.slice(tz).map(renderEl)}
             </div>

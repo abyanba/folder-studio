@@ -20,6 +20,7 @@ import {
   getBaseShapeFillMask,
   getFrontMask,
   isFrontImage,
+  shapeVariant,
 } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { isGradient } from "@/types/gradient";
@@ -73,7 +74,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // Front-only: the image is masked to the front panel and the tab/back is
     // painted with the adaptive color; full: image spans the fill silhouette
     // (everything except the fixed paper peek + drop shadow).
-    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, doc.yaruShape) : getBaseShapeFillMask(doc));
+    const maskUrl = toSvgDataUrl(frontMode ? getFrontMask(doc.baseShape, shapeVariant(doc)) : getBaseShapeFillMask(doc));
     const opacity = folderGroupOpacity(doc);
     const fill: CSSProperties = { position: "absolute", inset: 0, width: FW, height: FH, pointerEvents: "none" };
     const style: CSSProperties = {
@@ -97,21 +98,20 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
           doc.folderBgImageColor ?? "#888888",
           doc.folderBackColor,
           doc.folderBgImageColor2,
-          doc.yaruShape,
+          shapeVariant(doc),
           doc.folderPaperColor,
         )
       : null;
     const overlay = frontMode
-      ? buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape)
-      : buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
+      ? buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc))
+      : buildBaseShapeOverlaySvg(doc.baseShape, shapeVariant(doc));
     // Color tint over the image (masked to the folder), below the structure.
-    const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, doc.yaruShape);
+    const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
     // The paper peek is the top-most layer so the image, tint and shading never
     // affect it (it self-clips to the tab→front gap). Front mode already has it
     // in the reused back layer, so only draw the separate paper for full mode.
     const paper =
-      frontMode &&
-      (doc.baseShape === "papirus" || doc.baseShape === "tela" || doc.baseShape === "fluent")
+      frontMode && (doc.baseShape === "papirus" || doc.baseShape === "fluent")
         ? null
         : buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
     // Structure drawn BELOW the image (full mode only) — the Papirus drop shadow.

@@ -56,6 +56,8 @@ export interface ShapeColorState {
   papirusColorProfile?: PapirusColorProfile;
   /** Yaru shape variant (defaults to `sharp`). */
   yaruShape?: YaruShape;
+  /** Fluent shape variant — `tela` paints it flat (defaults to the acrylic `fluent`). */
+  telaVariant?: string;
   /** Yaru front-fill treatment (defaults to `gradient`). */
   yaruColorProfile?: YaruColorProfile;
   /** TEMPORARY: macOS gradient-fill treatment (defaults to the newest). */
@@ -1335,150 +1337,164 @@ export function papirusDerivedTabColor(doc: FolderDocument): string {
 }
 
 /* ------------------------------------------------------------------------ *
- * Tela folder — a flat design with an always-present paper sheet.
+ * Fluent folder (and its flat Tela variant).
  *
- * Geometry lifted verbatim from the official Tela 64px folder SVGs
- * (docs/attachment/references/tela-folder/), placed into the 256 box via
- * TELA_TF. The color model is the source's own and is exact: the back/tab is
- * the front color under an 18% black wash, the tab pill a further 25% (see
- * docs/tela-folder-color.md — e.g. front #5677fc → tab #4762cf → pill #35499b).
- * Both are plain multiplications, so they are painted as overlays here rather
- * than derived in HSV — which makes them work verbatim under a gradient fill.
- * The paper sheet is always present (white by default) and peeks above the
- * front panel's stepped top edge.
+ * Geometry lifted verbatim from the dissected official Fluent icon
+ * (docs/attachment/references/fluent-folder/<color>/): the back/tab panel
+ * (Vector), the front (Vector-2), the peeking paper (Vector-1) and the sheet
+ * that sits behind the front (Rectangle). The parts are authored in one
+ * 240×189 space — each carries its own offset below — centred in the 256 box
+ * via FLU_TF, which lands the icon on the same footprint as the Windows shape.
  *
- * Fluent is the same art with an acrylic front: back and front turn
- * translucent and the paper they cover is redrawn blurred beneath the front,
- * so it reads through the glass (docs/attachment/references/fluent-folder/).
+ * Fluent's paint is the source's: the front is the folder color at 0.8 alpha
+ * and the tab at 0.6, with the paper reading through — the front sits entirely
+ * inside the back panel, so the two alphas compose evenly and the icon keeps
+ * the acrylic translucency it has in the original.
+ *
+ * The Tela variant is the same art painted flat (docs/tela-folder-color.md):
+ * an opaque front, the tab under an 18% black wash and the tab pill a further
+ * 25% — e.g. front #5677fc → tab #4762cf → pill #35499b. Both are plain
+ * multiplications, so they are painted as overlays rather than derived in HSV,
+ * which makes them hold verbatim under a gradient fill. Tela also carries the
+ * bottom-right corner shading its own reference has and Fluent's does not.
  * ------------------------------------------------------------------------ */
 
-/** Places the 64px source art into the 256 box on the same footprint as Windows. */
-const TELA_TF = "translate(0 -2) scale(4)";
-/** Back panel + tab (source coords); its lower half is covered by the front. */
-const TELA_BACK = "m27.002 8.984-14 .004c-1.11 0-1.493 1.013-2.002 1.998V11h-1c-2.216 0-4 1.784-4 4v28c0 2.216 1.784 4 4 4h44c2.216 0 4-1.784 4-4V15c0-2.216-1.784-4-4-4H37.141c-.047-.003-.092-.014-.14-.014h-7.997c-.586-.94-.89-2.002-2.002-2.002z";
-/** Front panel with the stepped top edge (the notch the paper peeks through). */
-const TELA_FRONT = "m34 16-3 4H6c-2.216 0-4 1.784-4 4v28c0 2.216 1.784 4 4 4h52c2.216 0 4-1.784 4-4V20c0-2.216-1.784-4-4-4z";
-/** Bottom-right corner shading wedge (source, opacity 0.2). */
+/** Centres the 240×189 source art in the 256 box (Windows' footprint). */
+const FLU_TF = "translate(8 33.5)";
+/** Back panel + tab (source `Vector`). Also the whole silhouette — the front sits inside it. */
+const FLU_BACK = "M100.008 0L44.0079 0.0156251C39.5631 0.0156251 38.0331 4.07725 35.9923 8.02368H24.0078C22.9565 8.01931 21.9148 8.22262 20.9424 8.62195C19.9699 9.02127 19.0859 9.60874 18.3411 10.3506C17.5964 11.0925 17.0054 11.9742 16.6023 12.9451C16.1992 13.916 15.9918 14.9569 15.9921 16.0081V44.0395H7.99206C3.56123 44.0395 0 47.6088 0 52.0396V180.048C0 184.479 3.56163 188.041 7.99206 188.041H232.018C236.448 188.041 240.01 184.495 240.01 180.064V36.0631C240.01 31.6183 236.447 28.0162 232.018 28.0162H224.01V16.0081C224.012 14.9556 223.806 13.913 223.404 12.9403C223.002 11.9676 222.411 11.0841 221.666 10.3405C220.921 9.59698 220.036 9.00812 219.063 8.60782C218.09 8.20753 217.046 8.0037 215.994 8.00808H108.017C105.674 4.24354 104.454 0 100.008 0Z";
+/** Front panel (source `Vector-2`), which sits 28 below the back's top. */
+const FLU_FRONT = "M120.009 0.000302779C115.579 0.000302779 114.232 4.16754 112.009 7.99235L107.321 16.0236H7.99204C3.56114 16.0236 0 19.5929 0 24.0236V152.033C0 156.464 3.56144 160.025 7.99204 160.025H232.017C236.448 160.025 240.009 156.479 240.009 152.048V8.04693C240.009 3.60212 236.446 0 232.017 0L120.009 0.000302779Z";
+const FLU_FRONT_TF = "translate(0 28)";
+/** The paper's peeking strip (source `Vector-1`); its notch meets the front's. */
+const FLU_PEEK = "M8.00006 0.000605558C3.56628 0.000605558 0 3.56688 0 8.00066V24.0625H79.3202L84.0077 16.0313C86.2301 12.2065 87.5781 8.03906 92.0078 8.03906H184V8.00005C184 3.56643 180.434 0 176 0L8.00006 0.000605558Z";
+/**
+ * Both paper parts share this space so one gradient spans them in sync: the
+ * peek at its origin and the behind-the-front sheet (source `Rectangle`) at
+ * (-16, 8) — i.e. (12, 28) in the composite.
+ */
+const FLU_PAPER_TF = "translate(28 20)";
+const FLU_SHEET = `x="-16" y="8" width="216" height="148"`;
+const FLU_PAPER_BBOX = { x0: -16, y0: 0, x1: 200, y1: 156 };
+/** The darker pill on the tab — black 25% over the tab (source). */
+const FLU_PILL = `<rect x="48" y="4" width="48" height="8" rx="4" fill="#000000" opacity="0.25"/>`;
+/** Bounding box of the visible tab strip, for a custom tab gradient. */
+const FLU_TAB_BBOX = { x0: 16, y0: 0, x1: 224, y1: 44 };
+/** Tela's bottom-right corner wedge, in its own 64px source space. */
 const TELA_CORNER = "M62 40 46 56h12c2.216 0 4-1.784 4-4V40z";
+/** Maps that 64px space onto the composite (Tela and Fluent share a footprint). */
+const TELA_CORNER_TF = "translate(-8 -35.936) scale(4)";
 /** The source's 45° black→transparent corner gradient (coords resolved from its rotate()). */
 const TELA_CORNER_GRAD = `<linearGradient id="tcg" x1="51" y1="45" x2="58" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#000000"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>`;
-/** The darker pill on the tab — black 25% over the tab (source). */
-const TELA_PILL = `<rect x="14" y="9.98" width="12" height="2" rx="1" fill="#000000" opacity="0.25"/>`;
-/** Bounding box of the visible tab strip (source coords), for a custom tab gradient. */
-const TELA_TAB_BBOX = { x0: 6, y0: 8.98, x1: 58, y1: 20 };
-/** Bounding box of the paper sheet (source coords), for a custom paper gradient. */
-const TELA_PAPER_BBOX = { x0: 9, y0: 14, x1: 55, y1: 33 };
 
-/** The paper sheet rect (source coords), optionally filtered. */
-function telaPaperRect(fill: string, extra = ""): string {
-  return `<rect x="9" y="14" width="46" height="19" rx="2" fill="${fill}"${extra}/>`;
+/** Is this base shape the Fluent/Tela family? */
+function isFluent(id: string): boolean {
+  return id === "fluent";
+}
+
+/** Does this variant paint flat (Tela) rather than acrylic (Fluent)? */
+function isFlatTela(variant?: string): boolean {
+  return variant === "tela";
 }
 
 /** Paper `<defs>` + fill (custom solid/gradient, else the source's white sheet). */
-function telaPaperFill(p?: ColorValue | null): { defs: string; fill: string } {
+function fluPaperFill(p?: ColorValue | null): { defs: string; fill: string } {
   if (p && isGradient(p)) {
-    return { defs: angleGradientEl("tpp", p.angle, p.stops, TELA_PAPER_BBOX), fill: "url(#tpp)" };
+    return { defs: angleGradientEl("tpp", p.angle, p.stops, FLU_PAPER_BBOX), fill: "url(#tpp)" };
   }
   return { defs: "", fill: p ?? "#ffffff" };
 }
 
-/** Front `<defs>` + fill + a representative HSV (the deepest gradient stop). */
-function telaFrontFill(cs: ShapeColorState): { defs: string; fill: string; hsv: Hsv3 } {
-  if (cs.mode !== "solid") {
-    const rep = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
-    const hsv: Hsv3 = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
-    return { defs: complexGradient("tfg", cs), fill: "url(#tfg)", hsv };
-  }
-  return { defs: "", fill: getHex(cs.hue, cs.sat, cs.bri), hsv: [cs.hue, cs.sat, cs.bri] };
+/** Front `<defs>` + fill (a gradient fill is painted verbatim). */
+function fluFrontFill(cs: ShapeColorState): { defs: string; fill: string } {
+  if (cs.mode !== "solid") return { defs: complexGradient("tfg", cs), fill: "url(#tfg)" };
+  return { defs: "", fill: getHex(cs.hue, cs.sat, cs.bri) };
 }
 
 /**
- * Tab paint. Auto reuses the front fill and lets the source's 18% black `wash`
- * darken it (exactly reproducing the official palettes); a custom back color
- * replaces the fill and drops the wash, so the picked color lands verbatim.
+ * Tab paint. Auto reuses the front fill — Fluent's tab is simply the same
+ * color at a lower alpha, and Tela's is the front under the source's 18% black
+ * `wash`. A custom back color replaces the fill (and drops the wash), keeping
+ * Fluent's alpha so the tab stays part of the same acrylic.
  */
-function telaBackPaint(
+function fluBackPaint(
   cs: ShapeColorState,
   frontFill: string,
-  frosted: boolean,
+  flat: boolean,
 ): { defs: string; fill: string; wash: string } {
   const back = cs.backColor;
+  const wash = flat ? `<path d="${FLU_BACK}" fill="#000000" opacity="0.18"/>` : "";
   if (back && isGradient(back)) {
-    return { defs: angleGradientEl("tbg", back.angle, back.stops, TELA_TAB_BBOX), fill: "url(#tbg)", wash: "" };
+    return { defs: angleGradientEl("tbg", back.angle, back.stops, FLU_TAB_BBOX), fill: "url(#tbg)", wash: "" };
   }
   if (back) return { defs: "", fill: back, wash: "" };
-  return { defs: "", fill: frontFill, wash: telaWash(frosted) };
+  return { defs: "", fill: frontFill, wash };
 }
 
 /**
- * The Auto tab treatment over the front color: Tela's 18% black wash, or —
- * for Fluent, whose tab reads *lighter* than its front — the 40% white that
- * its 0.6-alpha tab resolves to.
+ * The Fluent render, or its flat Tela variant. Layers, bottom to top: the back
+ * panel, the paper's peeking strip, the tab pill, the sheet behind the front
+ * (Fluent only — a flat Tela front hides it), the front, and Tela's corner
+ * wedge. The sheet is blurred and clipped to the front, so the covered paper
+ * reads softly through the acrylic instead of as a hard-edged panel.
  */
-function telaWash(frosted: boolean): string {
-  const paint = frosted ? `fill="#ffffff" opacity="0.4"` : `fill="#000000" opacity="0.18"`;
-  return `<path d="${TELA_BACK}" ${paint}/>`;
-}
-
-/**
- * The Tela render. `frosted` switches on the Fluent variant: the front becomes
- * the acrylic tone its 0.8 alpha over the desktop resolves to (white 20%) and
- * the sheet it covers is redrawn blurred and faint on top of it, so the paper
- * reads *through* the glass. Both are painted opaquely rather than with real
- * alpha — the source's translucency is relative to a desktop it can see, and
- * on the icon's own transparency it would instead expose the inset back
- * panel's edges straight through the front.
- */
-function buildTelaSvg(cs: ShapeColorState, frosted: boolean): string {
-  const front = telaFrontFill(cs);
-  const back = telaBackPaint(cs, front.fill, frosted);
-  const paper = telaPaperFill(cs.paperColor);
-  const frostDefs = frosted
-    ? `<filter id="tfb" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.2"/></filter>` +
-      `<clipPath id="tfc"><path d="${TELA_FRONT}"/></clipPath>`
+function buildFluentSvg(cs: ShapeColorState): string {
+  const flat = isFlatTela(cs.telaVariant);
+  const front = fluFrontFill(cs);
+  const back = fluBackPaint(cs, front.fill, flat);
+  const paper = fluPaperFill(cs.paperColor);
+  // The transform goes on the path itself: a <g> inside a <clipPath> is not a
+  // valid clip child, and browsers drop the whole clip region if one is there.
+  const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
+  const blur = flat
+    ? ""
+    : `<filter id="tfb" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="3"/></filter>`;
+  const sheet = flat
+    ? ""
+    : `<g clip-path="url(#tfc)"><g transform="${FLU_PAPER_TF}"><rect ${FLU_SHEET} fill="${paper.fill}" filter="url(#tfb)"/></g></g>`;
+  const corner = flat
+    ? `<g clip-path="url(#tfc)"><g transform="${TELA_CORNER_TF}"><path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g></g>`
     : "";
-  // The glass tone, then the covered sheet showing faintly and blurred through it.
-  const frost = frosted
-    ? `<path d="${TELA_FRONT}" fill="#ffffff" opacity="0.2"/>` +
-      `<g clip-path="url(#tfc)" opacity="0.32">${telaPaperRect(paper.fill, ' filter="url(#tfb)"')}</g>`
-    : "";
+  const alpha = (a: string): string => (flat ? "" : ` opacity="${a}"`);
   return (
-    `${SVG_OPEN}<defs>${back.defs}${front.defs}${paper.defs}${TELA_CORNER_GRAD}${frostDefs}</defs>` +
-    `<g transform="${TELA_TF}">` +
-    `<path d="${TELA_BACK}" fill="${back.fill}"/>${back.wash}` +
-    telaPaperRect(paper.fill) +
-    TELA_PILL +
-    `<path d="${TELA_FRONT}" fill="${front.fill}"/>` +
-    frost +
-    `<path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/>` +
+    `${SVG_OPEN}<defs>${back.defs}${front.defs}${paper.defs}${TELA_CORNER_GRAD}${clip}${blur}</defs>` +
+    `<g transform="${FLU_TF}">` +
+    `<path d="${FLU_BACK}" fill="${back.fill}"${alpha("0.6")}/>${back.wash}` +
+    `<g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="${paper.fill}"/></g>` +
+    FLU_PILL +
+    sheet +
+    `<g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="${front.fill}"${alpha("0.8")}/></g>` +
+    corner +
     `</g></svg>`
   );
 }
 
-/** Is this base shape one of the Tela family (Tela / Fluent)? */
-function isTela(id: string): boolean {
-  return id === "tela" || id === "fluent";
-}
+/** The Fluent silhouette (the back panel contains the front), for clip-to-folder. */
+const FLU_MASK = `${SVG_OPEN}<g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/></g></svg>`;
 
-/** The Tela silhouette (back + front), for clip-to-folder. */
-const TELA_MASK = `${SVG_OPEN}<g transform="${TELA_TF}"><path d="${TELA_BACK}" fill="white"/><path d="${TELA_FRONT}" fill="white"/></g></svg>`;
-
-/** Whole-image structure overlay for Tela: the tab wash, pill and corner. */
-function telaStructureOverlay(frosted: boolean): string {
-  const mask = `<mask id="tvm"><g transform="${TELA_TF}"><path d="${TELA_BACK}" fill="white"/><path d="${TELA_FRONT}" fill="black"/></g></mask>`;
-  const wash = frosted
-    ? `fill="#ffffff" opacity="0.4"`
-    : `fill="#000000" opacity="0.18"`;
+/**
+ * Whole-image structure overlay: the tab treatment (Tela's 18% black wash, or
+ * the 40% white Fluent's 0.6-alpha tab resolves to), the pill and Tela's corner.
+ */
+function fluStructureOverlay(variant?: string): string {
+  const flat = isFlatTela(variant);
+  const mask = `<mask id="tvm"><g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/><g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="black"/></g></g></mask>`;
+  const wash = flat ? `fill="#000000" opacity="0.18"` : `fill="#ffffff" opacity="0.4"`;
+  const corner = flat
+    ? `<g transform="${TELA_CORNER_TF}"><path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g>`
+    : "";
   return (
     `${SVG_OPEN}<defs>${TELA_CORNER_GRAD}${mask}</defs>` +
     `<rect width="256" height="256" ${wash} mask="url(#tvm)"/>` +
-    `<g transform="${TELA_TF}">${TELA_PILL}<path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g></svg>`
+    `<g transform="${FLU_TF}">${FLU_PILL}${corner}</g></svg>`
   );
 }
 
 /**
- * The Auto (derived) tab color for the Tela family — the front under Tela's
- * 18% black wash, or Fluent's 40% white one. Mirrors {@link windowsDerivedTabColor}.
+ * The Auto (derived) tab color — the color that reproduces the current tab if
+ * the user switches to a custom one. Fluent paints the tab at the same alpha
+ * as the front, so that is the front color itself; Tela's is the front under
+ * its 18% black wash. Mirrors {@link windowsDerivedTabColor}.
  */
 export function telaDerivedTabColor(doc: FolderDocument): string {
   const cs = toShapeColorState(doc.folderColor);
@@ -1491,12 +1507,8 @@ export function telaDerivedTabColor(doc: FolderDocument): string {
             return l ? ([l.hue, l.sat, l.bri] as Hsv3) : [0, 0, 0.6];
           })()
         : [cs.hue, cs.sat, cs.bri];
-  if (doc.baseShape !== "fluent") return getHex(h, s, clamp01(v * 0.82));
-  // White 40% over the front: value lifts toward 1, saturation dilutes with it.
-  const nv = 0.6 * v + 0.4;
-  return getHex(h, clamp01((0.6 * v * s) / nv), clamp01(nv));
+  return getHex(h, s, clamp01(isFlatTela(doc.fluentVariant) ? v * 0.82 : v));
 }
-
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "classic",
@@ -1582,20 +1594,12 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="22.6" width="56" height="36" rx="2.8" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
   },
   {
-    id: "tela",
-    name: "Tela",
-    defaultHsv: [212.5, 0.637, 0.886], // the official default blue (#5294e2)
-    defaultClip: true,
-    buildSvg: (cs) => buildTelaSvg(cs, false),
-    mask: TELA_MASK,
-  },
-  {
     id: "fluent",
     name: "Fluent",
     defaultHsv: [205.8, 0.891, 0.902], // the official Fluent blue (#198ee6)
     defaultClip: true,
-    buildSvg: (cs) => buildTelaSvg(cs, true),
-    mask: TELA_MASK,
+    buildSvg: buildFluentSvg,
+    mask: FLU_MASK,
   },
   {
     id: "glass",
@@ -1692,7 +1696,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "tela", "fluent", "file-folder", "glass", "minimal"];
+const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "fluent", "file-folder", "glass", "minimal"];
 
 /**
  * TEMPORARY: the picker is focused on the two highest-demand bases. Every shape
@@ -1700,7 +1704,7 @@ const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "tela", "fluent", "
  * shapes keep working — they're just not offered in the panel. Widen this list
  * to bring the others back.
  */
-const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "tela", "fluent"];
+const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "fluent"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [
@@ -1764,6 +1768,7 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
   cs.macGradientAlgo = doc.macGradientAlgo;
   cs.papirusColorProfile = doc.papirusColorProfile;
   cs.yaruShape = doc.yaruShape;
+  cs.telaVariant = doc.fluentVariant;
   cs.yaruColorProfile = doc.yaruColorProfile;
   cs.backColor = doc.folderBackColor;
   cs.folderState = doc.folderState;
@@ -1797,15 +1802,27 @@ const YARU_ROUND_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fil
  */
 export function baseShapeHasSplit(baseShapeId: string): boolean {
   const id = findShape(baseShapeId).id;
-  return id === "windows" || id === "macos" || id === "yaru" || id === "papirus" || isTela(id);
+  return id === "windows" || id === "macos" || id === "yaru" || id === "papirus" || isFluent(id);
+}
+
+/**
+ * The shape-variant string a document is currently on, for the builders below
+ * that render one shape two ways (Yaru sharp/rounded, Fluent acrylic/Tela).
+ * One helper so a caller never has to know which field a shape reads.
+ */
+export function shapeVariant(doc: FolderDocument): string | undefined {
+  const id = findShape(doc.baseShape).id;
+  if (id === "yaru") return doc.yaruShape;
+  if (isFluent(id)) return doc.fluentVariant;
+  return undefined;
 }
 
 /**
  * The white silhouette mask SVG for a base shape (used for clip-to-folder).
- * Yaru's mask depends on its shape variant, so pass `yaruShape` when known.
+ * Variant-dependent for Yaru, so pass {@link shapeVariant} when known.
  */
-export function getBaseShapeMask(baseShapeId: string, yaruShape?: YaruShape): string {
-  if (findShape(baseShapeId).id === "yaru" && yaruShape === "rounded") return YARU_ROUND_MASK;
+export function getBaseShapeMask(baseShapeId: string, variant?: string): string {
+  if (findShape(baseShapeId).id === "yaru" && variant === "rounded") return YARU_ROUND_MASK;
   return findShape(baseShapeId).mask;
 }
 
@@ -1832,12 +1849,12 @@ export function getBaseShapeFillMask(doc: FolderDocument): string {
     // shadow is excluded; the paper rect is punched from the tab region.
     return `${SVG_OPEN}<g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="8" y="16" width="48" height="22" rx="2.8" fill="black"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
   }
-  if (isTela(id)) {
+  if (isFluent(id)) {
     // The paper peek is punched out, so a full-span image/material/pattern
     // covers the tab and front but never the sheet.
-    return `${SVG_OPEN}<g transform="${TELA_TF}"><path d="${TELA_BACK}" fill="white"/>${telaPaperRect("black")}<path d="${TELA_FRONT}" fill="white"/></g></svg>`;
+    return `${SVG_OPEN}<g transform="${FLU_TF}"><path d="${FLU_BACK}" fill="white"/><g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="black"/></g><g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="white"/></g></g></svg>`;
   }
-  return getBaseShapeMask(doc.baseShape, doc.yaruShape);
+  return getBaseShapeMask(doc.baseShape, shapeVariant(doc));
 }
 
 /**
@@ -1848,7 +1865,7 @@ export function getBaseShapeFillMask(doc: FolderDocument): string {
  * without an overlay treatment. Consumed by the editor (`FolderBase`), the
  * raster export (`renderCanvas`) and the vector export (`svgExport`) alike.
  */
-export function buildBaseShapeOverlaySvg(baseShapeId: string, yaruShape?: YaruShape): string | null {
+export function buildBaseShapeOverlaySvg(baseShapeId: string, variant?: string): string | null {
   const id = findShape(baseShapeId).id;
   if (id === "windows") {
     const sh = winShineDefs(0.26, 6);
@@ -1865,9 +1882,9 @@ export function buildBaseShapeOverlaySvg(baseShapeId: string, yaruShape?: YaruSh
     const mask = `<mask id="mvm"><path d="${MAC_F}" fill="white"/><path d="${MAC_B}" fill="black"/></mask>`;
     return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#mvg)" mask="url(#mvm)"/>${macStructureOverlay()}</svg>`;
   }
-  if (id === "yaru") return yaruStructureOverlay(yaruShape !== "rounded");
+  if (id === "yaru") return yaruStructureOverlay(variant !== "rounded");
   if (id === "papirus") return papirusStructureOverlay();
-  if (isTela(id)) return telaStructureOverlay(id === "fluent");
+  if (isFluent(id)) return fluStructureOverlay(variant);
   return null;
 }
 
@@ -2026,26 +2043,26 @@ export function isFrontImage(doc: FolderDocument): boolean {
   const id = findShape(doc.baseShape).id;
   if (id === "macos") return doc.macImageMode === "front";
   // windows, yaru, papirus and tela all use the shared windowsImageMode.
-  if (id === "windows" || id === "yaru" || id === "papirus" || isTela(id)) {
+  if (id === "windows" || id === "yaru" || id === "papirus" || isFluent(id)) {
     return doc.windowsImageMode === "front";
   }
   return false;
 }
 
 /** White silhouette of ONLY the front panel for the shape (masks the image). */
-export function getFrontMask(baseShapeId: string, yaruShape?: YaruShape): string {
+export function getFrontMask(baseShapeId: string, variant?: string): string {
   const id = findShape(baseShapeId).id;
   if (id === "macos") return `${SVG_OPEN}<path d="${MAC_B}" fill="white"/></svg>`;
   if (id === "yaru") {
-    return yaruShape === "rounded"
+    return variant === "rounded"
       ? `${SVG_OPEN}<g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_FRONT}" fill="white"/></g></svg>`
       : `${SVG_OPEN}<g transform="${YARU_TF}"><path d="${YARU_FRONT}" fill="white"/></g></svg>`;
   }
   if (id === "papirus") {
     return `${SVG_OPEN}<g transform="${PAP_TF}"><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
   }
-  if (isTela(id)) {
-    return `${SVG_OPEN}<g transform="${TELA_TF}"><path d="${TELA_FRONT}" fill="white"/></g></svg>`;
+  if (isFluent(id)) {
+    return `${SVG_OPEN}<g transform="${FLU_TF}"><g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="white"/></g></g></svg>`;
   }
   return `${SVG_OPEN}<path d="${WIN_B}" fill="white"/></svg>`;
 }
@@ -2060,7 +2077,7 @@ export function buildFrontImageBackSvg(
   frontAdaptive: string,
   backColor?: ColorValue | null,
   frontAdaptive2?: string | null,
-  yaruShape?: YaruShape,
+  variant?: string,
   paperColor?: ColorValue | null,
 ): string {
   const id = findShape(baseShapeId).id;
@@ -2081,7 +2098,7 @@ export function buildFrontImageBackSvg(
   if (id === "yaru") {
     const cs = toShapeColorState(frontAdaptive);
     cs.backColor = backColor ?? null;
-    cs.yaruShape = yaruShape;
+    cs.yaruShape = variant as YaruShape;
     cs.yaruColorProfile = "flat";
     return buildYaruSvg(cs);
   }
@@ -2091,23 +2108,25 @@ export function buildFrontImageBackSvg(
     cs.paperColor = paperColor ?? null;
     return buildPapirusSvg(cs);
   }
-  if (isTela(id)) {
+  if (isFluent(id)) {
     const cs = toShapeColorState(frontAdaptive);
     cs.backColor = backColor ?? null;
     cs.paperColor = paperColor ?? null;
-    // Keeps Fluent's lighter tab tone; its frost layer sits under the image.
-    return buildTelaSvg(cs, id === "fluent");
+    // Flat in both variants: the image covers the front, so painting the back
+    // at Fluent's 0.6 alpha would just let the canvas show through behind it.
+    cs.telaVariant = "tela";
+    return buildFluentSvg(cs);
   }
   return buildWindowsImageBackSvg(frontAdaptive, backColor, frontAdaptive2);
 }
 
 /** The structure overlay drawn on TOP of a front-only image, per shape. */
-export function buildFrontImageOverlaySvg(baseShapeId: string, yaruShape?: YaruShape): string {
+export function buildFrontImageOverlaySvg(baseShapeId: string, variant?: string): string {
   const id = findShape(baseShapeId).id;
   if (id === "macos") return `${SVG_OPEN}${macStructureOverlay()}</svg>`;
   if (id === "yaru") {
     // Redraw the front edge shine (the back layer's front is hidden by the image).
-    return yaruShape === "rounded"
+    return variant === "rounded"
       ? `${SVG_OPEN}<g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_FRONT_HL}" fill="#ffffff" opacity="0.35"/></g></svg>`
       : `${SVG_OPEN}<defs>${YARU_SHINE_GRAD}</defs><g transform="${YARU_TF}"><path d="${YARU_FRONT_SHINE}" fill="url(#ysg)"/><path opacity="0.05" d="${YARU_BR_LIGHT}" fill="#ffffff"/></g></svg>`;
   }
@@ -2115,8 +2134,10 @@ export function buildFrontImageOverlaySvg(baseShapeId: string, yaruShape?: YaruS
   // the back layer, so no on-top overlay is needed.
   if (id === "papirus") return `${SVG_OPEN}</svg>`;
   // Tela's front is flat — only the corner wedge sits on top of the image.
-  if (isTela(id)) {
-    return `${SVG_OPEN}<defs>${TELA_CORNER_GRAD}</defs><g transform="${TELA_TF}"><path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g></svg>`;
+  if (isFluent(id)) {
+    return isFlatTela(variant)
+      ? `${SVG_OPEN}<defs>${TELA_CORNER_GRAD}</defs><g transform="${FLU_TF}"><g transform="${TELA_CORNER_TF}"><path d="${TELA_CORNER}" fill="url(#tcg)" opacity="0.2"/></g></g></svg>`
+      : `${SVG_OPEN}</svg>`;
   }
   return buildWindowsShineSvg();
 }
@@ -2163,10 +2184,9 @@ export function buildBaseShapePaperSvg(
   }
   // Tela's sheet is always present too; self-clip it to the peek so an image,
   // material or pattern can never paint over it.
-  if (isTela(id)) {
-    const paper = telaPaperFill(paperColor);
-    const mask = `<mask id="tpl"><g transform="${TELA_TF}"><path d="${TELA_BACK}" fill="white"/><path d="${TELA_FRONT}" fill="black"/></g></mask>`;
-    return `${SVG_OPEN}<defs>${paper.defs}${mask}</defs><g mask="url(#tpl)"><g transform="${TELA_TF}">${telaPaperRect(paper.fill)}</g></g></svg>`;
+  if (isFluent(id)) {
+    const paper = fluPaperFill(paperColor);
+    return `${SVG_OPEN}<defs>${paper.defs}</defs><g transform="${FLU_TF}"><g transform="${FLU_PAPER_TF}"><path d="${FLU_PEEK}" fill="${paper.fill}"/></g></g></svg>`;
   }
   if (folderState !== "contents") return null;
   if (id === "windows") return buildWindowsPaperSvg(baseShapeId, folderState, paperColor);
@@ -2198,10 +2218,10 @@ export function buildImageColorOverlaySvg(
   baseShapeId: string,
   color: string,
   opacity: number,
-  yaruShape?: YaruShape,
+  variant?: string,
 ): string | null {
   if (!(opacity > 0)) return null;
-  const maskInner = getBaseShapeMask(baseShapeId, yaruShape);
+  const maskInner = getBaseShapeMask(baseShapeId, variant);
   const op = Math.min(1, opacity).toFixed(3);
   return `${SVG_OPEN}<defs><mask id="ovm"><svg width="256" height="256" viewBox="0 0 256 256">${maskInner}</svg></mask></defs><rect width="256" height="256" fill="${color}" fill-opacity="${op}" mask="url(#ovm)"/></svg>`;
 }

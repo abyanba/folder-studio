@@ -83,6 +83,15 @@ export type YaruColorProfile = "gradient" | "flat";
 export const DEFAULT_YARU_COLOR_PROFILE: YaruColorProfile = "gradient";
 
 /**
+ * Fluent shape variant — the same art, two paint treatments:
+ * - fluent — the official acrylic: a translucent front and tab, with the paper
+ *            sheet reading through the glass.
+ * - tela   — the flat Tela look: opaque panels, a washed tab, corner shading.
+ */
+export type FluentVariant = "fluent" | "tela";
+export const DEFAULT_FLUENT_VARIANT: FluentVariant = "fluent";
+
+/**
  * How an *image* fill maps onto the Windows folder (image fill mode only):
  * - full  — the image spans the whole folder icon (front + tab/back).
  * - front — the image covers only the front panel; the tab/back use an
@@ -211,6 +220,8 @@ export interface FolderDocument {
   yaruShape: YaruShape;
   /** Front-fill treatment (gradient vs flat) for the Yaru base shape. */
   yaruColorProfile: YaruColorProfile;
+  /** Paint variant (acrylic Fluent vs flat Tela) for the Fluent base shape. */
+  fluentVariant: FluentVariant;
   /** How an image fill maps onto the Windows folder (see {@link WindowsImageMode}). */
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
@@ -253,6 +264,7 @@ export function createEmptyDocument(): FolderDocument {
     papirusColorProfile: DEFAULT_PAPIRUS_COLOR_PROFILE,
     yaruShape: DEFAULT_YARU_SHAPE,
     yaruColorProfile: DEFAULT_YARU_COLOR_PROFILE,
+    fluentVariant: DEFAULT_FLUENT_VARIANT,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     pattern: {

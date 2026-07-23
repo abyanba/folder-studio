@@ -259,6 +259,10 @@ export function normalizeLegacySnapshot(legacy: unknown): FolderDocument {
       // field was authored as full-span, so pin it rather than restyling it.
       windowsImageMode: snap.windowsImageMode ?? "full",
       macImageMode: snap.macImageMode ?? "full",
+      // Tela became a variant of the Fluent shape rather than its own base.
+      ...(snap.baseShape === "tela"
+        ? { baseShape: "fluent", fluentVariant: "tela" as const }
+        : null),
       material: { ...doc.material, ...snap.material },
       pattern: {
         ...doc.pattern,

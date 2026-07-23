@@ -33,6 +33,7 @@ import {
   getBaseShapeFillMask,
   getBaseShapeMask,
   getFrontMask,
+  shapeVariant,
   isFrontImage,
 } from "./baseShapes";
 import { buildDrawSvg, buildIconSvg, buildImageStrokeSvg, buildShapeSvg, iconStrokePadPx, imageStrokePadPx, shapeStrokePadPx } from "./elementSvg";
@@ -126,7 +127,7 @@ async function recolorCanvas(
       const dx = -(dw - size) * bpx;
       const dy = -(dh - size) * bpy;
       // Color tint over the image (masked to the folder), below the structure.
-      const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, doc.yaruShape);
+      const tint = buildImageColorOverlaySvg(doc.baseShape, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity, shapeVariant(doc));
       const tintImg = tint ? await loadImage(toSvgDataUrl(tint)) : null;
       if (isFrontImage(doc)) {
         // Compose the front-only base at full alpha on a temp canvas, then draw
@@ -136,7 +137,7 @@ async function recolorCanvas(
         const tctx = tmp.getContext("2d");
         if (tctx) {
           tctx.drawImage(bi, dx, dy, dw, dh);
-          const fm = await loadImage(toSvgDataUrl(getFrontMask(doc.baseShape, doc.yaruShape)));
+          const fm = await loadImage(toSvgDataUrl(getFrontMask(doc.baseShape, shapeVariant(doc))));
           if (fm) {
             tctx.globalCompositeOperation = "destination-in";
             tctx.drawImage(fm, 0, 0, size, size);
@@ -148,7 +149,7 @@ async function recolorCanvas(
                 doc.folderBgImageColor ?? "#888888",
                 doc.folderBackColor,
                 doc.folderBgImageColor2,
-                doc.yaruShape,
+                shapeVariant(doc),
                 doc.folderPaperColor,
               ),
             ),
@@ -159,7 +160,7 @@ async function recolorCanvas(
           }
           tctx.globalCompositeOperation = "source-over";
           if (tintImg) tctx.drawImage(tintImg, 0, 0, size, size);
-          const shine = await loadImage(toSvgDataUrl(buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape)));
+          const shine = await loadImage(toSvgDataUrl(buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc))));
           if (shine) tctx.drawImage(shine, 0, 0, size, size);
           // Paper peek on top — the image never affects it (self-clipped).
           const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
@@ -189,7 +190,7 @@ async function recolorCanvas(
           }
           tctx.globalCompositeOperation = "source-over";
           if (tintImg) tctx.drawImage(tintImg, 0, 0, size, size);
-          const overlay = buildBaseShapeOverlaySvg(doc.baseShape, doc.yaruShape);
+          const overlay = buildBaseShapeOverlaySvg(doc.baseShape, shapeVariant(doc));
           if (overlay) {
             const oi = await loadImage(toSvgDataUrl(overlay));
             if (oi) tctx.drawImage(oi, 0, 0, size, size);
@@ -614,7 +615,7 @@ async function renderPattern(
   const body = getPatternBody(doc.pattern.id);
   if (body) {
     const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
-      ? getFrontMask(doc.baseShape, doc.yaruShape)
+      ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc);
     const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
     if (layer) ctx.drawImage(layer, 0, 0, size, size);
@@ -625,7 +626,7 @@ async function renderPattern(
   const materialSvg = buildMaterialLayerSvg(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
-      ? getFrontMask(doc.baseShape, doc.yaruShape)
+      ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc),
   );
   if (materialSvg) {
@@ -646,7 +647,7 @@ async function renderPattern(
   // Guarded: with neither a pattern nor a material there is nothing covering the
   // base's own shine, and re-applying it would double it on every plain folder.
   if (!body && !materialSvg) return;
-  const structure = buildFrontImageOverlaySvg(doc.baseShape, doc.yaruShape);
+  const structure = buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc));
   if (structure) {
     const sImg = await loadImage(toSvgDataUrl(structure));
     if (sImg) ctx.drawImage(sImg, 0, 0, size, size);
@@ -694,7 +695,7 @@ export async function buildExportCanvas(
   }
 
   if (doc.clipToFolder) {
-    const maskSvg = getBaseShapeMask(doc.baseShape, doc.yaruShape);
+    const maskSvg = getBaseShapeMask(doc.baseShape, shapeVariant(doc));
     if (maskSvg) {
       const mi = await loadImage(toSvgDataUrl(maskSvg));
       if (mi) {

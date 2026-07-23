@@ -21,6 +21,7 @@ import {
   MAC_COLOR_PROFILES,
   macColorProfileName,
   macDerivedTabColor,
+  shapeVariant,
   telaDerivedTabColor,
   toShapeColorState,
   windowsDerivedTabColor,
@@ -866,63 +867,74 @@ describe("BASE_SHAPES ordering", () => {
       "macos",
       "yaru",
       "papirus",
-      "tela",
       "fluent",
     ]);
   });
 });
 
-describe("tela + fluent", () => {
-  it("paints the source's washes: 18% black tab (Tela) / 40% white tab (Fluent)", () => {
-    const tela = buildBaseShapeSvg(doc({ baseShape: "tela", folderColor: "#5677fc" }));
-    expect(tela).toContain(`fill="#5677fc"`);
-    expect(tela).toContain(`fill="#000000" opacity="0.18"`); // → tab #4762cf
-    expect(tela).toContain(`fill="#000000" opacity="0.25"`); // pill → #35499b
-    const fluent = buildBaseShapeSvg(doc({ baseShape: "fluent", folderColor: "#5677fc" }));
-    expect(fluent).toContain(`fill="#ffffff" opacity="0.4"`);
-    expect(fluent).toContain("feGaussianBlur"); // the paper read through the glass
-    expect(fluent).toContain("clip-path=\"url(#tfc)\"");
+describe("fluent + its tela variant", () => {
+  const tela = (patch: Partial<FolderDocument> = {}) =>
+    doc({ baseShape: "fluent", fluentVariant: "tela", ...patch });
+
+  it("paints Fluent's source alphas and Tela's 18% black wash", () => {
+    const fluent = buildBaseShapeSvg(doc({ baseShape: "fluent", folderColor: "#198ee6" }));
+    expect(fluent).toContain(`fill="#198ee6" opacity="0.6"`); // tab
+    expect(fluent).toContain(`fill="#198ee6" opacity="0.8"`); // front
+    expect(fluent).toContain("feGaussianBlur"); // the sheet read through the glass
+    const flat = buildBaseShapeSvg(tela({ folderColor: "#5677fc" }));
+    expect(flat).not.toContain("opacity=\"0.6\"");
+    expect(flat).toContain(`fill="#000000" opacity="0.18"`); // tab → #4762cf
+    expect(flat).toContain(`fill="#000000" opacity="0.25"`); // pill → #35499b
+    expect(flat).toContain("url(#tcg)"); // Tela's corner wedge
   });
 
-  it("derives the Auto tab from the front (Tela darker, Fluent lighter)", () => {
-    expect(telaDerivedTabColor(doc({ baseShape: "tela", folderColor: "#5677fc" }))).toBe("#4762cf");
-    const fluentTab = telaDerivedTabColor(doc({ baseShape: "fluent", folderColor: "#5677fc" }));
-    const [, , v] = hexToHsv(fluentTab);
-    expect(v).toBeGreaterThan(hexToHsv("#5677fc")[2]);
+  it("derives the Auto tab per variant (Fluent's is the front itself)", () => {
+    expect(telaDerivedTabColor(doc({ baseShape: "fluent", folderColor: "#198ee6" }))).toBe("#198ee6");
+    expect(telaDerivedTabColor(tela({ folderColor: "#5677fc" }))).toBe("#4762cf");
   });
 
   it("a custom back color replaces the tab verbatim (no wash)", () => {
-    const svg = buildBaseShapeSvg(
-      doc({ baseShape: "tela", folderColor: "#5677fc", folderBackColor: "#933331" }),
-    );
+    const svg = buildBaseShapeSvg(tela({ folderColor: "#5677fc", folderBackColor: "#933331" }));
     expect(svg).toContain(`fill="#933331"`);
     expect(svg).not.toContain(`opacity="0.18"`);
   });
 
-  it("the paper is always present and honors a custom color", () => {
-    expect(buildBaseShapeSvg(doc({ baseShape: "tela" }))).toContain(`fill="#ffffff"`);
-    expect(
-      buildBaseShapeSvg(doc({ baseShape: "tela", folderPaperColor: "#ffe082" })),
-    ).toContain(`fill="#ffe082"`);
+  it("recolors both paper parts together", () => {
+    const svg = buildBaseShapeSvg(doc({ baseShape: "fluent", folderPaperColor: "#ffe082" }));
+    // The peeking strip and the sheet behind the front share the color...
+    expect(svg.match(/#ffe082/g)?.length).toBe(2);
+    expect(svg).not.toContain("#ffffff");
+    // ...and a gradient spans both from one def (they share a coordinate space).
+    const grad = buildBaseShapeSvg(
+      doc({ baseShape: "fluent", folderPaperColor: gradient }),
+    );
+    expect(grad.match(/url\(#tpp\)/g)?.length).toBe(2);
+    expect(grad.match(/id="tpp"/g)?.length).toBe(1);
     // Present as a standalone layer for the image paths too (no contents state).
-    expect(buildBaseShapePaperSvg("tela", "empty", null)).toContain("<rect");
-    expect(buildBaseShapePaperSvg("fluent", "empty", null)).toContain("mask");
+    expect(buildBaseShapePaperSvg("fluent", "empty", null)).toContain("<path");
   });
 
-  it("punches the paper out of the full-span fill mask", () => {
-    const mask = getBaseShapeFillMask(doc({ baseShape: "tela" }));
-    expect(mask).toContain(`fill="black"`); // the paper sheet
+  it("punches the paper peek out of the full-span fill mask", () => {
+    const mask = getBaseShapeFillMask(doc({ baseShape: "fluent" }));
+    expect(mask).toContain(`fill="black"`); // the peeking strip
     expect(mask.indexOf(`fill="black"`)).toBeLessThan(mask.lastIndexOf(`fill="white"`));
   });
 
   it("supports the front/back split (image, material and pattern span)", () => {
-    expect(baseShapeHasSplit("tela")).toBe(true);
     expect(baseShapeHasSplit("fluent")).toBe(true);
     const img = { folderFillMode: "image" as const, folderBgImage: "data:," };
-    expect(isFrontImage(doc({ ...img, baseShape: "tela", windowsImageMode: "front" }))).toBe(true);
+    expect(isFrontImage(doc({ ...img, baseShape: "fluent", windowsImageMode: "front" }))).toBe(true);
     expect(isFrontImage(doc({ ...img, baseShape: "fluent", windowsImageMode: "full" }))).toBe(false);
-    expect(getFrontMask("tela")).toContain("white");
-    expect(buildFrontImageBackSvg("tela", "#5294e2", null, null).startsWith("<svg")).toBe(true);
+    expect(getFrontMask("fluent")).toContain("white");
+    // The image back layer is flat in both variants — nothing shows through it.
+    expect(buildFrontImageBackSvg("fluent", "#5294e2", null, null)).not.toContain(`opacity="0.6"`);
     expect(buildBaseShapeOverlaySvg("fluent")).toContain(`fill="#ffffff" opacity="0.4"`);
+    expect(buildBaseShapeOverlaySvg("fluent", "tela")).toContain(`fill="#000000" opacity="0.18"`);
+  });
+
+  it("shapeVariant reads the field the shape actually uses", () => {
+    expect(shapeVariant(doc({ baseShape: "fluent", fluentVariant: "tela" }))).toBe("tela");
+    expect(shapeVariant(doc({ baseShape: "yaru", yaruShape: "rounded" }))).toBe("rounded");
+    expect(shapeVariant(doc({ baseShape: "windows" }))).toBeUndefined();
   });
 });
