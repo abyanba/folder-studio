@@ -1376,8 +1376,8 @@ const FLU_PEEK = "M8.00006 0.000605558C3.56628 0.000605558 0 3.56688 0 8.00066V2
  * which spilled past the peek toward the tab.
  */
 const FLU_PAPER_TF = "translate(28 20)";
-const FLU_SHEET = `x="0" y="8" width="184" height="148"`;
-const FLU_PAPER_BBOX = { x0: 0, y0: 0, x1: 184, y1: 156 };
+const FLU_SHEET = `x="0" y="8" width="184" height="112"`;
+const FLU_PAPER_BBOX = { x0: 0, y0: 0, x1: 184, y1: 120 };
 /** The darker pill on the tab — black 25% over the tab (source). */
 const FLU_PILL = `<rect x="48" y="4" width="48" height="8" rx="4" fill="#000000" opacity="0.25"/>`;
 /** Bounding box of the visible tab strip, for a custom tab gradient. */
