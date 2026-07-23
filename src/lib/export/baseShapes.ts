@@ -1450,7 +1450,7 @@ function buildFluentSvg(cs: ShapeColorState): string {
   const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;
   const blur = flat
     ? ""
-    : `<filter id="tfb" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="3"/></filter>`;
+    : `<filter id="tfb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>`;
   const sheet = flat
     ? ""
     : `<g clip-path="url(#tfc)"><g transform="${FLU_PAPER_TF}"><rect ${FLU_SHEET} fill="${paper.fill}" filter="url(#tfb)"/></g></g>`;
