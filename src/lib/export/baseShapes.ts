@@ -1302,8 +1302,9 @@ function buildPapirusSvg(cs: ShapeColorState): string {
   return (
     `${SVG_OPEN}<defs>${backDefs}${frontDefs}${paper.defs}</defs>` +
     `<g transform="${PAP_TF}">` +
-    // Light drop shadow peeking below the folder bottom (inside the mask + viewBox).
-    `<rect fill="#cccccc" width="56" height="36" x="4" y="22.6" rx="2.8"/>` +
+    // Drop shadow peeking below the folder bottom — black at 20% (the source's
+    // "#cccccc" is just black-20% over a white desktop). Inside the mask + viewBox.
+    `<rect fill="#000000" opacity="0.2" width="56" height="36" x="4" y="22.6" rx="2.8"/>` +
     `<path d="${PAP_BACK}" fill="${backFill}"/>` +
     `<path fill="${hlHex}" d="${PAP_HIGHLIGHT}"/>` +
     // Shadow line where the front meets the back — BELOW the paper (the paper
