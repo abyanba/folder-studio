@@ -28,9 +28,10 @@ import { SliderField } from "@/components/controls/SliderField";
 import {
   MAC_COLOR_PROFILES,
   macDerivedTabColor,
+  PAPIRUS_COLOR_PROFILES,
+  papirusDerivedTabColor,
   WINDOWS_GRADIENT_ALGOS,
   WINDOWS_IMAGE_MODES,
-  papirusDerivedTabColor,
   windowsDerivedTabColor,
   windowsImageModeName,
   yaruDerivedTabColor,
@@ -172,6 +173,16 @@ function WindowsSolidProfile() {
   const setPreview = useUiStore((s) => s.setWindowsColorProfilePreview);
   return (
     <ProfileDropdown value={profile} options={MAC_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
+  );
+}
+
+/** Papirus solid-fill color profile (authentic clamp vs flat). */
+function PapirusSolidProfile() {
+  const profile = useDocumentStore((s) => s.doc.papirusColorProfile);
+  const setProfile = useDocumentStore((s) => s.setPapirusColorProfile);
+  const setPreview = useUiStore((s) => s.setPapirusColorProfilePreview);
+  return (
+    <ProfileDropdown value={profile} options={PAPIRUS_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
   );
 }
 
@@ -332,7 +343,7 @@ function BackTabColor() {
  * Recolor the "with contents" paper sheet independently (windows/macOS). White by
  * default (regardless of folder color); Custom accepts a solid or linear gradient.
  */
-function PaperColorSection() {
+function PaperColorSection({ seed = "#ffffff" }: { seed?: string }) {
   const paperColor = useDocumentStore((s) => s.doc.folderPaperColor);
   const setPaperColor = useDocumentStore((s) => s.setFolderPaperColor);
   const custom = paperColor != null;
@@ -344,7 +355,7 @@ function PaperColorSection() {
           size="sm"
           checked={custom}
           aria-label="Custom paper color"
-          onCheckedChange={(on) => setPaperColor(on ? "#ffffff" : null)}
+          onCheckedChange={(on) => setPaperColor(on ? seed : null)}
         />
       }
     >
@@ -457,6 +468,7 @@ export function ColorPanel() {
             />
             {doc.baseShape === "windows" && <WindowsSolidProfile />}
             {doc.baseShape === "macos" && <MacColorProfile />}
+            {doc.baseShape === "papirus" && <PapirusSolidProfile />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -554,8 +566,11 @@ export function ColorPanel() {
           doc.baseShape === "macos" ||
           doc.baseShape === "yaru" ||
           doc.baseShape === "papirus") && <BackTabColor />}
-        {(doc.baseShape === "windows" || doc.baseShape === "macos") &&
-          doc.folderState === "contents" && <PaperColorSection />}
+        {((doc.baseShape === "windows" || doc.baseShape === "macos") &&
+          doc.folderState === "contents") ||
+        doc.baseShape === "papirus" ? (
+          <PaperColorSection seed={doc.baseShape === "papirus" ? "#e4e4e4" : "#ffffff"} />
+        ) : null}
       </div>
     </div>
   );

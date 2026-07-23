@@ -33,10 +33,13 @@ import type {
   MacColorProfile,
   MacGradientAlgo,
   MaterialSettings,
+  PapirusColorProfile,
   PatternSettings,
   WindowsColorProfile,
   WindowsGradientAlgo,
   WindowsImageMode,
+  YaruColorProfile,
+  YaruShape,
 } from "@/types/document";
 import { createEmptyDocument } from "@/types/document";
 
@@ -164,6 +167,9 @@ export interface DocumentStore {
   setMacGradientAlgo: (algo: MacGradientAlgo) => void;
   /** TEMPORARY tweak: pick the Windows solid-fill color profile. */
   setWindowsColorProfile: (profile: WindowsColorProfile) => void;
+  setPapirusColorProfile: (profile: PapirusColorProfile) => void;
+  setYaruShape: (shape: YaruShape) => void;
+  setYaruColorProfile: (profile: YaruColorProfile) => void;
   /** Pick how an image fill maps onto the macOS folder (full vs front-only). */
   setMacImageMode: (mode: WindowsImageMode) => void;
   /** Pick how an image fill maps onto the Windows folder (full vs front-only). */
@@ -566,6 +572,11 @@ export const useDocumentStore = create<DocumentStore>()(
       setMacGradientAlgo: (algo) => set((s) => ({ doc: { ...s.doc, macGradientAlgo: algo } })),
       setWindowsColorProfile: (profile) =>
         set((s) => ({ doc: { ...s.doc, windowsColorProfile: profile } })),
+      setPapirusColorProfile: (profile) =>
+        set((s) => ({ doc: { ...s.doc, papirusColorProfile: profile } })),
+      setYaruShape: (shape) => set((s) => ({ doc: { ...s.doc, yaruShape: shape } })),
+      setYaruColorProfile: (profile) =>
+        set((s) => ({ doc: { ...s.doc, yaruColorProfile: profile } })),
       setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),
       setWindowsImageMode: (mode) => set((s) => ({ doc: { ...s.doc, windowsImageMode: mode } })),
       setPattern: (patch) => set((s) => ({ doc: { ...s.doc, pattern: { ...s.doc.pattern, ...patch } } })),

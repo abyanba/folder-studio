@@ -9,6 +9,7 @@ import type { BlendMode } from "@/types/element";
 import type {
   MacColorProfile,
   MacGradientAlgo,
+  PapirusColorProfile,
   WindowsColorProfile,
   WindowsGradientAlgo,
 } from "@/types/document";
@@ -45,6 +46,8 @@ export interface UiStore {
   macGradientPreview: MacGradientAlgo | null;
   /** Windows solid color profile being hovered — live-previewed on the folder base. */
   windowsColorProfilePreview: WindowsColorProfile | null;
+  /** Papirus solid color profile being hovered — live-previewed on the folder base. */
+  papirusColorProfilePreview: PapirusColorProfile | null;
   /** Logos panel: mono (tinted simple-icons) vs full-color artwork. */
   logoMode: "mono" | "color";
   /** Tint for mono logos (legacy `logoColor`). */
@@ -82,6 +85,7 @@ export interface UiStore {
   setMacColorProfilePreview: (profile: MacColorProfile | null) => void;
   setMacGradientPreview: (algo: MacGradientAlgo | null) => void;
   setWindowsColorProfilePreview: (profile: WindowsColorProfile | null) => void;
+  setPapirusColorProfilePreview: (profile: PapirusColorProfile | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
   setLogoColor: (color: string) => void;
   setCanvasLight: (light: boolean) => void;
@@ -114,6 +118,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   macColorProfilePreview: null,
   macGradientPreview: null,
   windowsColorProfilePreview: null,
+  papirusColorProfilePreview: null,
   logoMode: "mono",
   logoColor: "#ffffff",
   canvasLight: false,
@@ -141,6 +146,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setMacColorProfilePreview: (profile) => set({ macColorProfilePreview: profile }),
   setMacGradientPreview: (algo) => set({ macGradientPreview: algo }),
   setWindowsColorProfilePreview: (profile) => set({ windowsColorProfilePreview: profile }),
+  setPapirusColorProfilePreview: (profile) => set({ papirusColorProfilePreview: profile }),
   setLogoMode: (mode) => set({ logoMode: mode }),
   setLogoColor: (color) => set({ logoColor: color }),
   setCanvasLight: (light) => set({ canvasLight: light }),

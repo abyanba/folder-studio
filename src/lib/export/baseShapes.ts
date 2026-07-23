@@ -19,15 +19,21 @@ import type {
   FolderState,
   MacColorProfile,
   MacGradientAlgo,
+  PapirusColorProfile,
   WindowsColorProfile,
   WindowsGradientAlgo,
   WindowsImageMode,
+  YaruColorProfile,
+  YaruShape,
 } from "@/types/document";
 import {
   DEFAULT_MAC_COLOR_PROFILE,
   DEFAULT_MAC_GRADIENT_ALGO,
+  DEFAULT_PAPIRUS_COLOR_PROFILE,
   DEFAULT_WINDOWS_COLOR_PROFILE,
   DEFAULT_WINDOWS_GRADIENT_ALGO,
+  DEFAULT_YARU_COLOR_PROFILE,
+  DEFAULT_YARU_SHAPE,
 } from "@/types/document";
 import { SURU_GRADIENT } from "@/data/gradientPresets";
 import { gradSVGCoords, gradientElement } from "./gradientSvg";
@@ -46,6 +52,12 @@ export interface ShapeColorState {
   windowsColorProfile?: WindowsColorProfile;
   /** TEMPORARY: macOS solid-fill color profile (defaults to the newest). */
   macColorProfile?: MacColorProfile;
+  /** Papirus solid-fill color profile (defaults to `authentic`). */
+  papirusColorProfile?: PapirusColorProfile;
+  /** Yaru shape variant (defaults to `sharp`). */
+  yaruShape?: YaruShape;
+  /** Yaru front-fill treatment (defaults to `gradient`). */
+  yaruColorProfile?: YaruColorProfile;
   /** TEMPORARY: macOS gradient-fill treatment (defaults to the newest). */
   macGradientAlgo?: MacGradientAlgo;
   /** Windows custom TAB color (solid or gradient); `null`/absent = derive from front. */
@@ -352,7 +364,7 @@ function coneXYZ([h, s, v]: Hsv3): [number, number, number] {
 }
 
 /** Inverse-square-distance weights of `q` against each anchor's input. */
-function anchorWeights(q: Hsv3, anchors: WinAnchor[]): number[] {
+function anchorWeights<A extends { input: Hsv3 }>(q: Hsv3, anchors: A[]): number[] {
   const [x, y, z] = coneXYZ(q);
   return anchors.map((a) => {
     const [ax, ay, az] = coneXYZ(a.input);
@@ -366,11 +378,11 @@ function anchorWeights(q: Hsv3, anchors: WinAnchor[]): number[] {
  * Δh/Δs/Δv (its entry relative to its input) applied to the query color.
  * Anchors missing the entry abstain and the weights renormalize.
  */
-function blendEntry(
+function blendEntry<A extends { input: Hsv3 }>(
   q: Hsv3,
-  anchors: WinAnchor[],
+  anchors: A[],
   weights: number[],
-  pick: (a: WinAnchor) => Hsv3 | undefined,
+  pick: (a: A) => Hsv3 | undefined,
 ): Hsv3 {
   let wSum = 0;
   let dh = 0;
@@ -965,6 +977,18 @@ export function macColorProfileName(id: MacColorProfile): string {
   return MAC_COLOR_PROFILES.find((p) => p.id === id)?.name ?? id;
 }
 
+/** Papirus solid color profiles, surfaced as a dropdown in the folder Color section. */
+export const PAPIRUS_COLOR_PROFILES: Array<{ id: PapirusColorProfile; name: string }> = [
+  { id: "authentic", name: "Authentic" },
+  { id: "flat", name: "Flat" },
+];
+
+/** Yaru front-fill color profiles. */
+export const YARU_COLOR_PROFILES: Array<{ id: YaruColorProfile; name: string }> = [
+  { id: "gradient", name: "Shaded" },
+  { id: "flat", name: "Flat" },
+];
+
 /* ------------------------------------------------------------------------ *
  * Ubuntu Yaru folder.
  *
@@ -1068,63 +1092,159 @@ export function yaruDerivedTabColor(doc: FolderDocument): string {
  *
  * Geometry lifted verbatim from the official Papirus 64px folder SVG
  * (docs/attachment/references/papirus-folder/folder-blue.svg), scaled into the
- * 256 box via PAP_TF. Layers (bottom→top): a soft drop-shadow rect, the back
- * panel/tab, a second shadow rect, an always-present light paper sheet peeking
- * above the front, the front panel, and a faint white top-edge highlight — all
- * flat fills (Papirus is a flat theme). Only the front (`folderColor`) and tab
- * (`folderBackColor` custom, else a darker Auto derivation) are parameterized;
- * the paper, shadows and highlight are the source's own color-independent
- * overlays. Default pick = the signature Papirus blue.
+ * 256 box via PAP_TF. Layers (bottom→top): a light drop shadow, the back tab, a
+ * colored top-edge highlight, an always-present paper sheet, a shadow line where
+ * the front meets the back, and the front panel. The tab/highlight/shadow colors
+ * come from a reference-anchored blend of the 24 official accent palettes
+ * (PAP_ANCHORS) keyed to the front color — so picking a reference color
+ * reproduces its official folder exactly. A custom `folderBackColor` overrides
+ * the tab (highlight/shadow then derive from it). The `authentic` profile clamps
+ * the front so grey never hits pure black/white; `flat` removes the clamp.
  * ------------------------------------------------------------------------ */
 
 /** Places the 64px source art (centered on 32,28) into the 256 box. */
 const PAP_TF = "translate(-13 5) scale(4.4)";
 /** Back panel + tab (source coords; Z added to close the fill explicitly). */
 const PAP_BACK = "M4,46.2 C4,47.751 5.2488,49 6.8,49 H57.2 C58.751,49 60,47.751 60,46.2 V15.8 C60,14.249 58.751,13 57.2,13 H32 C27.8,13 26.4,7 22.2,7 H6.8 C5.2488,7 4,8.2488 4,9.8Z";
-/** Faint white highlight tracing the tab top edge (source, opacity 0.1). */
+/** Thin highlight tracing the tab top edge (source paint; now a solid tint). */
 const PAP_HIGHLIGHT = "M6.8008,7 C5.2496,7 4,8.2496 4,9.8008 V10.801 C4,9.2496 5.2496,8 6.8008,8 H22.199 C26.399,8 27.8,14 32,14 H57.199 C58.75,14 60,15.25 60,16.801 V15.801 C60,14.25 58.75,13 57.199,13 H32 C27.8,13 26.399,7 22.199,7 Z";
 /** Bounding box of the back panel/tab (source coords), for a custom tab gradient. */
 const PAP_TAB_BBOX = { x0: 4, y0: 7, x1: 60, y1: 49 };
+/** Bounding box of the paper sheet (source coords), for a custom paper gradient. */
+const PAP_PAPER_BBOX = { x0: 8, y0: 16, x1: 56, y1: 38 };
 
-/** Auto back-tab HSV derived from the front: darker (tuned so blue matches). */
-function papirusAutoBack([h, s, v]: Hsv3): Hsv3 {
-  return [h, clamp01(s * 0.93), clamp01(v * 0.78)];
+/** Authentic-profile front value clamps: never pure black (#4f4f4f) or white (#e4e4e4). */
+const PAP_BLACK_V = 79 / 255;
+const PAP_WHITE_V = 228 / 255;
+
+interface PapAnchor {
+  /** The front color a user would pick to mean this reference. */
+  input: Hsv3;
+  /** Back tab. */
+  back: Hsv3;
+  /** Tab top-edge highlight. */
+  hl: Hsv3;
+  /** Shadow where the front meets the back. */
+  shadow: Hsv3;
 }
 
-/** The tab fill (custom gradient → its own angle; else a solid darker tone). */
-function papirusBackFill(cs: ShapeColorState, frontHsv: Hsv3): { defs: string; fill: string } {
-  const back = cs.backColor;
-  if (back && isGradient(back)) {
-    return { defs: angleGradientEl("pbg", back.angle, back.stops, PAP_TAB_BBOX), fill: "url(#pbg)" };
+/** The 24 official Papirus accent palettes (measured; see papirus-folder-color.md). */
+const PAP_ANCHORS: PapAnchor[] = [
+  { input: [209, 0.372, 0.918], back: [213, 0.747, 0.898], hl: [213.1, 0.664, 0.91], shadow: [212.8, 0.749, 0.718] }, // adwaita
+  { input: [0, 0, 0.31], back: [0, 0, 0.247], hl: [0, 0, 0.322], shadow: [0, 0, 0.196] }, // black
+  { input: [212.5, 0.637, 0.886], back: [213.1, 0.593, 0.694], hl: [212.8, 0.514, 0.725], shadow: [213.6, 0.592, 0.557] }, // blue
+  { input: [199.5, 0.309, 0.545], back: [199.4, 0.306, 0.435], hl: [198, 0.24, 0.49], shadow: [200, 0.303, 0.349] }, // bluegrey
+  { input: [200.9, 0.631, 0.925], back: [201.2, 0.891, 0.722], hl: [201.1, 0.775, 0.749], shadow: [201.1, 0.891, 0.576] }, // breeze
+  { input: [30.9, 0.379, 0.682], back: [31.3, 0.45, 0.584], hl: [31.5, 0.381, 0.627], shadow: [31.7, 0.445, 0.467] }, // brown
+  { input: [359.3, 1, 0.639], back: [359, 1, 0.478], hl: [358.9, 0.815, 0.529], shadow: [358.8, 1, 0.384] }, // carmine
+  { input: [186.8, 1, 0.831], back: [187.1, 1, 0.667], hl: [187.4, 0.86, 0.702], shadow: [187.1, 1, 0.533] }, // cyan
+  { input: [186.3, 0.623, 0.718], back: [186.4, 0.616, 0.541], hl: [186.1, 0.339, 0.682], shadow: [186.2, 0.618, 0.431] }, // darkcyan
+  { input: [15.7, 0.766, 0.922], back: [15.5, 0.863, 0.914], hl: [15.6, 0.77, 0.922], shadow: [15.4, 0.86, 0.729] }, // deeporange
+  { input: [88.3, 0.503, 0.694], back: [102.3, 0.486, 0.573], hl: [102.2, 0.408, 0.616], shadow: [102.1, 0.487, 0.459] }, // green
+  { input: [0, 0, 0.557], back: [0, 0, 0.447], hl: [0, 0, 0.502], shadow: [0, 0, 0.357] }, // grey
+  { input: [231, 0.521, 0.753], back: [230.8, 0.652, 0.71], hl: [230.9, 0.564, 0.737], shadow: [230.5, 0.655, 0.569] }, // indigo
+  { input: [288.5, 0.493, 0.875], back: [296.2, 0.516, 0.722], hl: [296.5, 0.445, 0.749], shadow: [296.1, 0.517, 0.576] }, // magenta
+  { input: [210, 0.332, 0.757], back: [213.1, 0.453, 0.675], hl: [212.6, 0.389, 0.706], shadow: [213.3, 0.457, 0.541] }, // nordic
+  { input: [29.3, 0.756, 0.933], back: [24.8, 0.787, 0.867], hl: [25, 0.696, 0.878], shadow: [24.6, 0.785, 0.694] }, // orange
+  { input: [29.1, 0.167, 0.82], back: [29.4, 0.279, 0.745], hl: [28.8, 0.244, 0.773], shadow: [28.6, 0.276, 0.596] }, // palebrown
+  { input: [339.7, 0.592, 0.941], back: [339.8, 0.729, 0.925], hl: [339.9, 0.651, 0.933], shadow: [339.6, 0.73, 0.741] }, // pink
+  { input: [0, 0.637, 0.886], back: [0, 0.607, 0.749], hl: [0, 0.528, 0.773], shadow: [0, 0.608, 0.6] }, // red
+  { input: [168.3, 0.862, 0.627], back: [168, 0.859, 0.502], hl: [167.9, 0.702, 0.553], shadow: [168.4, 0.863, 0.4] }, // teal
+  { input: [261.9, 0.552, 0.761], back: [262, 0.632, 0.608], hl: [261.8, 0.533, 0.647], shadow: [261.5, 0.629, 0.486] }, // violet
+  { input: [0, 0, 0.894], back: [0, 0, 0.8], hl: [0, 0, 0.82], shadow: [0, 0, 0.639] }, // white
+  { input: [42.1, 0.807, 0.976], back: [41.9, 1, 0.882], hl: [42, 0.89, 0.894], shadow: [42, 1, 0.706] }, // yellow
+  { input: [37.3, 0.399, 0.933], back: [32.9, 0.465, 0.784], hl: [32.9, 0.408, 0.808], shadow: [32.4, 0.462, 0.627] }, // paleorange
+];
+
+/** Apply the profile clamp to a solid front color. */
+function papirusFront(profile: PapirusColorProfile, [h, s, v]: Hsv3): Hsv3 {
+  if (profile === "flat") return [h, s, v];
+  let nv = Math.max(v, PAP_BLACK_V);
+  if (s < 0.12) nv = Math.min(nv, PAP_WHITE_V);
+  return [h, s, nv];
+}
+
+/** Anchored back/highlight/shadow palette for a front color. */
+function papirusPalette(front: Hsv3): { back: Hsv3; hl: Hsv3; shadow: Hsv3 } {
+  const w = anchorWeights(front, PAP_ANCHORS);
+  return {
+    back: blendEntry(front, PAP_ANCHORS, w, (a) => a.back),
+    hl: blendEntry(front, PAP_ANCHORS, w, (a) => a.hl),
+    shadow: blendEntry(front, PAP_ANCHORS, w, (a) => a.shadow),
+  };
+}
+
+/** Highlight/shadow derived from an explicit tab color (for a custom back). */
+const papLighten = ([h, s, v]: Hsv3): Hsv3 => [h, clamp01(s * 0.87), clamp01(v * 1.05)];
+const papDarken = ([h, s, v]: Hsv3): Hsv3 => [h, s, clamp01(v * 0.8)];
+
+/** Auto paper: near-white fronts get a pure-white sheet, everything else `#e4e4e4`. */
+function papirusAutoPaper([, s, v]: Hsv3): string {
+  return s < 0.08 && v > 0.88 ? "#ffffff" : "#e4e4e4";
+}
+
+/** Paper `<defs>` + fill (custom solid/gradient, else adaptive). */
+function papirusPaperFill(cs: ShapeColorState, front: Hsv3): { defs: string; fill: string } {
+  const p = cs.paperColor;
+  if (p && isGradient(p)) {
+    return { defs: angleGradientEl("ppp", p.angle, p.stops, PAP_PAPER_BBOX), fill: "url(#ppp)" };
   }
-  const c = back ? hexToHsv(back) : papirusAutoBack(frontHsv);
-  return { defs: "", fill: hsvHex(c) };
+  return { defs: "", fill: p ? p : papirusAutoPaper(front) };
 }
 
-/** The Papirus render: exact source geometry, parameterized front + tab fills. */
+/** The Papirus render: exact source geometry, anchored two-tone palette. */
 function buildPapirusSvg(cs: ShapeColorState): string {
+  const profile = cs.papirusColorProfile ?? DEFAULT_PAPIRUS_COLOR_PROFILE;
   let frontHsv: Hsv3;
   let frontDefs = "";
   let frontFill: string;
   if (cs.mode === "solid") {
-    frontHsv = [cs.hue, cs.sat, cs.bri];
-    frontFill = getHex(cs.hue, cs.sat, cs.bri);
+    frontHsv = papirusFront(profile, [cs.hue, cs.sat, cs.bri]);
+    frontFill = hsvHex(frontHsv);
   } else {
     const rep = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
     frontHsv = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
     frontDefs = complexGradient("pfg", cs);
     frontFill = "url(#pfg)";
   }
-  const back = papirusBackFill(cs, frontHsv);
+
+  // Tab + its highlight/shadow: a custom back drives all three; else anchored.
+  let backDefs = "";
+  let backFill: string;
+  let hlHex: string;
+  let shadowHex: string;
+  const custom = cs.backColor;
+  if (custom && isGradient(custom)) {
+    backDefs = angleGradientEl("pbg", custom.angle, custom.stops, PAP_TAB_BBOX);
+    backFill = "url(#pbg)";
+    const rep = [...custom.stops].sort((a, b) => a.pos - b.pos)[0];
+    const rh: Hsv3 = rep ? [rep.hue, rep.sat, rep.bri] : frontHsv;
+    hlHex = hsvHex(papLighten(rh));
+    shadowHex = hsvHex(papDarken(rh));
+  } else if (custom) {
+    const c = hexToHsv(custom);
+    backFill = custom;
+    hlHex = hsvHex(papLighten(c));
+    shadowHex = hsvHex(papDarken(c));
+  } else {
+    const pal = papirusPalette(frontHsv);
+    backFill = hsvHex(pal.back);
+    hlHex = hsvHex(pal.hl);
+    shadowHex = hsvHex(pal.shadow);
+  }
+
+  const paper = papirusPaperFill(cs, frontHsv);
   return (
-    `${SVG_OPEN}<defs>${back.defs}${frontDefs}</defs>` +
+    `${SVG_OPEN}<defs>${backDefs}${frontDefs}${paper.defs}</defs>` +
     `<g transform="${PAP_TF}">` +
-    `<rect opacity="0.2" width="56" height="36" x="4" y="22" rx="2.8"/>` +
-    `<path d="${PAP_BACK}" fill="${back.fill}"/>` +
-    `<rect opacity="0.2" width="56" height="36" x="4" y="20" rx="2.8"/>` +
-    `<rect fill="#e4e4e4" width="48" height="22" x="8" y="16" rx="2.8"/>` +
+    // Light drop shadow peeking below the folder bottom.
+    `<rect fill="#cccccc" width="56" height="36" x="4" y="22.6" rx="2.8"/>` +
+    `<path d="${PAP_BACK}" fill="${backFill}"/>` +
+    `<path fill="${hlHex}" d="${PAP_HIGHLIGHT}"/>` +
+    `<rect fill="${paper.fill}" width="48" height="22" x="8" y="16" rx="2.8"/>` +
+    // Shadow line where the front meets the back (peeks above the front top).
+    `<rect fill="${shadowHex}" width="56" height="36" x="4" y="19.8" rx="2.8"/>` +
     `<rect fill="${frontFill}" width="56" height="36" x="4" y="21" rx="2.8"/>` +
-    `<path opacity="0.1" fill="#ffffff" d="${PAP_HIGHLIGHT}"/>` +
     `</g></svg>`
   );
 }
@@ -1134,6 +1254,7 @@ function buildPapirusSvg(cs: ShapeColorState): string {
  * field so it starts matching. Mirrors {@link windowsDerivedTabColor}.
  */
 export function papirusDerivedTabColor(doc: FolderDocument): string {
+  const profile = doc.papirusColorProfile ?? DEFAULT_PAPIRUS_COLOR_PROFILE;
   const cs = toShapeColorState(doc.folderColor);
   const hsv: Hsv3 =
     cs.mode === "gradient"
@@ -1141,8 +1262,8 @@ export function papirusDerivedTabColor(doc: FolderDocument): string {
           const l = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
           return l ? ([l.hue, l.sat, l.bri] as Hsv3) : [0, 0, 0.6];
         })()
-      : [cs.hue, cs.sat, cs.bri];
-  const c = papirusAutoBack(hsv);
+      : papirusFront(profile, [cs.hue, cs.sat, cs.bri]);
+  const c = papirusPalette(hsv).back;
   return getHex(c[0], c[1], c[2]);
 }
 
@@ -1393,6 +1514,9 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
   cs.windowsColorProfile = doc.windowsColorProfile;
   cs.macColorProfile = doc.macColorProfile;
   cs.macGradientAlgo = doc.macGradientAlgo;
+  cs.papirusColorProfile = doc.papirusColorProfile;
+  cs.yaruShape = doc.yaruShape;
+  cs.yaruColorProfile = doc.yaruColorProfile;
   cs.backColor = doc.folderBackColor;
   cs.folderState = doc.folderState;
   cs.paperColor = doc.folderPaperColor;

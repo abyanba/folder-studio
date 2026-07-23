@@ -40,6 +40,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
   const winSolidPreview = useUiStore((s) => s.windowsColorProfilePreview);
   const macSolidPreview = useUiStore((s) => s.macColorProfilePreview);
   const macGradientPreview = useUiStore((s) => s.macGradientPreview);
+  const papirusSolidPreview = useUiStore((s) => s.papirusColorProfilePreview);
   const isColor = rawDoc.folderFillMode === "color";
   const isGrad = isColor && isGradient(rawDoc.folderColor);
   let doc = rawDoc;
@@ -51,6 +52,8 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     doc = { ...rawDoc, macGradientAlgo: macGradientPreview };
   } else if (macSolidPreview && rawDoc.baseShape === "macos" && isColor && !isGrad) {
     doc = { ...rawDoc, macColorProfile: macSolidPreview };
+  } else if (papirusSolidPreview && rawDoc.baseShape === "papirus" && isColor && !isGrad) {
+    doc = { ...rawDoc, papirusColorProfile: papirusSolidPreview };
   }
 
   if (doc.folderFillMode === "image" && doc.folderBgImage) {

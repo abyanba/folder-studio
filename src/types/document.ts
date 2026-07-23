@@ -58,6 +58,31 @@ export type WindowsColorProfile = MacColorProfile;
 export const DEFAULT_WINDOWS_COLOR_PROFILE: WindowsColorProfile = "official";
 
 /**
+ * Papirus solid-fill color treatment:
+ * - authentic — clamps the front so grey never reaches pure black/white
+ *   (matching the official black `#4f4f4f` and white `#e4e4e4` folders).
+ * - flat      — no clamp; pure black and pure white fronts are reachable.
+ */
+export type PapirusColorProfile = "authentic" | "flat";
+export const DEFAULT_PAPIRUS_COLOR_PROFILE: PapirusColorProfile = "authentic";
+
+/**
+ * Yaru shape variant:
+ * - sharp   — the angular "tag-only" silhouette (the suru reference).
+ * - rounded — the softer, rounded silhouette (the accent-folder reference).
+ */
+export type YaruShape = "sharp" | "rounded";
+export const DEFAULT_YARU_SHAPE: YaruShape = "sharp";
+
+/**
+ * Yaru front-fill treatment:
+ * - gradient — a diagonal shaded front (matches the sharp/suru reference).
+ * - flat     — a single flat front color (matches the rounded accent-folders).
+ */
+export type YaruColorProfile = "gradient" | "flat";
+export const DEFAULT_YARU_COLOR_PROFILE: YaruColorProfile = "gradient";
+
+/**
  * How an *image* fill maps onto the Windows folder (image fill mode only):
  * - full  — the image spans the whole folder icon (front + tab/back).
  * - front — the image covers only the front panel; the tab/back use an
@@ -180,6 +205,12 @@ export interface FolderDocument {
   macGradientAlgo: MacGradientAlgo;
   /** TEMPORARY: solid-fill color treatment for the Windows base shape. */
   windowsColorProfile: WindowsColorProfile;
+  /** Solid-fill color treatment for the Papirus base shape. */
+  papirusColorProfile: PapirusColorProfile;
+  /** Shape variant (angular vs rounded) for the Yaru base shape. */
+  yaruShape: YaruShape;
+  /** Front-fill treatment (gradient vs flat) for the Yaru base shape. */
+  yaruColorProfile: YaruColorProfile;
   /** How an image fill maps onto the Windows folder (see {@link WindowsImageMode}). */
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
@@ -219,6 +250,9 @@ export function createEmptyDocument(): FolderDocument {
     macColorProfile: DEFAULT_MAC_COLOR_PROFILE,
     macGradientAlgo: DEFAULT_MAC_GRADIENT_ALGO,
     windowsColorProfile: DEFAULT_WINDOWS_COLOR_PROFILE,
+    papirusColorProfile: DEFAULT_PAPIRUS_COLOR_PROFILE,
+    yaruShape: DEFAULT_YARU_SHAPE,
+    yaruColorProfile: DEFAULT_YARU_COLOR_PROFILE,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     pattern: {
