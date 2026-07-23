@@ -15,6 +15,7 @@
  */
 
 import { FH, FW } from "@/lib/constants";
+import { baseShapeHasSplit } from "./baseShapes";
 import type { MaterialSettings } from "@/types/document";
 import type { ElementMaterial } from "@/types/element";
 
@@ -272,11 +273,5 @@ export function withElementMaterial(
  * image-fill rule: only windows/macOS have a front/back split.
  */
 export function isFrontMaterial(baseShape: string, material: MaterialSettings): boolean {
-  if (material.span !== "front") return false;
-  return (
-    baseShape === "windows" ||
-    baseShape === "macos" ||
-    baseShape === "yaru" ||
-    baseShape === "papirus"
-  );
+  return material.span === "front" && baseShapeHasSplit(baseShape);
 }

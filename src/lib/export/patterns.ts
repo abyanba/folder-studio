@@ -16,6 +16,7 @@ import { FH, FW } from "@/lib/constants";
 import type { PatternBody } from "@/data/generated/patternBodies";
 import type { PatternSettings } from "@/types/document";
 import { isGradient } from "@/types/gradient";
+import { baseShapeHasSplit } from "./baseShapes";
 import { gradientElementUserSpace } from "./gradientSvg";
 
 const num = (n: number): string => (Number.isFinite(n) ? +n.toFixed(3) : 0).toString();
@@ -134,11 +135,5 @@ export function buildPatternLayerSvg(
  * `span` is set — mirroring `isFrontImage`'s shape check.
  */
 export function isFrontPattern(baseShape: string, pattern: PatternSettings): boolean {
-  if (pattern.span !== "front") return false;
-  return (
-    baseShape === "windows" ||
-    baseShape === "macos" ||
-    baseShape === "yaru" ||
-    baseShape === "papirus"
-  );
+  return pattern.span === "front" && baseShapeHasSplit(baseShape);
 }

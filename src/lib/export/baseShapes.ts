@@ -1596,6 +1596,17 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
 const YARU_ROUND_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_BACK}" fill="white"/></g></svg>`;
 
 /**
+ * Base shapes with a front/back split — the ones where an image, pattern or
+ * material can be confined to the front panel (vs the whole silhouette). The
+ * single source of truth for the "front only" option across image/material/
+ * pattern, so its four consumers can't drift out of sync.
+ */
+export function baseShapeHasSplit(baseShapeId: string): boolean {
+  const id = findShape(baseShapeId).id;
+  return id === "windows" || id === "macos" || id === "yaru" || id === "papirus";
+}
+
+/**
  * The white silhouette mask SVG for a base shape (used for clip-to-folder).
  * Yaru's mask depends on its shape variant, so pass `yaruShape` when known.
  */

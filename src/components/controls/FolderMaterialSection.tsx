@@ -16,13 +16,11 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MATERIALS, buildMaterialLayerSvg, getMaterialRecipe } from "@/lib/export/materials";
+import { baseShapeHasSplit } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { useDocumentStore } from "@/store/documentStore";
 import type { MaterialSettings, PatternSpan } from "@/types/document";
 import { cn } from "@/lib/utils";
-
-/** Base shapes with a front/back split — the only ones where span is meaningful. */
-const SPLIT_SHAPES = ["windows", "macos"];
 
 /** All-white mask, so a swatch shows the material unclipped. */
 const FULL_MASK =
@@ -125,7 +123,7 @@ export function FolderMaterialSection() {
             />
           )}
 
-          {SPLIT_SHAPES.includes(baseShape) && (
+          {baseShapeHasSplit(baseShape) && (
             <ToggleGroup
               type="single"
               size="sm"

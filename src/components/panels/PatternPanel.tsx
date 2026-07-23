@@ -20,6 +20,7 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { PATTERN_CATALOG } from "@/data/patterns";
 import { buildPatternLayerSvg, buildPatternSvg } from "@/lib/export/patterns";
+import { baseShapeHasSplit } from "@/lib/export/baseShapes";
 import {
   getPatternBody,
   loadPatternBodies,
@@ -31,9 +32,6 @@ import { useDocumentStore } from "@/store/documentStore";
 import type { PatternSettings, PatternSpan } from "@/types/document";
 import { cn } from "@/lib/utils";
 import { PanelHeader } from "./PanelHeader";
-
-/** Base shapes with a front/back split — the only ones where span is meaningful. */
-const SPLIT_SHAPES = ["windows", "macos"];
 
 /** An all-white mask, so the preview swatch shows the layer unclipped. */
 const FULL_MASK =
@@ -162,7 +160,7 @@ export function PatternPanel() {
             format={(v) => `${Math.round(v)}`}
           />
 
-          {SPLIT_SHAPES.includes(baseShape) && (
+          {baseShapeHasSplit(baseShape) && (
             <PanelSection title="Pattern span">
               <ToggleGroup
                 type="single"
