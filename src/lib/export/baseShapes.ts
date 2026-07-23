@@ -1022,52 +1022,106 @@ const YARU_TAB_BBOX = { x0: 10.6, y0: 10.6, x1: 234.6, y1: 60 };
 /** The source's white edge shimmer (faint → bright → faint across the width). */
 const YARU_SHINE_GRAD = `<linearGradient id="ysg" x1="10.6" y1="0" x2="234.6" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0.2"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.2"/></linearGradient>`;
 
+/* Rounded variant geometry, lifted from yaru-mate.svg (241×205 → 256 box). The
+ * mate art lightens the front and darkens the back off one base color; here the
+ * front/back colors come from the same model as the sharp variant, and only the
+ * mate's edge overlays (white tab + front highlights, a dark bottom rim) are
+ * kept. */
+const YARU_ROUND_TF = "translate(-3 18) scale(1.083)";
+const YARU_ROUND_BACK = "M47.3123 4.32007C11.9438 4.31897 8.32014 7.94522 8.32014 43.2419V59.2419L8.3201 157.399C8.32008 192.696 11.9442 196.492 47.3123 196.319H120.32H193.326C228.694 196.492 232.32 192.696 232.32 157.399L232.32 59.2419C232.32 23.9452 228.695 20.322 193.326 20.322H120.009C109.621 20.322 107.856 19.9511 99.1928 13.02L98.3859 12.3745C88.8855 4.77388 87.0915 4.32127 75.4286 4.32092L47.3123 4.32007Z";
+const YARU_ROUND_FRONT = "M124.008 36.322C108.166 36.322 106.89 36.6698 103.192 39.6248L102.385 40.2694C92.3066 48.3223 92.3066 48.3223 79.428 48.3221L47.3122 48.3241C12.4109 48.3241 8.41917 51.8534 8.32005 85.8632L8.32001 157.399C8.31976 192.696 11.9441 196.494 47.3122 196.321H120.32H193.326C228.228 196.492 232.219 192.796 232.318 158.778C232.319 158.324 232.32 157.864 232.32 157.399L232.32 75.2439C232.32 39.9472 228.694 36.3221 193.326 36.3221L124.008 36.322Z";
+/** Front top-edge highlight (mate opacity 0.35 white). */
+const YARU_ROUND_FRONT_HL = "M124.008 36.3218C108.165 36.3218 106.889 36.6695 103.191 39.6245L102.384 40.269C92.3061 48.322 92.3061 48.322 79.4275 48.3218L47.3122 48.3238C12.4108 48.3238 8.41916 51.8531 8.32004 85.8628V87.8628C8.41916 53.8531 12.4108 50.3238 47.3122 50.3238L80.4279 50.3218C93.3066 50.322 93.3066 50.322 103.385 42.269L104.192 41.6245C107.89 38.6695 109.166 38.3218 125.008 38.3218H193.326C228.692 38.3218 232.32 41.9457 232.32 77.2358V75.2437C232.32 39.9469 228.694 36.3218 193.326 36.3218H124.008Z";
+/** Tab top-edge highlight (mate opacity 0.3 white). */
+const YARU_ROUND_TAB_HL = "M47.3123 4.32007C11.9438 4.31897 8.32013 7.94524 8.32013 43.242V45.2419C8.32013 9.94523 11.9438 6.31897 47.3123 6.32007H75.4295C87.0924 6.32042 88.886 6.77416 98.3865 14.3748L99.1932 15.0193C107.857 21.9504 109.622 22.322 120.01 22.322H193.326C228.695 22.322 232.32 25.9452 232.32 61.2419V59.2419C232.32 23.9452 228.695 20.322 193.326 20.322H120.01C109.622 20.322 107.857 19.9504 99.1932 13.0193L98.3865 12.3748C88.886 4.77416 87.0924 4.32042 75.4295 4.32007H47.3123Z";
+/** Bottom rim shadow (mate opacity 0.2 black). */
+const YARU_ROUND_BOTTOM = "M8.32007 155.399V157.399C8.32007 192.696 11.9441 196.494 47.3123 196.321H120.32H193.326C228.694 196.494 232.32 192.696 232.32 157.399V155.399C232.32 190.696 228.694 194.494 193.326 194.321H120.32H47.3123C11.9441 194.494 8.32007 190.696 8.32007 155.399Z";
+const YARU_ROUND_TAB_BBOX = { x0: 8.32, y0: 4.32, x1: 232.32, y1: 50 };
+
 /** Auto back-tab HSV derived from the front: deeper + more saturated. */
 function yaruAutoTab([h, s, v]: Hsv3): Hsv3 {
   return [h, clamp01(s + 0.16), clamp01(v * 0.72)];
 }
 
 /** The tab `<defs>` + fill (custom gradient → its own angle; else a solid tone). */
-function yaruBackFill(cs: ShapeColorState, frontHsv: Hsv3): { defs: string; fill: string } {
+function yaruBackFill(
+  cs: ShapeColorState,
+  frontHsv: Hsv3,
+  bbox: { x0: number; y0: number; x1: number; y1: number },
+): { defs: string; fill: string } {
   const back = cs.backColor;
   if (back && isGradient(back)) {
-    return { defs: angleGradientEl("ybg", back.angle, back.stops, YARU_TAB_BBOX), fill: "url(#ybg)" };
+    return { defs: angleGradientEl("ybg", back.angle, back.stops, bbox), fill: "url(#ybg)" };
   }
   const top = back ? hexToHsv(back) : yaruAutoTab(frontHsv);
   return { defs: "", fill: hsvHex(top) };
 }
 
-/** The Yaru render: exact source geometry, parameterized front + tab fills. */
-function buildYaruSvg(cs: ShapeColorState): string {
-  let frontHsv: Hsv3;
-  let frontDefs = "";
-  let frontFill: string;
-  if (cs.mode === "solid") {
-    frontHsv = [cs.hue, cs.sat, cs.bri];
-    // Subtle diagonal shading like the source's #666→#7a7a7a grey front.
-    const deep = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 0.9)]);
-    const lite = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 1.06)]);
-    frontDefs = `<linearGradient id="yfg" x1="10.6" y1="42.6" x2="234.6" y2="218.6" gradientUnits="userSpaceOnUse"><stop stop-color="${deep}"/><stop offset="1" stop-color="${lite}"/></linearGradient>`;
-    frontFill = "url(#yfg)";
-  } else {
+/**
+ * The front fill + representative HSV. `flat` profile (or the mate variant) uses
+ * a single flat color; `gradient` shades it diagonally (the suru look). A user
+ * gradient fill is always painted verbatim.
+ */
+function yaruFrontFill(
+  cs: ShapeColorState,
+  profile: YaruColorProfile,
+  coords: { x1: number; y1: number; x2: number; y2: number },
+): { defs: string; fill: string; hsv: Hsv3 } {
+  if (cs.mode !== "solid") {
     const rep = [...cs.stops].sort((a, b) => a.pos - b.pos).at(-1);
-    frontHsv = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
-    frontDefs = complexGradient("yfg", cs);
-    frontFill = "url(#yfg)";
+    const hsv: Hsv3 = rep ? [rep.hue, rep.sat, rep.bri] : [0, 0, 0.6];
+    return { defs: complexGradient("yfg", cs), fill: "url(#yfg)", hsv };
   }
-  const back = yaruBackFill(cs, frontHsv);
-  const rim = hsvHex([frontHsv[0], frontHsv[1], clamp01(frontHsv[2] * 0.4)]);
+  const hsv: Hsv3 = [cs.hue, cs.sat, cs.bri];
+  if (profile === "flat") return { defs: "", fill: getHex(cs.hue, cs.sat, cs.bri), hsv };
+  const deep = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 0.9)]);
+  const lite = hsvHex([cs.hue, cs.sat, clamp01(cs.bri * 1.06)]);
+  return {
+    defs: `<linearGradient id="yfg" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}" gradientUnits="userSpaceOnUse"><stop stop-color="${deep}"/><stop offset="1" stop-color="${lite}"/></linearGradient>`,
+    fill: "url(#yfg)",
+    hsv,
+  };
+}
+
+/** The sharp/suru Yaru render (angular tag, edge shimmer). */
+function buildYaruSharp(cs: ShapeColorState, profile: YaruColorProfile): string {
+  const front = yaruFrontFill(cs, profile, { x1: 10.6, y1: 42.6, x2: 234.6, y2: 218.6 });
+  const back = yaruBackFill(cs, front.hsv, YARU_TAB_BBOX);
+  const rim = hsvHex([front.hsv[0], front.hsv[1], clamp01(front.hsv[2] * 0.4)]);
   return (
-    `${SVG_OPEN}<defs>${back.defs}${frontDefs}${YARU_SHINE_GRAD}</defs>` +
+    `${SVG_OPEN}<defs>${back.defs}${front.defs}${YARU_SHINE_GRAD}</defs>` +
     `<g transform="${YARU_TF}">` +
     `<path d="${YARU_BACK}" fill="${back.fill}"/>` +
-    `<path d="${YARU_FRONT}" fill="${frontFill}"/>` +
+    `<path d="${YARU_FRONT}" fill="${front.fill}"/>` +
     `<path d="${YARU_TAB_SHINE}" fill="url(#ysg)"/>` +
     `<path d="${YARU_FRONT_SHINE}" fill="url(#ysg)"/>` +
     `<path opacity="0.05" d="${YARU_BR_LIGHT}" fill="#ffffff"/>` +
     `<path opacity="0.2" d="${YARU_BOTTOM_LINE}" fill="${rim}"/>` +
     `</g></svg>`
   );
+}
+
+/** The rounded/mate Yaru render (soft silhouette, flat-friendly edge overlays). */
+function buildYaruRounded(cs: ShapeColorState, profile: YaruColorProfile): string {
+  const front = yaruFrontFill(cs, profile, { x1: 8.3, y1: 36, x2: 232.3, y2: 196 });
+  const back = yaruBackFill(cs, front.hsv, YARU_ROUND_TAB_BBOX);
+  return (
+    `${SVG_OPEN}<defs>${back.defs}${front.defs}</defs>` +
+    `<g transform="${YARU_ROUND_TF}">` +
+    `<path d="${YARU_ROUND_BACK}" fill="${back.fill}"/>` +
+    `<path d="${YARU_ROUND_TAB_HL}" fill="#ffffff" opacity="0.3"/>` +
+    `<path d="${YARU_ROUND_FRONT}" fill="${front.fill}"/>` +
+    `<path d="${YARU_ROUND_FRONT_HL}" fill="#ffffff" opacity="0.35"/>` +
+    `<path d="${YARU_ROUND_BOTTOM}" fill="#000000" opacity="0.2"/>` +
+    `</g></svg>`
+  );
+}
+
+/** The Yaru render: dispatch on the shape variant. */
+function buildYaruSvg(cs: ShapeColorState): string {
+  const shape = cs.yaruShape ?? DEFAULT_YARU_SHAPE;
+  const profile = cs.yaruColorProfile ?? DEFAULT_YARU_COLOR_PROFILE;
+  return shape === "rounded" ? buildYaruRounded(cs, profile) : buildYaruSharp(cs, profile);
 }
 
 /**
@@ -1538,8 +1592,15 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
     : svg;
 }
 
-/** The white silhouette mask SVG for a base shape (used for clip-to-folder). */
-export function getBaseShapeMask(baseShapeId: string): string {
+/** The rounded-variant Yaru silhouette (full outline in one path). */
+const YARU_ROUND_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${YARU_ROUND_TF}"><path d="${YARU_ROUND_BACK}" fill="white"/></g></svg>`;
+
+/**
+ * The white silhouette mask SVG for a base shape (used for clip-to-folder).
+ * Yaru's mask depends on its shape variant, so pass `yaruShape` when known.
+ */
+export function getBaseShapeMask(baseShapeId: string, yaruShape?: YaruShape): string {
+  if (findShape(baseShapeId).id === "yaru" && yaruShape === "rounded") return YARU_ROUND_MASK;
   return findShape(baseShapeId).mask;
 }
 

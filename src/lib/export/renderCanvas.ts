@@ -591,7 +591,7 @@ async function renderPattern(
   if (body) {
     const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
       ? getFrontMask(doc.baseShape)
-      : getBaseShapeMask(doc.baseShape);
+      : getBaseShapeMask(doc.baseShape, doc.yaruShape);
     const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
     if (layer) ctx.drawImage(layer, 0, 0, size, size);
   }
@@ -602,7 +602,7 @@ async function renderPattern(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
       ? getFrontMask(doc.baseShape)
-      : getBaseShapeMask(doc.baseShape),
+      : getBaseShapeMask(doc.baseShape, doc.yaruShape),
   );
   if (materialSvg) {
     const mImg = await loadImage(toSvgDataUrl(materialSvg));
@@ -670,7 +670,7 @@ export async function buildExportCanvas(
   }
 
   if (doc.clipToFolder) {
-    const maskSvg = getBaseShapeMask(doc.baseShape);
+    const maskSvg = getBaseShapeMask(doc.baseShape, doc.yaruShape);
     if (maskSvg) {
       const mi = await loadImage(toSvgDataUrl(maskSvg));
       if (mi) {

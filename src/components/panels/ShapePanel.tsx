@@ -63,6 +63,33 @@ function FolderStateControl() {
   );
 }
 
+/** Switch the Yaru folder between the angular (suru) and rounded (mate) silhouettes. */
+function YaruShapeControl() {
+  const yaruShape = useDocumentStore((s) => s.doc.yaruShape);
+  const setYaruShape = useDocumentStore((s) => s.setYaruShape);
+  return (
+    <PanelSection title="Shape variant" className="px-3 pb-3">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={yaruShape}
+        onValueChange={(v) => {
+          if (v) setYaruShape(v as "sharp" | "rounded");
+        }}
+        className="w-full"
+      >
+        <ToggleGroupItem value="sharp" className="flex-1 text-xs">
+          Sharp
+        </ToggleGroupItem>
+        <ToggleGroupItem value="rounded" className="flex-1 text-xs">
+          Rounded
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </PanelSection>
+  );
+}
+
 export function ShapePanel() {
   const baseShape = useDocumentStore((s) => s.doc.baseShape);
   const applyBaseShape = useDocumentStore((s) => s.applyBaseShape);
@@ -110,6 +137,7 @@ export function ShapePanel() {
         })}
       </div>
       {(baseShape === "windows" || baseShape === "macos") && <FolderStateControl />}
+      {baseShape === "yaru" && <YaruShapeControl />}
     </div>
   );
 }

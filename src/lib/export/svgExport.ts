@@ -334,7 +334,7 @@ export function buildExportSvg(
   if (patternBody) {
     const patMask = isFrontPattern(doc.baseShape, doc.pattern)
       ? getFrontMask(doc.baseShape)
-      : getBaseShapeMask(doc.baseShape);
+      : getBaseShapeMask(doc.baseShape, doc.yaruShape);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
   }
 
@@ -344,7 +344,7 @@ export function buildExportSvg(
     doc.material,
     isFrontMaterial(doc.baseShape, doc.material)
       ? getFrontMask(doc.baseShape)
-      : getBaseShapeMask(doc.baseShape),
+      : getBaseShapeMask(doc.baseShape, doc.yaruShape),
     "ml",
   );
   if (materialSvg) {
@@ -363,7 +363,7 @@ export function buildExportSvg(
 
   let content = body.join("");
   if (doc.clipToFolder) {
-    const mask = getBaseShapeMask(doc.baseShape);
+    const mask = getBaseShapeMask(doc.baseShape, doc.yaruShape);
     if (mask) {
       defs.push(
         `<mask id="folderclip"><svg x="0" y="0" width="${FW}" height="${FH}">${fillBase(mask)}</svg></mask>`,

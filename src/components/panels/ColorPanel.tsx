@@ -34,6 +34,7 @@ import {
   WINDOWS_IMAGE_MODES,
   windowsDerivedTabColor,
   windowsImageModeName,
+  YARU_COLOR_PROFILES,
   yaruDerivedTabColor,
 } from "@/lib/export/baseShapes";
 import { Switch } from "@/components/ui/switch";
@@ -173,6 +174,15 @@ function WindowsSolidProfile() {
   const setPreview = useUiStore((s) => s.setWindowsColorProfilePreview);
   return (
     <ProfileDropdown value={profile} options={MAC_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
+  );
+}
+
+/** Yaru front-fill treatment (shaded gradient vs flat). */
+function YaruColorProfileControl() {
+  const profile = useDocumentStore((s) => s.doc.yaruColorProfile);
+  const setProfile = useDocumentStore((s) => s.setYaruColorProfile);
+  return (
+    <ProfileDropdown value={profile} options={YARU_COLOR_PROFILES} onSelect={setProfile} onPreview={() => {}} />
   );
 }
 
@@ -469,6 +479,7 @@ export function ColorPanel() {
             {doc.baseShape === "windows" && <WindowsSolidProfile />}
             {doc.baseShape === "macos" && <MacColorProfile />}
             {doc.baseShape === "papirus" && <PapirusSolidProfile />}
+            {doc.baseShape === "yaru" && <YaruColorProfileControl />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}

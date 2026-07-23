@@ -55,21 +55,21 @@ export function Workspace() {
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   // Pure function of the base shape — don't rebuild the mask data URL every
   // drag frame (PF-03).
-  const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape)), [doc.baseShape]);
+  const maskUrl = useMemo(() => toSvgDataUrl(getBaseShapeMask(doc.baseShape, doc.yaruShape)), [doc.baseShape]);
   // A front-span pattern is confined to the front panel instead of the whole
   // silhouette — the same mask an image fill uses for its front-only mode.
   const materialMaskSvg = useMemo(
     () =>
       isFrontMaterial(doc.baseShape, doc.material)
         ? getFrontMask(doc.baseShape)
-        : getBaseShapeMask(doc.baseShape),
+        : getBaseShapeMask(doc.baseShape, doc.yaruShape),
     [doc.baseShape, doc.material],
   );
   const patternMaskSvg = useMemo(
     () =>
       isFrontPattern(doc.baseShape, doc.pattern)
         ? getFrontMask(doc.baseShape)
-        : getBaseShapeMask(doc.baseShape),
+        : getBaseShapeMask(doc.baseShape, doc.yaruShape),
     [doc.baseShape, doc.pattern],
   );
 
