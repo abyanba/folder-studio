@@ -27,6 +27,7 @@ import type { ShapeType } from "@/types/element";
 import type { ColorValue } from "@/types/gradient";
 import type { FolderElement } from "@/types/element";
 import type {
+  CandyColorProfile,
   FolderDocument,
   FolderState,
   IconDefaults,
@@ -169,6 +170,8 @@ export interface DocumentStore {
   /** TEMPORARY tweak: pick the Windows solid-fill color profile. */
   setWindowsColorProfile: (profile: WindowsColorProfile) => void;
   setPapirusColorProfile: (profile: PapirusColorProfile) => void;
+  /** Pick the Candy color profile (stock base vs the Sweet variant). */
+  setCandyColorProfile: (profile: CandyColorProfile) => void;
   setYaruShape: (shape: YaruShape) => void;
   setFluentVariant: (variant: FluentVariant) => void;
   setYaruColorProfile: (profile: YaruColorProfile) => void;
@@ -576,6 +579,8 @@ export const useDocumentStore = create<DocumentStore>()(
         set((s) => ({ doc: { ...s.doc, windowsColorProfile: profile } })),
       setPapirusColorProfile: (profile) =>
         set((s) => ({ doc: { ...s.doc, papirusColorProfile: profile } })),
+      setCandyColorProfile: (profile) =>
+        set((s) => ({ doc: { ...s.doc, candyColorProfile: profile } })),
       setYaruShape: (shape) => set((s) => ({ doc: { ...s.doc, yaruShape: shape } })),
       setFluentVariant: (variant) => set((s) => ({ doc: { ...s.doc, fluentVariant: variant } })),
       setYaruColorProfile: (profile) =>

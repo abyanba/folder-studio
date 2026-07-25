@@ -21,6 +21,7 @@ import {
   getWindowsFrontMask,
   isFrontImage,
   isWindowsFrontImage,
+  candyDerivedTabColor,
   MAC_COLOR_PROFILES,
   macColorProfileName,
   macDerivedTabColor,
@@ -45,6 +46,26 @@ const gradient: Gradient = {
 
 function doc(patch: Partial<FolderDocument>): FolderDocument {
   return { ...createEmptyDocument(), ...patch };
+}
+
+const rgb = (hex: string): number[] =>
+  [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+/** Same color within 8-bit rounding slop (measured references are ±1). */
+function closeHex(a: string, b: string, slop = 2): boolean {
+  const [x, y] = [rgb(a), rgb(b)];
+  return x.every((c, i) => Math.abs(c - y[i]) <= slop);
+}
+
+/** `over` composited onto `base` at `alpha` — how the candy washes are painted. */
+function washed(base: string, over: string, alpha: number): string {
+  const [b, o] = [rgb(base), rgb(over)];
+  return (
+    "#" +
+    b
+      .map((c, i) => Math.round(c * (1 - alpha) + o[i] * alpha).toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 describe("toShapeColorState", () => {
@@ -139,6 +160,101 @@ describe("buildBaseShapeSvg — complex (generator) shapes", () => {
     const svg = buildBaseShapeSvg(doc({ baseShape: "file-folder", folderColor: "#3366cc" }));
     expect(svg).toContain('fill="#3366cc"');
     expect(svg).toContain('fill-opacity="0.05"');
+  });
+
+  it("slot-plasma reproduces the reference grey palette", () => {
+    const svg = buildBaseShapeSvg(doc({ baseShape: "slot-plasma", folderColor: "#6f7c91" }));
+    expect(svg).toContain('fill="#6f7c91"'); // front = pick
+    expect(svg).toContain('fill="#535d6d"'); // backtab = pick·V0.75 (ref #535d6c ±1 lsb)
+    expect(svg).toContain('stop-color="#373d48"'); // slot deep = auto-tab·0.66 (ref #373e48 ±1 lsb)
+    expect(svg).toContain('fill="#e5e5e5"'); // paper (constant)
+    expect(svg).toContain('fill="#cccccc" fill-opacity="0.2"'); // backtab highlight (constant)
+    expect(svg).toContain('fill="#4d4d4d" fill-opacity="0.2"'); // drop shadow (constant)
+  });
+
+  it("slot-plasma gradient fill paints the front with the user gradient", () => {
+    const svg = buildBaseShapeSvg(doc({ baseShape: "slot-plasma", folderColor: gradient }));
+    expect(svg).toContain('<linearGradient id="sp_front"');
+    expect(svg).toContain("url(#sp_front)");
+    expect(svg).toContain('id="sp_hole"');
+  });
+
+  it("slot-plasma honors a custom backtab and paper color", () => {
+    const svg = buildBaseShapeSvg(
+      doc({
+        baseShape: "slot-plasma",
+        folderColor: "#6f7c91",
+        folderBackColor: "#112233",
+        folderPaperColor: "#fafafa",
+      }),
+    );
+    expect(svg).toContain('fill="#112233"'); // custom backtab
+    expect(svg).toContain('fill="#fafafa"'); // custom paper
+    expect(svg).not.toContain('fill="#e5e5e5"'); // default paper replaced
+  });
+
+  it("the slot (pill) follows a custom backtab color", () => {
+    const plain = buildBaseShapeSvg(doc({ baseShape: "slot-plasma", folderColor: "#6f7c91" }));
+    const redTab = buildBaseShapeSvg(
+      doc({ baseShape: "slot-plasma", folderColor: "#6f7c91", folderBackColor: "#cc2222" }),
+    );
+    // Default slot is the grey reference; a red tab recolors the slot to the tab hue.
+    expect(plain).toContain('id="sp_hole"');
+    expect(plain).not.toContain('stop-color="#cc2222"');
+    const slot = /id="sp_hole"[^>]*>(.*?)<\/linearGradient>/s.exec(redTab)?.[1] ?? "";
+    // Light stop of the slot is the red tab lightened (a red, not the grey front).
+    const lightHex = /stop-color="(#[0-9a-f]{6})"/.exec(slot)?.[1] ?? "";
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(lightHex.slice(i, i + 2), 16));
+    expect(r).toBeGreaterThan(g + 40); // clearly red-dominant
+    expect(r).toBeGreaterThan(b + 40);
+  });
+
+  it("slot-plasma fill mask punches out the paper band and excludes the drop shadow", () => {
+    const mask = getBaseShapeFillMask(doc({ baseShape: "slot-plasma" }));
+    // Paper path painted black = punched out (image/pattern can't cover it).
+    expect(mask).toContain(`d="${SP_PAPER_D}" fill="black"`);
+    // No drop-shadow rect in the fill silhouette.
+    expect(mask).not.toContain("#4d4d4d");
+  });
+
+  it("slot-plasma has no front-edge shine overlay (no alien Windows line)", () => {
+    const overlay = buildFrontImageOverlaySvg("slot-plasma");
+    expect(overlay).not.toContain("url(#wsh)"); // not the Windows shine
+    expect(overlay).not.toContain("stroke");
+  });
+
+  it("slot-plasma draws its drop shadow as an image-mode underlay", () => {
+    const under = buildBaseShapeUnderlaySvg(doc({ baseShape: "slot-plasma" }));
+    expect(under).toContain('fill="#4d4d4d"');
+  });
+});
+
+// The paper path literal, kept in sync with SP_PAPER in baseShapes.ts.
+const SP_PAPER_D =
+  "M 12,27.105173 C 12,25.535549 12.7909,24 15,24 h 34 c 2.2091,0 3,1.535549 3,3.105173 V 48.157895 C 52,49.727518 50.2091,51 48,51 H 16 c -2.2091,0 -4,-1.272482 -4,-2.842105 z";
+
+describe("slot-plasma image/pattern/material span", () => {
+  it("is a split shape so span controls + front-only fills apply", () => {
+    expect(baseShapeHasSplit("slot-plasma")).toBe(true);
+    expect(isFrontImage(doc({ baseShape: "slot-plasma", folderFillMode: "image", windowsImageMode: "front" }))).toBe(true);
+    expect(isFrontImage(doc({ baseShape: "slot-plasma", folderFillMode: "image", windowsImageMode: "full" }))).toBe(false);
+  });
+
+  it("getFrontMask returns the front-panel silhouette", () => {
+    expect(getFrontMask("slot-plasma")).toContain("<path");
+    expect(getFrontMask("slot-plasma")).toContain('fill="white"');
+  });
+
+  it("front-only image back reuses the color builder with the adaptive front", () => {
+    const svg = buildFrontImageBackSvg("slot-plasma", "#e08a20", null, null, undefined, null);
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg).toContain('fill="#e08a20"'); // adaptive front paints the base
+  });
+
+  it("full-span image overlay darkens the backtab so it stays distinct", () => {
+    const overlay = buildBaseShapeOverlaySvg("slot-plasma");
+    expect(overlay).toContain('id="spvm"'); // backtab − front mask
+    expect(overlay).toContain("stop-opacity"); // the darkening gradient
   });
 });
 
@@ -877,7 +993,9 @@ describe("BASE_SHAPES ordering", () => {
       "macos",
       "yaru",
       "papirus",
+      "candy",
       "fluent",
+      "slot-plasma",
     ]);
   });
 });
@@ -993,5 +1111,89 @@ describe("fluent + its tela variant", () => {
     expect(shapeVariant(doc({ baseShape: "fluent", fluentVariant: "tela" }))).toBe("tela");
     expect(shapeVariant(doc({ baseShape: "yaru", yaruShape: "rounded" }))).toBe("rounded");
     expect(shapeVariant(doc({ baseShape: "windows" }))).toBeUndefined();
+  });
+});
+
+describe("Candy folder", () => {
+  const candy = (patch: Partial<FolderDocument> = {}): FolderDocument =>
+    doc({ baseShape: "candy", ...patch });
+
+  /**
+   * The source composites one body color under two fixed overlays, so the
+   * guide's measured values (docs/candy-folder-color.md) come back exactly: the
+   * tab is a 20% black wash over the body, and the front's right edge is a 40%
+   * white wash over it. The washes are the same paths for every color, so the
+   * body fill and the derived tab are what must match the reference.
+   */
+  it.each([
+    ["#eb0a42", "#bc0835", "#f36c8e"], // red
+    ["#51c9c3", "#40a19c", "#95dedb"], // default teal
+    ["#f2cb40", "#c2a233", "#f7e08c"], // yellow
+    ["#8e44ad", "#72368a", "#bb8fce"], // violet
+    ["#333434", "#292929", "#848484"], // black
+  ])("authentic reproduces the official %s folder", (front, backtag, rightEdge) => {
+    const svg = buildBaseShapeSvg(candy({ folderColor: front }));
+    // The body is the picked color, flat; the tab is the fixed 20% black wash.
+    expect(svg).toContain(`<path d="M13.889648`);
+    expect(svg).toContain(`fill="${front}"`);
+    expect(svg).toContain(`fill="#000000" fill-opacity="0.2"`);
+    // The 20% black wash over the body == the official backtag (±1 rounding).
+    expect(closeHex(washed(front, "#000000", 0.2), backtag)).toBe(true);
+    expect(closeHex(candyDerivedTabColor(candy({ folderColor: front })), backtag)).toBe(true);
+    // The front wash's 40% white end over the body == the official right edge.
+    expect(svg).toContain(`stop-opacity="0.4"`);
+    expect(closeHex(washed(front, "#ffffff", 0.4), rightEdge)).toBe(true);
+  });
+
+  it("flat drops the white front wash, keeping two flat colors", () => {
+    const svg = buildBaseShapeSvg(candy({ folderColor: "#51c9c3", candyColorProfile: "flat" }));
+    expect(svg).toContain(`fill="#51c9c3"`); // flat body/front
+    expect(svg).toContain(`fill="#000000" fill-opacity="0.2"`); // same derived tab
+    expect(svg).not.toContain("stop-opacity"); // no front wash
+    // The derived tab is identical to authentic's — the profiles share it.
+    expect(candyDerivedTabColor(candy({ folderColor: "#51c9c3", candyColorProfile: "flat" }))).toBe(
+      candyDerivedTabColor(candy({ folderColor: "#51c9c3" })),
+    );
+  });
+
+  it("a custom back color replaces the tab wash in both profiles", () => {
+    for (const candyColorProfile of ["authentic", "flat"] as const) {
+      const svg = buildBaseShapeSvg(
+        candy({ folderColor: "#51c9c3", candyColorProfile, folderBackColor: "#123456" }),
+      );
+      expect(svg).toContain(`fill="#123456"`);
+      expect(svg).not.toContain(`fill="#000000" fill-opacity="0.2"`);
+    }
+    // A gradient tab is laid on its own angle over the visible wedge.
+    expect(buildBaseShapeSvg(candy({ folderBackColor: gradient }))).toContain(
+      `<linearGradient id="cdb"`,
+    );
+  });
+
+  it("derives the tab from the body's left edge under a gradient fill", () => {
+    // The tab sits at the body's left, so it keys on the left stop (hue 0).
+    expect(hexToHsv(candyDerivedTabColor(candy({ folderColor: gradient })))[0]).toBeCloseTo(0, 0);
+  });
+
+  it("joins the front/back-split shapes for image, pattern and material spans", () => {
+    expect(baseShapeHasSplit("candy")).toBe(true);
+    expect(shapeVariant(candy({ candyColorProfile: "flat" }))).toBe("flat");
+    expect(isFrontImage(candy({ folderFillMode: "image", windowsImageMode: "front" }))).toBe(true);
+    // The front mask is the front face; the clip mask is the whole body.
+    expect(getFrontMask("candy")).toContain("m5.27 16.4");
+    expect(getBaseShapeMask("candy")).toContain("M13.889648");
+    // Front-only image: the back layer reuses the color builder, so its tab is
+    // the same 20% black wash; authentic redraws the front wash on top, flat has none.
+    expect(buildFrontImageBackSvg("candy", "#51c9c3", null, null, "authentic")).toContain(
+      `fill="#000000" fill-opacity="0.2"`,
+    );
+    expect(buildFrontImageOverlaySvg("candy", "authentic")).toContain(`stop-opacity="0.4"`);
+    expect(buildFrontImageOverlaySvg("candy", "flat")).not.toContain("stop-opacity");
+    // Full-span image: the source's tab + front washes redraw over the photo.
+    expect(buildBaseShapeOverlaySvg("candy", "authentic")).toContain(`fill-opacity="0.2"`);
+    expect(buildBaseShapeOverlaySvg("candy", "flat")).not.toContain("stop-opacity");
+    // No paper sheet and no drop shadow in this design.
+    expect(buildBaseShapePaperSvg("candy", "contents", null)).toBeNull();
+    expect(buildBaseShapeUnderlaySvg(candy())).toBeNull();
   });
 });

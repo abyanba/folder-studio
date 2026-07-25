@@ -122,6 +122,42 @@ describe("ColorPanel fill modes", () => {
     expect(useUiStore.getState().macColorProfilePreview).toBeNull(); // cleared on commit
   });
 
+  it("offers the Candy color-profile dropdown (Authentic default) in solid AND gradient mode", async () => {
+    const user = userEvent.setup();
+    useDocumentStore.getState().setBaseShape("candy");
+    render(<ColorPanel />);
+
+    expect(screen.getByText("Color profile")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Authentic/ }));
+
+    const flat = screen.getByRole("menuitem", { name: "Flat" });
+    fireEvent.mouseEnter(flat);
+    expect(useUiStore.getState().candyColorProfilePreview).toBe("flat");
+    expect(useDocumentStore.getState().doc.candyColorProfile).toBe("authentic"); // not committed
+    fireEvent.mouseLeave(flat);
+    expect(useUiStore.getState().candyColorProfilePreview).toBeNull();
+
+    await user.click(screen.getByRole("menuitem", { name: "Flat" }));
+    expect(useDocumentStore.getState().doc.candyColorProfile).toBe("flat");
+    expect(useUiStore.getState().candyColorProfilePreview).toBeNull(); // cleared on commit
+
+    // The profile shapes a gradient fill too (the front wash), so it stays offered.
+    await user.click(screen.getByRole("tab", { name: "Gradient" }));
+    expect(screen.getByRole("button", { name: /Flat/ })).toBeInTheDocument();
+  });
+
+  it("offers the custom back-tab control on Candy, seeded from the derived tab", async () => {
+    const user = userEvent.setup();
+    useDocumentStore.getState().setBaseShape("candy");
+    useDocumentStore.getState().setFolderColor("#eb0a42");
+    render(<ColorPanel />);
+
+    await user.click(screen.getByRole("switch", { name: "Custom back color" }));
+    // Seeded with the official red folder's backtag (#bc0835, ±1 rounding).
+    const seed = useDocumentStore.getState().doc.folderBackColor as string;
+    expect(seed).toMatch(/^#b[cd]0[89]3[456]$/);
+  });
+
   it("offers the Windows Image-span dropdown for an image fill and switches to front-only", async () => {
     const user = userEvent.setup();
     // An image already present (with its adaptive color captured).

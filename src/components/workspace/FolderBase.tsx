@@ -45,6 +45,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
   const macGradientPreview = useUiStore((s) => s.macGradientPreview);
   const papirusSolidPreview = useUiStore((s) => s.papirusColorProfilePreview);
   const yaruProfilePreview = useUiStore((s) => s.yaruColorProfilePreview);
+  const candyProfilePreview = useUiStore((s) => s.candyColorProfilePreview);
   const imageSpanPreview = useUiStore((s) => s.imageSpanPreview);
   const isColor = rawDoc.folderFillMode === "color";
   const isGrad = isColor && isGradient(rawDoc.folderColor);
@@ -68,6 +69,8 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     doc = { ...rawDoc, papirusColorProfile: papirusSolidPreview };
   } else if (yaruProfilePreview && rawDoc.baseShape === "yaru" && isColor) {
     doc = { ...rawDoc, yaruColorProfile: yaruProfilePreview };
+  } else if (candyProfilePreview && rawDoc.baseShape === "candy" && isColor) {
+    doc = { ...rawDoc, candyColorProfile: candyProfilePreview };
   }
 
   if (doc.folderFillMode === "image" && doc.folderBgImage) {
@@ -115,9 +118,9 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     // affect it (it self-clips to the tab→front gap). Front mode already has it
     // in the reused back layer, so only draw the separate paper for full mode.
     const paper =
-      frontMode && (doc.baseShape === "papirus" || doc.baseShape === "fluent")
+      frontMode && (doc.baseShape === "papirus" || doc.baseShape === "fluent" || doc.baseShape === "slot-plasma")
         ? null
-        : buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+        : buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor, doc.folderBgImageColor);
     // Structure drawn BELOW the image (full mode only) — the Papirus drop shadow.
     const underlay = frontMode ? null : buildBaseShapeUnderlaySvg(doc);
     return (

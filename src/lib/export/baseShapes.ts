@@ -15,6 +15,7 @@ import { getHex, hexToHsv } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { ColorValue, Gradient, GradientStop } from "@/types/gradient";
 import type {
+  CandyColorProfile,
   FolderDocument,
   FolderState,
   MacColorProfile,
@@ -27,6 +28,7 @@ import type {
   YaruShape,
 } from "@/types/document";
 import {
+  DEFAULT_CANDY_COLOR_PROFILE,
   DEFAULT_MAC_COLOR_PROFILE,
   DEFAULT_MAC_GRADIENT_ALGO,
   DEFAULT_PAPIRUS_COLOR_PROFILE,
@@ -54,6 +56,8 @@ export interface ShapeColorState {
   macColorProfile?: MacColorProfile;
   /** Papirus solid-fill color profile (defaults to `authentic`). */
   papirusColorProfile?: PapirusColorProfile;
+  /** Candy color profile — `sweet` paints the Sweet variant (defaults to `base`). */
+  candyColorProfile?: CandyColorProfile;
   /** Yaru shape variant (defaults to `sharp`). */
   yaruShape?: YaruShape;
   /** Fluent shape variant — `tela` paints it flat (defaults to the acrylic `fluent`). */
@@ -1599,6 +1603,265 @@ export function telaDerivedTabColor(doc: FolderDocument): string {
   if (isFlatTela(doc.fluentVariant)) return getHex(base[0], base[1], clamp01(base[2] * 0.82));
   return hsvHex(fluentAutoTab(base));
 }
+/* ------------------------------------------------------------------------ *
+ * Candy folder — the candy-icons design, composited exactly as the source.
+ *
+ * The compositing is the dissected source's
+ * (docs/attachment/references/candy-icons-folder/<color>/): the body is the
+ * whole silhouette in the PICKED color — the only part the color picker drives
+ * — under two fixed overlays identical across every official color: a 20% black
+ * wash on the tab and a white 0 → 40% left→right wash on the front. Both are
+ * plain multiplications, so every stock variant returns exactly — red #eb0a42 →
+ * tab #bc0835, front right edge #f36c8e (docs/candy-folder-color.md).
+ *
+ * Geometry comes from the co-registered 48pt source (folder.svg): the body
+ * (`path4`, the whole silhouette) and the front (`path3`) share one space, so
+ * they align vertically. The tab wash is applied by darkening the body then
+ * redrawing the front over it — leaving only the tab (body minus front)
+ * darkened — rather than a separately-authored wedge path.
+ *
+ * `authentic` is the full composite. `flat` drops the front white wash, so the
+ * folder is just two flat colors: the body/front and the (derived-or-custom)
+ * tab. Both share the same tab tone (the 20% black wash = body × 0.8).
+ * ------------------------------------------------------------------------ */
+
+/** Places the 48pt source art (x 1.5–46.5, y 11.47–46.46) on Windows' footprint. */
+const CANDY_TF = "translate(-0.5 -27.64) scale(5.354)";
+/** `path4` — the whole silhouette; the picked color paints this. */
+const CANDY_BODY = "M13.889648 11.469727 6.4995117 11.47998C5.1595131 11.47998 3.9395499 12.008864 3.0395508 12.859863 2.3135515 13.500863 1.5 14.819435 1.5 16.419434V41.519531C1.5 44.249529 3.7395145 46.460449 6.4995117 46.460449H41.500488C44.260486 46.460449 46.5 44.249529 46.5 41.519531V21.319336C46.5 18.589339 44.260486 16.379883 41.500488 16.379883L26.271973 16.388672C22.849568 16.260671 20.22115 14.524367 17.519531 12.619629 16.620532 11.98763 14.999647 11.469727 13.889648 11.469727Z";
+/** `path3` — the front face; carries the white wash, and hides the tab wash on its own area. */
+const CANDY_FRONT = "m5.27 16.4c-2-0.266-2.92-1.39-2.23-3.54-0.726 0.641-1.54 1.96-1.54 3.56v25.1c0 2.73 2.24 4.94 5 4.94h35c2.76 0 5-2.21 5-4.94v-20.2c0-2.73-2.24-4.94-5-4.94z";
+/** Bounding box of the visible tab wedge (source coords), for a custom tab gradient. */
+const CANDY_TAB_BBOX = { x0: 1.5, y0: 11.47, x1: 26.3, y1: 16.42 };
+/** The front wash's horizontal axis (source `matrix(45 0 0 33.7 1.49 12.8)` at y 0.5). */
+const CANDY_SHINE = `<linearGradient id="cds" x1="1.49" y1="29.65" x2="46.49" y2="29.65" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity="0"/><stop offset="0.983" stop-color="#ffffff" stop-opacity="0.4"/></linearGradient>`;
+/** Mask of the visible tab strip (body minus front), for washing it over an image. */
+const CANDY_TAB_MASK = `<mask id="cdm"><g transform="${CANDY_TF}"><path d="${CANDY_BODY}" fill="white"/><path d="${CANDY_FRONT}" fill="black"/></g></mask>`;
+
+/**
+ * The Auto tab tone: the source's 20% black wash over the body (exactly
+ * `v * 0.8`, since a black wash scales all three channels). Shared by both
+ * profiles, so a solid and a gradient land the tab in the same register.
+ */
+function candyAutoTab([h, s, v]: Hsv3): Hsv3 {
+  return [h, s, clamp01(v * 0.8)];
+}
+
+/** The gradient stop the tab keys on — the body's left edge (where the tab sits). */
+function candyRepStop(stops: GradientStop[]): Hsv3 {
+  const s = [...stops].sort((a, b) => a.pos - b.pos)[0];
+  return s ? [s.hue, s.sat, s.bri] : [0, 0, 0.6];
+}
+
+/**
+ * The tab layer painted over the body: Auto is the source's fixed 20% black
+ * wash across the whole body (the front redraw restricts it to the tab); a
+ * custom back color instead paints its own fill across the body (gradient on
+ * its own angle, or solid), likewise clipped to the tab by the front redraw.
+ */
+function candyTabPaint(cs: ShapeColorState): { defs: string; paint: string } {
+  const back = cs.backColor;
+  if (back && isGradient(back)) {
+    return {
+      defs: angleGradientEl("cdb", back.angle, back.stops, CANDY_TAB_BBOX),
+      paint: `<path d="${CANDY_BODY}" fill="url(#cdb)"/>`,
+    };
+  }
+  if (back) return { defs: "", paint: `<path d="${CANDY_BODY}" fill="${back}"/>` };
+  return { defs: "", paint: `<path d="${CANDY_BODY}" fill="#000000" fill-opacity="0.2"/>` };
+}
+
+const isFlatCandy = (profile?: string): boolean =>
+  (profile ?? DEFAULT_CANDY_COLOR_PROFILE) === "flat";
+
+/**
+ * The Candy render: body in the picked color, the tab layer over it, then the
+ * front redrawn in the same fill (leaving only the tab darkened/recolored) and
+ * — for `authentic` — the white front wash.
+ */
+function buildCandySvg(cs: ShapeColorState): string {
+  const flat = isFlatCandy(cs.candyColorProfile);
+  const bodyDefs = cs.mode === "solid" ? "" : complexGradient("cdf", cs);
+  const bodyFill = cs.mode === "solid" ? getHex(cs.hue, cs.sat, cs.bri) : "url(#cdf)";
+  const tab = candyTabPaint(cs);
+  const shine = flat ? "" : `<path d="${CANDY_FRONT}" fill="url(#cds)"/>`;
+  return (
+    `${SVG_OPEN}<defs>${bodyDefs}${tab.defs}${flat ? "" : CANDY_SHINE}</defs>` +
+    `<g transform="${CANDY_TF}">` +
+    `<path d="${CANDY_BODY}" fill="${bodyFill}"/>` +
+    tab.paint +
+    `<path d="${CANDY_FRONT}" fill="${bodyFill}"/>` +
+    shine +
+    `</g></svg>`
+  );
+}
+
+/** The Candy silhouette (the body is the whole shape), for clip-to-folder. */
+const CANDY_MASK = `${SVG_OPEN}<g transform="${CANDY_TF}"><path d="${CANDY_BODY}" fill="white"/></g></svg>`;
+
+/**
+ * Whole-image structure overlay: the source's fixed tab wash (masked to the tab
+ * strip) + the front white wash redrawn over the photo — the same two cues the
+ * color render paints (`flat` has no front wash).
+ */
+function candyStructureOverlay(flat: boolean): string {
+  const shine = flat ? "" : `<g transform="${CANDY_TF}"><path d="${CANDY_FRONT}" fill="url(#cds)"/></g>`;
+  return (
+    `${SVG_OPEN}<defs>${CANDY_TAB_MASK}${flat ? "" : CANDY_SHINE}</defs>` +
+    `<rect width="256" height="256" fill="#000000" fill-opacity="0.2" mask="url(#cdm)"/>${shine}</svg>`
+  );
+}
+
+/** Candy color profiles, surfaced as a dropdown in the folder Color section. */
+export const CANDY_COLOR_PROFILES: Array<{ id: CandyColorProfile; name: string }> = [
+  { id: "authentic", name: "Authentic" },
+  { id: "flat", name: "Flat" },
+];
+
+/**
+ * The Auto (derived) tab color for the Candy folder — seeds the custom-back
+ * field so it starts matching. Mirrors {@link windowsDerivedTabColor}.
+ */
+export function candyDerivedTabColor(doc: FolderDocument): string {
+  const cs = toShapeColorState(doc.folderColor);
+  const base: Hsv3 =
+    doc.folderFillMode === "image"
+      ? hexToHsv(doc.folderBgImageColor ?? "#888888")
+      : cs.mode === "gradient"
+        ? candyRepStop(cs.stops)
+        : [cs.hue, cs.sat, cs.bri];
+  return hsvHex(candyAutoTab(base));
+}
+
+/* ------------------------------------------------------------------------ *
+ * Slot Plasma — a horizontal-slot folder with a plasma-glow gradient in the
+ * slot. Geometry is the reference `folder-grey.svg` (a 64-unit Inkscape file)
+ * reproduced verbatim: its nested transforms are kept and the whole thing is
+ * scaled ×4 into the 256 viewBox. Only the colors are parameterized — the
+ * paper, backtab highlight and drop shadow are the constants the color guide
+ * pins across every hue; the front, backtab and slot gradient derive from the
+ * picked color (grey by default): front = pick, backtab = pick·V0.75, slot =
+ * pick → pick·V0.5.
+ * ------------------------------------------------------------------------ */
+const SP_TF = "matrix(1.1666667,0,0,1.1707317,-5.3333344,-11.235773)";
+const SP_BACKTAB = "m 8,26 c 0,-3.3137 2.6863,-6 6,-6 h 36 c 3.3137,0 6,2.6863 6,6 v 8 H 8 Z";
+const SP_PAPER = "M 12,27.105173 C 12,25.535549 12.7909,24 15,24 h 34 c 2.2091,0 3,1.535549 3,3.105173 V 48.157895 C 52,49.727518 50.2091,51 48,51 H 16 c -2.2091,0 -4,-1.272482 -4,-2.842105 z";
+const SP_FRONT = "m 8,34 c 0,-1.1046 0.89543,-2 2,-2 h 44 c 1.1046,0 2,0.8954 2,2 v 19 c 0,4 -3,7 -7,7 H 15 C 10.978049,60 8,57 8,53 Z";
+const SP_HOLE = "m 22,28.090097 c 0,-1.1046 0.8954,-2 2,-2 h 16 c 1.1046,0 2,0.8954 2,2 0,1.1046 -0.8954,2 -2,2 H 24 c -1.1046,0 -2,-0.8954 -2,-2 z";
+const SP_HIGHLIGHT =
+  "m 10.814062,8.7001162 c -0.9436204,0 -1.7257394,0.2158374 -2.5413996,0.5196773 C 7.4570011,9.5236354 6.7765438,10.071449 6.1608059,10.61554 5.5450679,11.159631 5.08588,11.819443 4.7420288,12.540197 4.3981788,13.260945 4.1720475,13.885292 4.0943899,14.715462 L 4,15.724507 C 4,14.890684 4.1898994,14.096705 4.5337494,13.375955 4.8776006,12.655204 5.3748873,12.006413 5.9906253,11.462322 6.6063632,10.918231 7.3405892,10.478808 8.1562505,10.174967 8.9719107,9.8711271 9.8704416,9.7033245 10.814062,9.7033245 h 42.37188 c 0.943611,0 1.842143,0.1678026 2.657805,0.4716425 0.815662,0.303841 1.54989,0.743264 2.165632,1.287355 0.615732,0.544091 1.113023,1.192882 1.456874,1.913633 C 59.810104,14.096705 60,14.890684 60,15.724507 L 59.90561,14.715462 C 59.82795,13.885292 59.589518,13.236505 59.245667,12.515757 58.901816,11.795004 58.455621,11.160299 57.839889,10.616207 57.224147,10.072116 56.584526,9.5414409 55.768864,9.2375991 54.953202,8.9337602 54.129553,8.7001162 53.185942,8.7001162 Z";
+
+/** Bounding boxes (reference-local coords) for angle-respecting custom tab / paper gradients. */
+const SP_BACKTAB_BBOX = { x0: 8, y0: 20, x1: 56, y1: 34 };
+const SP_PAPER_BBOX = { x0: 12, y0: 24, x1: 52, y1: 51 };
+
+/** The slot's plasma gradient (light at 34%, deep at 100%), in the reference's local space. */
+function slotPlasmaHole(light: string, dark: string): string {
+  return `<linearGradient id="sp_hole" x1="41" y1="30" x2="41" y2="26" gradientUnits="userSpaceOnUse"><stop offset="0.340681" stop-color="${light}"/><stop offset="1" stop-color="${dark}"/></linearGradient>`;
+}
+
+/** A custom (solid or gradient) fill for the tab/paper → its optional `<defs>` and the fill string. */
+function slotPlasmaCustomFill(
+  id: string,
+  color: ColorValue,
+  bbox: { x0: number; y0: number; x1: number; y1: number },
+): { def: string; fill: string } {
+  if (isGradient(color)) return { def: angleGradientEl(id, color.angle, color.stops, bbox), fill: `url(#${id})` };
+  return { def: "", fill: color };
+}
+
+/** Compose the slot-plasma SVG from front/backtab/paper fills + their defs. */
+function slotPlasmaAssemble(frontFill: string, backtab: string, paper: string, defs: string): string {
+  return (
+    `${SVG_OPEN}<defs>${defs}</defs><g transform="scale(4)">` +
+    `<g transform="${SP_TF}"><g transform="translate(0,-2)">` +
+    `<rect width="48" height="41" x="8" y="18.943056" rx="6" ry="7.4027348" fill="#4d4d4d" fill-opacity="0.2"/>` +
+    `<g transform="translate(0,-1)">` +
+    `<path d="${SP_BACKTAB}" fill="${backtab}"/>` +
+    `<path d="${SP_PAPER}" fill="${paper}"/>` +
+    `<path d="${SP_FRONT}" fill="${frontFill}"/>` +
+    `<path d="${SP_HOLE}" fill="url(#sp_hole)"/>` +
+    `</g></g></g>` +
+    `<path d="${SP_HIGHLIGHT}" fill="#cccccc" fill-opacity="0.2"/>` +
+    `</g></svg>`
+  );
+}
+
+/** Auto backtab (V·0.75 of the front base) — the default tab shade and the custom-tab seed. */
+function slotPlasmaAutoTab(base: Hsv3): Hsv3 {
+  return [base[0], base[1], base[2] * 0.75];
+}
+
+/**
+ * The backtab's representative HSV — the custom back color (or its first gradient
+ * stop) when set, else the auto tab. The slot (pill) is a hole in the paper that
+ * reveals the tab beneath, so it's anchored here: change the tab and the slot
+ * follows.
+ */
+function slotPlasmaTabHsv(cs: ShapeColorState, base: Hsv3): Hsv3 {
+  const back = cs.backColor;
+  if (!back) return slotPlasmaAutoTab(base);
+  if (isGradient(back)) {
+    const s = [...back.stops].sort((a, b) => a.pos - b.pos)[0];
+    return [s.hue, s.sat, s.bri];
+  }
+  return hexToHsv(back);
+}
+
+/**
+ * Slot (pill) gradient anchored to the tab color: light ≈ tab·1.33, deep ≈
+ * tab·0.66. Tuned so the auto grey tab reproduces the reference #6f7c91→#373e48.
+ */
+function slotPlasmaSlot(tab: Hsv3): { light: string; dark: string } {
+  return {
+    light: getHex(tab[0], tab[1], Math.min(1, tab[2] * 1.333)),
+    dark: getHex(tab[0], tab[1], tab[2] * 0.661),
+  };
+}
+
+function buildSlotPlasmaSvg(cs: ShapeColorState): string {
+  // Front base: the pick (solid) or the gradient's first stop (drives the front + auto tab).
+  const solid = cs.mode === "solid";
+  const s0 = solid ? null : [...cs.stops].sort((a, b) => a.pos - b.pos)[0];
+  const base: Hsv3 = solid ? [cs.hue, cs.sat, cs.bri] : [s0!.hue, s0!.sat, s0!.bri];
+  const frontFill = solid ? getHex(base[0], base[1], base[2]) : "url(#sp_front)";
+  const frontDef = solid ? "" : complexGradient("sp_front", cs);
+  // Slot: anchored to the (custom or auto) backtab color, so the pill matches the tab.
+  const slot = slotPlasmaSlot(slotPlasmaTabHsv(cs, base));
+  const holeDef = slotPlasmaHole(slot.light, slot.dark);
+  // Tab + paper: custom (solid/gradient) or the reference defaults.
+  const back = cs.backColor
+    ? slotPlasmaCustomFill("sp_back", cs.backColor, SP_BACKTAB_BBOX)
+    : { def: "", fill: hsvHex(slotPlasmaAutoTab(base)) };
+  const paper = cs.paperColor
+    ? slotPlasmaCustomFill("sp_paper", cs.paperColor, SP_PAPER_BBOX)
+    : { def: "", fill: "#e5e5e5" };
+  return slotPlasmaAssemble(frontFill, back.fill, paper.fill, frontDef + holeDef + back.def + paper.def);
+}
+
+/** The Auto (derived) tab color for Slot Plasma — seeds the custom-back field. */
+export function slotPlasmaDerivedTabColor(doc: FolderDocument): string {
+  const cs = toShapeColorState(doc.folderColor);
+  let base: Hsv3;
+  if (doc.folderFillMode === "image") base = hexToHsv(doc.folderBgImageColor ?? "#888888");
+  else if (cs.mode === "gradient") {
+    const s0 = [...cs.stops].sort((a, b) => a.pos - b.pos)[0];
+    base = [s0.hue, s0.sat, s0.bri];
+  } else base = [cs.hue, cs.sat, cs.bri];
+  return hsvHex(slotPlasmaAutoTab(base));
+}
+
+/**
+ * Body-only silhouette (backtab + front, NOT the drop shadow) in the reference's
+ * transform stack. Clips only the element/pattern/material content — the base
+ * folder (which paints the drop shadow) is drawn outside the clip, so the shadow
+ * is never clipped and content can't be drawn over it.
+ */
+const SP_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)"><path d="${SP_BACKTAB}" fill="white"/><path d="${SP_FRONT}" fill="white"/></g></g></g></svg>`;
+
+/** The slot-plasma drop shadow, drawn below a full-span image fill (the base SVG's shadow only shows in color mode). */
+const SP_UNDERLAY = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-2)"><rect width="48" height="41" x="8" y="18.943056" rx="6" ry="7.4027348" fill="#4d4d4d" fill-opacity="0.2"/></g></g></g></svg>`;
+
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "classic",
@@ -1679,9 +1942,19 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultHsv: [37.3, 0.399, 0.933], // paleorange (#eeca8f)
     defaultClip: true,
     buildSvg: buildPapirusSvg,
-    // Silhouette includes the drop-shadow rect (y22.6) so clip-to-folder keeps
-    // the bottom shadow — it's part of the icon, not clipped away with clip on.
-    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="22.6" width="56" height="36" rx="2.8" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
+    // Body-only silhouette (back tab + front sheet, NOT the drop-shadow rect):
+    // this mask clips only the element/pattern/material content — the base folder
+    // is drawn outside the clip (see the renderers), so its bottom drop shadow is
+    // never clipped AND elements can't be drawn over it.
+    mask: `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`,
+  },
+  {
+    id: "candy",
+    name: "Candy",
+    defaultHsv: [177, 0.602, 0.788], // the stock candy teal (#50c9c3)
+    defaultClip: true,
+    buildSvg: buildCandySvg,
+    mask: CANDY_MASK,
   },
   {
     id: "fluent",
@@ -1690,6 +1963,14 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     defaultClip: true,
     buildSvg: buildFluentSvg,
     mask: FLU_MASK,
+  },
+  {
+    id: "slot-plasma",
+    name: "Slot Plasma",
+    defaultHsv: [217.06, 0.2345, 0.5686], // reference grey (#6f7c91)
+    defaultClip: true,
+    buildSvg: buildSlotPlasmaSvg,
+    mask: SP_MASK,
   },
   {
     id: "glass",
@@ -1786,7 +2067,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "fluent", "file-folder", "glass", "minimal"];
+const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma", "file-folder", "glass", "minimal"];
 
 /**
  * TEMPORARY: the picker is focused on the two highest-demand bases. Every shape
@@ -1794,7 +2075,7 @@ const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "fluent", "file-fol
  * shapes keep working — they're just not offered in the panel. Widen this list
  * to bring the others back.
  */
-const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "fluent"];
+const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [
@@ -1857,6 +2138,7 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
   cs.macColorProfile = doc.macColorProfile;
   cs.macGradientAlgo = doc.macGradientAlgo;
   cs.papirusColorProfile = doc.papirusColorProfile;
+  cs.candyColorProfile = doc.candyColorProfile;
   cs.yaruShape = doc.yaruShape;
   cs.telaVariant = doc.fluentVariant;
   cs.yaruColorProfile = doc.yaruColorProfile;
@@ -1892,17 +2174,27 @@ const YARU_ROUND_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fil
  */
 export function baseShapeHasSplit(baseShapeId: string): boolean {
   const id = findShape(baseShapeId).id;
-  return id === "windows" || id === "macos" || id === "yaru" || id === "papirus" || isFluent(id);
+  return (
+    id === "windows" ||
+    id === "macos" ||
+    id === "yaru" ||
+    id === "papirus" ||
+    id === "candy" ||
+    id === "slot-plasma" ||
+    isFluent(id)
+  );
 }
 
 /**
  * The shape-variant string a document is currently on, for the builders below
- * that render one shape two ways (Yaru sharp/rounded, Fluent acrylic/Tela).
- * One helper so a caller never has to know which field a shape reads.
+ * that render one shape two ways (Yaru sharp/rounded, Fluent acrylic/Tela,
+ * Candy base/Sweet). One helper so a caller never has to know which field a
+ * shape reads.
  */
 export function shapeVariant(doc: FolderDocument): string | undefined {
   const id = findShape(doc.baseShape).id;
   if (id === "yaru") return doc.yaruShape;
+  if (id === "candy") return doc.candyColorProfile;
   if (isFluent(id)) return doc.fluentVariant;
   return undefined;
 }
@@ -1938,6 +2230,11 @@ export function getBaseShapeFillMask(doc: FolderDocument): string {
     // Front rect (not the drop-shadow rect) is the last white, so the drop
     // shadow is excluded; the paper rect is punched from the tab region.
     return `${SVG_OPEN}<g transform="${PAP_TF}"><path d="${PAP_BACK}" fill="white"/><rect x="8" y="16" width="48" height="22" rx="2.8" fill="black"/><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
+  }
+  if (id === "slot-plasma") {
+    // White backtab, black paper, white front → punches out the visible paper
+    // band (paper minus front) so an image/material/pattern never covers it.
+    return `${SVG_OPEN}<g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)"><path d="${SP_BACKTAB}" fill="white"/><path d="${SP_PAPER}" fill="black"/><path d="${SP_FRONT}" fill="white"/></g></g></g></svg>`;
   }
   if (isFluent(id)) {
     // The paper peek is punched out, so a full-span image/material/pattern
@@ -1985,6 +2282,8 @@ export function buildBaseShapeOverlaySvg(baseShapeId: string, variant?: string):
   }
   if (id === "yaru") return yaruStructureOverlay(variant !== "rounded");
   if (id === "papirus") return papirusStructureOverlay();
+  if (id === "slot-plasma") return slotPlasmaStructureOverlay();
+  if (id === "candy") return candyStructureOverlay(isFlatCandy(variant));
   if (isFluent(id)) return fluStructureOverlay(variant);
   return null;
 }
@@ -2001,6 +2300,23 @@ function yaruStructureOverlay(sharp: boolean): string {
     : `<g transform="${tf}"><path d="${YARU_ROUND_TAB_HL}" fill="#ffffff" opacity="0.3"/><path d="${YARU_ROUND_FRONT_HL}" fill="#ffffff" opacity="0.35"/></g>`;
   const shineDefs = sharp ? YARU_SHINE_GRAD : "";
   return `${SVG_OPEN}<defs>${darken}${mask}${shineDefs}</defs><rect width="256" height="256" fill="url(#yvg)" mask="url(#yvm)"/>${shine}</svg>`;
+}
+
+/**
+ * Whole-image structure overlay for Slot Plasma: darkens the back tab (the
+ * strip above the front) so a full-span image still reads a distinct tab, the
+ * way the color render's darker tab does. Masked to backtab − front; the paper
+ * band + slot draw on top of this, so only the visible tab strip is darkened.
+ */
+function slotPlasmaStructureOverlay(): string {
+  const open = `<g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)">`;
+  const close = `</g></g></g>`;
+  const darken = `<linearGradient id="spvg" x1="0" y1="120" x2="0" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.32"/><stop offset="1" stop-color="#000000" stop-opacity="0.14"/></linearGradient>`;
+  const mask = `<mask id="spvm">${open}<path d="${SP_BACKTAB}" fill="white"/><path d="${SP_FRONT}" fill="black"/>${close}</mask>`;
+  // The bright top-rim highlight is part of the color base, so redraw it here to
+  // survive a full-span image (drawn on top of the darkened tab).
+  const highlight = `<g transform="scale(4)"><path d="${SP_HIGHLIGHT}" fill="#cccccc" fill-opacity="0.2"/></g>`;
+  return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#spvg)" mask="url(#spvm)"/>${highlight}</svg>`;
 }
 
 /** Whole-image structure overlay for Papirus: darkens the tab strip + tab highlight. */
@@ -2143,8 +2459,15 @@ export function isFrontImage(doc: FolderDocument): boolean {
   if (doc.folderFillMode !== "image") return false;
   const id = findShape(doc.baseShape).id;
   if (id === "macos") return doc.macImageMode === "front";
-  // windows, yaru, papirus and tela all use the shared windowsImageMode.
-  if (id === "windows" || id === "yaru" || id === "papirus" || isFluent(id)) {
+  // windows, yaru, papirus, candy, slot-plasma and tela all share windowsImageMode.
+  if (
+    id === "windows" ||
+    id === "yaru" ||
+    id === "papirus" ||
+    id === "candy" ||
+    id === "slot-plasma" ||
+    isFluent(id)
+  ) {
     return doc.windowsImageMode === "front";
   }
   return false;
@@ -2162,8 +2485,14 @@ export function getFrontMask(baseShapeId: string, variant?: string): string {
   if (id === "papirus") {
     return `${SVG_OPEN}<g transform="${PAP_TF}"><rect x="4" y="21" width="56" height="36" rx="2.8" fill="white"/></g></svg>`;
   }
+  if (id === "candy") {
+    return `${SVG_OPEN}<g transform="${CANDY_TF}"><path d="${CANDY_FRONT}" fill="white"/></g></svg>`;
+  }
   if (isFluent(id)) {
     return `${SVG_OPEN}<g transform="${FLU_TF}"><g transform="${FLU_FRONT_TF}"><path d="${FLU_FRONT}" fill="white"/></g></g></svg>`;
+  }
+  if (id === "slot-plasma") {
+    return `${SVG_OPEN}<g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)"><path d="${SP_FRONT}" fill="white"/></g></g></g></svg>`;
   }
   return `${SVG_OPEN}<path d="${WIN_B}" fill="white"/></svg>`;
 }
@@ -2209,6 +2538,18 @@ export function buildFrontImageBackSvg(
     cs.paperColor = paperColor ?? null;
     return buildPapirusSvg(cs);
   }
+  if (id === "candy") {
+    const cs = toShapeColorState(frontAdaptive);
+    cs.backColor = backColor ?? null;
+    cs.candyColorProfile = variant as CandyColorProfile;
+    return buildCandySvg(cs);
+  }
+  if (id === "slot-plasma") {
+    const cs = toShapeColorState(frontAdaptive);
+    cs.backColor = backColor ?? null;
+    cs.paperColor = paperColor ?? null;
+    return buildSlotPlasmaSvg(cs);
+  }
   if (isFluent(id)) return buildFluentImageBackSvg(frontAdaptive, backColor, paperColor, variant);
   return buildWindowsImageBackSvg(frontAdaptive, backColor, frontAdaptive2);
 }
@@ -2226,6 +2567,16 @@ export function buildFrontImageOverlaySvg(baseShapeId: string, variant?: string)
   // Papirus front is flat — the shadow line already peeks above the image from
   // the back layer, so no on-top overlay is needed.
   if (id === "papirus") return `${SVG_OPEN}</svg>`;
+  // Slot Plasma is flat — no front-edge shine (fall-through would wrongly draw
+  // the Windows shine line over a pattern/material fill).
+  if (id === "slot-plasma") return `${SVG_OPEN}</svg>`;
+  // Candy's authentic profile redraws its white front wash over the photo (the
+  // back layer's is hidden by the image); flat has no wash.
+  if (id === "candy") {
+    return isFlatCandy(variant)
+      ? `${SVG_OPEN}</svg>`
+      : `${SVG_OPEN}<defs>${CANDY_SHINE}</defs><g transform="${CANDY_TF}"><path d="${CANDY_FRONT}" fill="url(#cds)"/></g></svg>`;
+  }
   // Tela's front is flat — only the corner wedge sits on top of the image.
   if (isFluent(id)) {
     return isFlatTela(variant)
@@ -2263,8 +2614,24 @@ export function buildBaseShapePaperSvg(
   baseShapeId: string,
   folderState: FolderState | undefined,
   paperColor?: ColorValue | null,
+  imageColor?: string | null,
 ): string | null {
   const id = findShape(baseShapeId).id;
+  // Slot Plasma's paper band (with the plasma slot) sits ABOVE an image fill so
+  // the photo never touches it. Self-clipped to paper − front; the slot glow
+  // derives from the image's adaptive color.
+  if (id === "slot-plasma") {
+    // Slot anchored to the tab (the image's adaptive color → auto tab), matching the color render.
+    const slot = slotPlasmaSlot(slotPlasmaAutoTab(hexToHsv(imageColor ?? "#6f7c91")));
+    const holeDef = slotPlasmaHole(slot.light, slot.dark);
+    const pf = paperColor
+      ? slotPlasmaCustomFill("sp_paper", paperColor, SP_PAPER_BBOX)
+      : { def: "", fill: "#e5e5e5" };
+    const open = `<g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)">`;
+    const close = `</g></g></g>`;
+    const mask = `<mask id="sppm">${open}<path d="${SP_PAPER}" fill="white"/><path d="${SP_FRONT}" fill="black"/>${close}</mask>`;
+    return `${SVG_OPEN}<defs>${pf.def}${holeDef}${mask}</defs><g mask="url(#sppm)">${open}<path d="${SP_PAPER}" fill="${pf.fill}"/><path d="${SP_HOLE}" fill="url(#sp_hole)"/>${close}</g></svg>`;
+  }
   // Papirus always has a paper sheet (no contents variant); self-clip to the
   // peek (tab region minus front) so an image/tint never touches it.
   if (id === "papirus") {
@@ -2303,6 +2670,7 @@ export function buildBaseShapeUnderlaySvg(doc: FolderDocument): string | null {
   if (id === "papirus") {
     return `${SVG_OPEN}<g transform="${PAP_TF}"><rect fill="#000000" opacity="0.2" width="56" height="36" x="4" y="22.6" rx="2.8"/></g></svg>`;
   }
+  if (id === "slot-plasma") return SP_UNDERLAY;
   if (isFluent(id) && !isFlatTela(doc.fluentVariant)) {
     const paper = fluPaperFill(doc.folderPaperColor);
     const clip = `<clipPath id="tfc"><path transform="${FLU_FRONT_TF}" d="${FLU_FRONT}"/></clipPath>`;

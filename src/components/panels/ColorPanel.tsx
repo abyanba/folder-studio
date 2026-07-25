@@ -27,10 +27,13 @@ import { FolderMaterialSection } from "@/components/controls/FolderMaterialSecti
 import { SliderField } from "@/components/controls/SliderField";
 import {
   baseShapeHasSplit,
+  CANDY_COLOR_PROFILES,
+  candyDerivedTabColor,
   MAC_COLOR_PROFILES,
   macDerivedTabColor,
   PAPIRUS_COLOR_PROFILES,
   papirusDerivedTabColor,
+  slotPlasmaDerivedTabColor,
   WINDOWS_GRADIENT_ALGOS,
   WINDOWS_IMAGE_MODES,
   windowsDerivedTabColor,
@@ -199,6 +202,20 @@ function PapirusSolidProfile() {
   );
 }
 
+/**
+ * Candy color profile (Authentic front wash vs two flat colors). It shapes both
+ * fills — Authentic washes a solid and a gradient alike — so it's offered in
+ * gradient mode too.
+ */
+function CandyColorProfileControl() {
+  const profile = useDocumentStore((s) => s.doc.candyColorProfile);
+  const setProfile = useDocumentStore((s) => s.setCandyColorProfile);
+  const setPreview = useUiStore((s) => s.setCandyColorProfilePreview);
+  return (
+    <ProfileDropdown value={profile} options={CANDY_COLOR_PROFILES} onSelect={setProfile} onPreview={setPreview} />
+  );
+}
+
 /** macOS solid-fill color profile (authentic vs popped vs flat, etc.). */
 function MacColorProfile() {
   const profile = useDocumentStore((s) => s.doc.macColorProfile);
@@ -322,7 +339,9 @@ function BackTabColor() {
     macos: macDerivedTabColor,
     yaru: yaruDerivedTabColor,
     papirus: papirusDerivedTabColor,
+    candy: candyDerivedTabColor,
     fluent: telaDerivedTabColor,
+    "slot-plasma": slotPlasmaDerivedTabColor,
   };
   const derived = (derivedFor[doc.baseShape] ?? windowsDerivedTabColor)(doc);
   return (
@@ -340,7 +359,9 @@ function BackTabColor() {
     >
       {disabled ? (
         <p className="text-[11px] text-muted-foreground">
-          Set Image span to “Front only” to color the tab.
+          {baseShapeHasSplit(doc.baseShape)
+            ? "Set Image span to “Front only” to color the tab."
+            : "The image covers the tab."}
         </p>
       ) : custom ? (
         <div className="flex items-center justify-between">
@@ -491,6 +512,7 @@ export function ColorPanel() {
             {doc.baseShape === "macos" && <MacColorProfile />}
             {doc.baseShape === "papirus" && <PapirusSolidProfile />}
             {doc.baseShape === "yaru" && <YaruColorProfileControl />}
+            {doc.baseShape === "candy" && <CandyColorProfileControl />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -504,6 +526,7 @@ export function ColorPanel() {
             <GradientEditor value={grad} onChange={setFolderColor} />
             {doc.baseShape === "windows" && <WindowsGradientProfile />}
             {doc.baseShape === "macos" && <MacGradientProfile />}
+            {doc.baseShape === "candy" && <CandyColorProfileControl />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -583,13 +606,16 @@ export function ColorPanel() {
         <FolderMaterialSection />
 
         {baseShapeHasSplit(doc.baseShape) && <BackTabColor />}
-        {/* Papirus and Tela always carry a paper sheet; windows/macOS only in
-            the "with contents" state. */}
+        {/* Papirus, Tela and Slot Plasma always carry a paper sheet; windows/
+            macOS only in the "with contents" state. */}
         {((doc.baseShape === "windows" || doc.baseShape === "macos") &&
           doc.folderState === "contents") ||
         doc.baseShape === "papirus" ||
-        doc.baseShape === "fluent" ? (
-          <PaperColorSection seed={doc.baseShape === "papirus" ? "#e4e4e4" : "#ffffff"} />
+        doc.baseShape === "fluent" ||
+        doc.baseShape === "slot-plasma" ? (
+          <PaperColorSection
+            seed={doc.baseShape === "papirus" ? "#e4e4e4" : doc.baseShape === "slot-plasma" ? "#e5e5e5" : "#ffffff"}
+          />
         ) : null}
       </div>
     </div>

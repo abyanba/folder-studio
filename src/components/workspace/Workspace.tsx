@@ -138,8 +138,11 @@ export function Workspace() {
           data-ws
           style={{ position: "relative", width: FW, height: FH, touchAction: "none" }}
         >
+          {/* The base folder is drawn OUTSIDE the clip so its drop shadow (Papirus,
+              Slot Plasma) is never clipped and content can't paint over it. Only
+              the element/pattern/material content is clipped to the folder body. */}
+          <FolderBase doc={doc} />
           <div style={contentLayerStyle}>
-            <FolderBase doc={doc} />
             <div style={contentRect}>
               {doc.elements.slice(0, tz).map(renderEl)}
               {doc.pattern.id !== "none" && (

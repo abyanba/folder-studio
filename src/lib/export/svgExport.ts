@@ -281,7 +281,7 @@ function baseMarkup(doc: FolderDocument, bgRatio: number): string {
     const tintSvg = buildImageColorOverlaySvg(doc, doc.folderBgOverlayColor, doc.folderBgOverlayOpacity);
     const tint = tintSvg ? fillBase(tintSvg) : "";
     // Paper peek on top — the image, tint and shading never affect it.
-    const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+    const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor, doc.folderBgImageColor);
     const paper = paperSvg ? fillBase(paperSvg) : "";
     if (isFrontImage(doc)) {
       // Front only: adaptive back, then the image clipped to the front panel,
@@ -331,7 +331,11 @@ export function buildExportSvg(
   const skipped: string[] = [];
   const defs: string[] = [];
   const bgRatio = deps.bgImageSize && deps.bgImageSize.w > 0 ? deps.bgImageSize.h / deps.bgImageSize.w : 1;
-  const body: string[] = [baseMarkup(doc, bgRatio)];
+  // The base folder is composed OUTSIDE the clip so its drop shadow (Papirus,
+  // Slot Plasma) is never clipped and content can't paint over it; only the
+  // element/pattern/material content below is clipped to the folder body.
+  const base = baseMarkup(doc, bgRatio);
+  const body: string[] = [];
 
   const emit = (el: FolderElement): void => {
     if (el.visible === false) return;
@@ -388,6 +392,7 @@ export function buildExportSvg(
       content = `<g mask="url(#folderclip)">${content}</g>`;
     }
   }
+  content = base + content;
 
   const style = deps.fontFaceCss ? `<style>${deps.fontFaceCss}</style>` : "";
   const defsBlock = style || defs.length ? `<defs>${style}${defs.join("")}</defs>` : "";

@@ -67,6 +67,17 @@ export type PapirusColorProfile = "authentic" | "flat";
 export const DEFAULT_PAPIRUS_COLOR_PROFILE: PapirusColorProfile = "authentic";
 
 /**
+ * Candy folder color profile:
+ * - authentic — the stock candy-icons look, composited exactly as the source:
+ *   the whole body is the picked color, the tab wedge sits under a 20% black
+ *   wash, and the front is swept left→right by a white 0 → 40% wash.
+ * - flat      — two flat colors only: the picked color for the body/front and
+ *   the (derived or custom) tab color. No front wash, no gradient.
+ */
+export type CandyColorProfile = "authentic" | "flat";
+export const DEFAULT_CANDY_COLOR_PROFILE: CandyColorProfile = "authentic";
+
+/**
  * Yaru shape variant:
  * - sharp   — the angular "tag-only" silhouette (the suru reference).
  * - rounded — the softer, rounded silhouette (the accent-folder reference).
@@ -216,6 +227,8 @@ export interface FolderDocument {
   windowsColorProfile: WindowsColorProfile;
   /** Solid-fill color treatment for the Papirus base shape. */
   papirusColorProfile: PapirusColorProfile;
+  /** Color profile (stock vs Sweet) for the Candy base shape. */
+  candyColorProfile: CandyColorProfile;
   /** Shape variant (angular vs rounded) for the Yaru base shape. */
   yaruShape: YaruShape;
   /** Front-fill treatment (gradient vs flat) for the Yaru base shape. */
@@ -262,6 +275,7 @@ export function createEmptyDocument(): FolderDocument {
     macGradientAlgo: DEFAULT_MAC_GRADIENT_ALGO,
     windowsColorProfile: DEFAULT_WINDOWS_COLOR_PROFILE,
     papirusColorProfile: DEFAULT_PAPIRUS_COLOR_PROFILE,
+    candyColorProfile: DEFAULT_CANDY_COLOR_PROFILE,
     yaruShape: DEFAULT_YARU_SHAPE,
     yaruColorProfile: DEFAULT_YARU_COLOR_PROFILE,
     fluentVariant: DEFAULT_FLUENT_VARIANT,

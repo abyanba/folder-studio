@@ -169,7 +169,7 @@ async function recolorCanvas(
           const shine = await loadImage(toSvgDataUrl(buildFrontImageOverlaySvg(doc.baseShape, shapeVariant(doc))));
           if (shine) tctx.drawImage(shine, 0, 0, size, size);
           // Paper peek on top — the image never affects it (self-clipped).
-          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor, doc.folderBgImageColor);
           const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
           if (paper) tctx.drawImage(paper, 0, 0, size, size);
           ctx.drawImage(tmp, 0, 0);
@@ -204,7 +204,7 @@ async function recolorCanvas(
             if (oi) tctx.drawImage(oi, 0, 0, size, size);
           }
           // Paper peek on top — the image never affects it (self-clipped).
-          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor);
+          const paperSvg = buildBaseShapePaperSvg(doc.baseShape, doc.folderState, doc.folderPaperColor, doc.folderBgImageColor);
           const paper = paperSvg ? await loadImage(toSvgDataUrl(paperSvg)) : null;
           if (paper) tctx.drawImage(paper, 0, 0, size, size);
           ctx.drawImage(tmp, 0, 0);
@@ -687,31 +687,42 @@ export async function buildExportCanvas(
   const ctx = canvas.getContext("2d");
   if (!ctx) return { canvas, skipped };
 
+  // The element/pattern/material content is clipped to the folder body, but the
+  // base folder (drawn by recolorCanvas above) is NOT — so its drop shadow
+  // (Papirus, Slot Plasma) is never clipped and content can't paint over it.
+  // When clipping, content renders onto a temp canvas, gets masked to the body,
+  // then composites over the base; otherwise it draws straight onto the base.
+  const clip = doc.clipToFolder;
+  const contentCanvas = clip ? createCanvas(size, size) : canvas;
+  const cctx = clip ? contentCanvas.getContext("2d") : ctx;
+  if (!cctx) return { canvas, skipped };
+
   const tz = Math.min(doc.patternLayerZ, doc.elements.length);
   for (let i = 0; i < tz; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage, createCanvas, skipped);
+    await renderElement(cctx, el, size, deps, loadImage, createCanvas, skipped);
   }
 
-  await renderPattern(ctx, doc, size, loadImage);
+  await renderPattern(cctx, doc, size, loadImage);
 
   for (let i = tz; i < doc.elements.length; i++) {
     const el = doc.elements[i];
     if (el.visible === false) continue;
-    await renderElement(ctx, el, size, deps, loadImage, createCanvas, skipped);
+    await renderElement(cctx, el, size, deps, loadImage, createCanvas, skipped);
   }
 
-  if (doc.clipToFolder) {
+  if (clip) {
     const maskSvg = getBaseShapeMask(doc.baseShape, shapeVariant(doc));
     if (maskSvg) {
       const mi = await loadImage(toSvgDataUrl(maskSvg));
       if (mi) {
-        ctx.globalCompositeOperation = "destination-in";
-        ctx.drawImage(mi, 0, 0, size, size);
-        ctx.globalCompositeOperation = "source-over";
+        cctx.globalCompositeOperation = "destination-in";
+        cctx.drawImage(mi, 0, 0, size, size);
+        cctx.globalCompositeOperation = "source-over";
       }
     }
+    ctx.drawImage(contentCanvas, 0, 0);
   }
 
   // Auto-trim transparent padding so the icon fills the export canvas.

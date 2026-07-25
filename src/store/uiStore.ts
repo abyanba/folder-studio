@@ -7,6 +7,7 @@ import { create } from "zustand";
 import type { DragState } from "@/types/interaction";
 import type { BlendMode } from "@/types/element";
 import type {
+  CandyColorProfile,
   MacColorProfile,
   MacGradientAlgo,
   PapirusColorProfile,
@@ -50,6 +51,8 @@ export interface UiStore {
   windowsColorProfilePreview: WindowsColorProfile | null;
   /** Papirus solid color profile being hovered — live-previewed on the folder base. */
   papirusColorProfilePreview: PapirusColorProfile | null;
+  /** Candy color profile being hovered — live-previewed on the folder base. */
+  candyColorProfilePreview: CandyColorProfile | null;
   /** Yaru front-fill profile being hovered — live-previewed on the folder base. */
   yaruColorProfilePreview: YaruColorProfile | null;
   /** Image span (full/front) being hovered — live-previewed on the folder base. */
@@ -92,6 +95,7 @@ export interface UiStore {
   setMacGradientPreview: (algo: MacGradientAlgo | null) => void;
   setWindowsColorProfilePreview: (profile: WindowsColorProfile | null) => void;
   setPapirusColorProfilePreview: (profile: PapirusColorProfile | null) => void;
+  setCandyColorProfilePreview: (profile: CandyColorProfile | null) => void;
   setYaruColorProfilePreview: (profile: YaruColorProfile | null) => void;
   setImageSpanPreview: (mode: WindowsImageMode | null) => void;
   setLogoMode: (mode: "mono" | "color") => void;
@@ -127,6 +131,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   macGradientPreview: null,
   windowsColorProfilePreview: null,
   papirusColorProfilePreview: null,
+  candyColorProfilePreview: null,
   yaruColorProfilePreview: null,
   imageSpanPreview: null,
   logoMode: "mono",
@@ -157,6 +162,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   setMacGradientPreview: (algo) => set({ macGradientPreview: algo }),
   setWindowsColorProfilePreview: (profile) => set({ windowsColorProfilePreview: profile }),
   setPapirusColorProfilePreview: (profile) => set({ papirusColorProfilePreview: profile }),
+  setCandyColorProfilePreview: (profile) => set({ candyColorProfilePreview: profile }),
   setYaruColorProfilePreview: (profile) => set({ yaruColorProfilePreview: profile }),
   setImageSpanPreview: (mode) => set({ imageSpanPreview: mode }),
   setLogoMode: (mode) => set({ logoMode: mode }),
