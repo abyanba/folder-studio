@@ -14,13 +14,16 @@ import {
 import { isFrontPattern } from "@/lib/export/patterns";
 import { isFrontMaterial } from "@/lib/export/materials";
 import { createEmptyDocument } from "@/types/document";
-import { BEAUTYDREAM_LAVENDER, GRADIENT_PRESETS } from "@/data/gradientPresets";
+import { GRADIENT_PRESETS } from "@/data/gradientPresets";
 import type { Gradient } from "@/types/gradient";
+
+/** The shape's own default: the reference lavender, as a SOLID pick. */
+const LAVENDER = "#2e4afa";
 
 const doc = (over: object = {}) => ({
   ...createEmptyDocument(),
   baseShape: "beautydream",
-  folderColor: BEAUTYDREAM_LAVENDER,
+  folderColor: LAVENDER,
   ...over,
 });
 
@@ -30,48 +33,31 @@ const preset = (n: string): Gradient => ({
   stops: GRADIENT_PRESETS.find((p) => p.name === n)!.stops,
 });
 
-describe("beautydream", () => {
-  it("base variant reproduces the lavender reference gradient", () => {
-    const svg = buildBaseShapeSvg(doc());
-    // reference: #2E4AFA bottom-left → #8E9EFF top-right (x1 6.7%,y1 75% → 93.3%,25%)
-    expect(svg).toContain('x1="6.7%" y1="75.0%" x2="93.3%" y2="25.0%"');
-    expect(svg).toContain('stop-color="#2e4afa"');
-    expect(svg).toContain('stop-color="#8e9eff"');
-  });
-
-  it("preset stops round-trip to the reference hexes", () => {
+describe("beautydream gradient-fill mode", () => {
+  it("takes a multi-stop gradient pick as authored", () => {
+    // Sunset/Custom are 3-tone designs — no single solid can express them, so
+    // they stay gradient presets and the builder must not re-derive them.
     const s = buildBaseShapeSvg(doc({ folderColor: preset("Beautydream Sunset") }));
     for (const hex of ["#8a2387", "#ff4e50", "#f9d423"]) expect(s).toContain(hex);
     const c = buildBaseShapeSvg(doc({ folderColor: preset("Beautydream Custom") }));
     for (const hex of ["#b65592", "#fb6f71", "#f9cb52"]) expect(c).toContain(hex);
+    // An authored gradient keeps its own angle (it is not a default), on both
+    // variants; only the DERIVED sweep is pinned to the shape's 60°.
+    expect(buildBaseShapeSvg(doc({ folderColor: { ...preset("Beautydream Sunset"), angle: 0 } })))
+      .toContain('x1="50.0%" y1="100.0%" x2="50.0%" y2="0.0%"');
+    expect(
+      buildBaseShapeSvg(
+        doc({ folderColor: { ...preset("Beautydream Sunset"), angle: 0 }, beautydreamVariant: "alternate" }),
+      ),
+    ).toContain('id="bd_front" x1="50.0%" y1="100.0%" x2="50.0%" y2="0.0%"');
   });
 
-  it("alternate paints a 50%-opacity tab with the gradient reversed", () => {
-    const blue: Gradient = {
-      kind: "linear",
-      angle: 123, // ignored by the alternate — its angles are the variant
-      stops: [
-        { id: "0", pos: 0, hue: 212.4, sat: 1, bri: 1 }, // #0075ff
-        { id: "1", pos: 1, hue: 187.7, sat: 0.698, bri: 1 }, // #4deaff
-      ],
-    };
-    const svg = buildBaseShapeSvg(doc({ beautydreamVariant: "alternate", folderColor: blue }));
-    expect(svg).toContain('opacity="0.5"');
-    // front: bottom → top (app angle 0)
-    expect(svg).toContain('id="bd_front" x1="50.0%" y1="100.0%" x2="50.0%" y2="0.0%"');
-    // tab: top-right → bottom-left (app angle 240), stops swapped
-    expect(svg).toContain('id="bd_tab" x1="93.3%" y1="25.0%" x2="6.7%" y2="75.0%"');
-    const tab = svg.slice(svg.indexOf('id="bd_tab"'));
-    expect(tab.indexOf("#4deaff")).toBeLessThan(tab.indexOf("#0075ff"));
-  });
-
-  it("flat drops every gradient", () => {
+  it("flat takes the first stop of a gradient pick", () => {
     const svg = buildBaseShapeSvg(
-      doc({ beautydreamVariant: "alternate", beautydreamColorProfile: "flat" }),
+      doc({ folderColor: preset("Beautydream Sunset"), beautydreamColorProfile: "flat" }),
     );
     expect(svg).not.toContain("linearGradient");
-    expect(svg).toContain('fill="#2e4afa"'); // front = first stop
-    expect(svg).toContain('fill="#8e9eff"'); // tab  = last stop
+    expect(svg).toContain('fill="#8a2387"');
   });
 });
 
@@ -105,9 +91,12 @@ describe("beautydream image / pattern / material span", () => {
     // image's own color, so the two panels never read as one slab.
     const back = buildFrontImageBackSvg("beautydream", "#4488cc", null, null, "alternate");
     expect(back).toContain('opacity="0.5"');
-    expect(back).toMatch(/fill="#4488cc"/); // front = the adaptive color
-    const tab = back.slice(back.indexOf('opacity="0.5"'), back.indexOf('fill-rule'));
-    expect(tab).toContain("#275d93"); // darker + richer than #4488cc
+    // The image's adaptive color runs through the same anchors, so the tab is
+    // the derived far tone — a distinct panel, not a copy of the photo.
+    const front = back.slice(back.indexOf('id="bd_front"'), back.indexOf('id="bd_tab"'));
+    expect(front).toContain('#4488cc');
+    const tab = back.slice(back.indexOf('id="bd_tab"'), back.indexOf('</defs>'));
+    expect(tab.indexOf('#92bfdd')).toBeLessThan(tab.indexOf('#4488cc'));
   });
 
   it("full-span fills get a tab-darkening overlay on the alternate only", () => {
@@ -123,32 +112,32 @@ describe("beautydream image / pattern / material span", () => {
 });
 
 describe("beautydream tab color", () => {
-  it("a solid pick has no second tone, so both variants darken it instead", () => {
-    const solid = doc({ folderColor: "#4488cc" });
-    expect(buildBaseShapeSvg(solid)).toContain('fill="#4488cc"');
-    expect(beautydreamDerivedTabColor(solid)).toBe("#275d93");
-    const svg = buildBaseShapeSvg({ ...solid, beautydreamVariant: "alternate" });
-    expect(svg).not.toContain("linearGradient");
-    expect(svg).toContain('fill="#275d93"');
-  });
-
-  it("seeds the custom-tab field from the gradient's last stop", () => {
+  it("seeds the custom-tab field from the derived far tone", () => {
     expect(beautydreamDerivedTabColor(doc())).toBe("#8e9eff");
+    expect(beautydreamDerivedTabColor(doc({ folderColor: "#fd5900" }))).toBe("#ffde00");
   });
 
   it("derives the tab from the image color in image-fill mode", () => {
     expect(
-      beautydreamDerivedTabColor(doc({ folderFillMode: "image", folderBgImageColor: "#4488cc" })),
-    ).toBe("#275d93");
-    // ...and falls back to a neutral grey when the image has no sampled color.
-    expect(beautydreamDerivedTabColor(doc({ folderFillMode: "image" }))).toBe("#626262");
+      beautydreamDerivedTabColor(doc({ folderFillMode: "image", folderBgImageColor: "#22b4fa" })),
+    ).toBe("#7ddcff");
   });
 
   it("honours a custom tab color, solid or gradient", () => {
     const alt = { beautydreamVariant: "alternate" as const };
     expect(buildBaseShapeSvg(doc({ ...alt, folderBackColor: "#ff0000" }))).toContain('fill="#ff0000"');
     const g = buildBaseShapeSvg(
-      doc({ ...alt, folderBackColor: { kind: "linear", angle: 90, stops: BEAUTYDREAM_LAVENDER.stops } }),
+      doc({
+        ...alt,
+        folderBackColor: {
+          kind: "linear" as const,
+          angle: 90,
+          stops: [
+            { id: "0", pos: 0, hue: 0, sat: 1, bri: 1 },
+            { id: "1", pos: 1, hue: 120, sat: 1, bri: 1 },
+          ],
+        },
+      }),
     );
     expect(g).toContain('id="bd_tab" x1="0.0%" y1="50.0%" x2="100.0%" y2="50.0%"');
   });

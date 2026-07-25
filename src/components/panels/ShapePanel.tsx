@@ -160,7 +160,7 @@ export function ShapePanel() {
               type="button"
               onClick={() =>
                 applyBaseShape(shape.id, {
-                  folderColor: shape.defaultColor ?? getHex(...shape.defaultHsv),
+                  folderColor: getHex(...shape.defaultHsv),
                   clipToFolder: shape.defaultClip,
                   folderBackColor: shape.defaultBackColor ?? null,
                 })

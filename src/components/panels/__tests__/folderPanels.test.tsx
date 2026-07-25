@@ -51,8 +51,8 @@ describe("Beautydream panels", () => {
 
     await user.click(screen.getByRole("button", { name: /Beautydream/i }));
     const doc = useDocumentStore.getState().doc;
-    // The pick applies a GRADIENT default (the reference lavender), not a solid.
-    expect(isGradient(doc.folderColor)).toBe(true);
+    // The guide's colors are SOLID picks — Authentic derives the sweep from one.
+    expect(doc.folderColor).toBe("#2e4afa"); // the reference lavender
     expect(doc.beautydreamVariant).toBe("base");
 
     await user.click(screen.getByRole("radio", { name: "Alternate" }));

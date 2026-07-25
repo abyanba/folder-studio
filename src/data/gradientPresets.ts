@@ -34,20 +34,6 @@ export const SURU_GRADIENT: Gradient = {
   ],
 };
 
-/**
- * Beautydream's reference lavender (#2E4AFA → #8E9EFF). Angle 60 is the guide's
- * -120 in this app's convention — see the angle note in `baseShapes.ts`.
- * Applied as the folder fill when the Beautydream base shape is picked.
- */
-export const BEAUTYDREAM_LAVENDER: Gradient = {
-  kind: "linear",
-  angle: 60,
-  stops: [
-    stop("0", 0, 231.76, 0.816, 0.9804),
-    stop("1", 1, 231.5, 0.4431, 1),
-  ],
-};
-
 export const GRADIENT_PRESETS: GradientPreset[] = [
   { name: "Sunset", stops: [stop("0", 0, 20, 0.9, 0.98), stop("1", 1, 44, 1, 1)] },
   { name: "Ocean", stops: [stop("0", 0, 199, 0.82, 0.69), stop("1", 1, 197, 0.45, 0.93)] },
@@ -69,13 +55,24 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
   { name: "Mint", stops: [stop("0", 0, 155, 0.65, 0.92), stop("1", 1, 180, 0.55, 0.75)] },
   { name: "Candy", stops: [stop("0", 0, 338, 0.75, 0.98), stop("1", 1, 207, 0.55, 0.98)] },
   { name: "Ubuntu Suru", stops: SURU_GRADIENT.stops },
-  // The two Beautydream reference gradients (docs/beautydream-folder-color.md).
+  // The multi-tone Beautydream reference gradients (docs/beautydream-folder-color.md)
+  // — three or more tones, so no single solid pick can derive them.
   {
     name: "Beautydream Sunset",
     stops: [
       stop("0", 0, 301.75, 0.7464, 0.5412),
       stop("1", 0.5, 359.32, 0.6941, 1),
       stop("2", 1, 49.63, 0.8594, 0.9765),
+    ],
+  },
+  {
+    name: "Beautydream Mac",
+    stops: [
+      stop("0", 0, 205.25, 0.9485, 0.9137),
+      stop("1", 0.25, 244.95, 0.7137, 1),
+      stop("2", 0.5, 277.25, 0.7137, 1),
+      stop("3", 0.75, 327.69, 0.7137, 1),
+      stop("4", 1, 46.82, 1, 1),
     ],
   },
   {

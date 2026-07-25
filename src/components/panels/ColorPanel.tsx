@@ -28,6 +28,7 @@ import { SliderField } from "@/components/controls/SliderField";
 import {
   baseShapeHasSplit,
   BEAUTYDREAM_COLOR_PROFILES,
+  BEAUTYDREAM_GRADIENT_ANGLE,
   beautydreamDerivedTabColor,
   shapeVariant,
   CANDY_COLOR_PROFILES,
@@ -453,6 +454,10 @@ export function ColorPanel() {
   const mode: FillMode =
     doc.folderFillMode === "image" ? "image" : grad ? "gradient" : "solid";
 
+  // Beautydream's references all sweep at 60°, so a gradient started on that
+  // base opens there rather than at the generic 90°.
+  const defaultAngle = doc.baseShape === "beautydream" ? BEAUTYDREAM_GRADIENT_ANGLE : 90;
+
   const switchMode = (m: string) => {
     if (m === mode) return;
     if (m === "image") {
@@ -461,7 +466,7 @@ export function ColorPanel() {
     } else if (m === "gradient") {
       setFolderFill({
         folderFillMode: "color",
-        folderColor: grad ?? gradientFromHex(hex),
+        folderColor: grad ?? { ...gradientFromHex(hex), angle: defaultAngle },
       });
     } else {
       setFolderFill({ folderFillMode: "color", folderColor: hex });
@@ -471,7 +476,7 @@ export function ColorPanel() {
   const pickGradientStops = (stops: GradientStop[]) =>
     setFolderFill({
       folderFillMode: "color",
-      folderColor: { kind: grad?.kind ?? "linear", angle: grad?.angle ?? 90, stops },
+      folderColor: { kind: grad?.kind ?? "linear", angle: grad?.angle ?? defaultAngle, stops },
     });
 
   const onUpload = (e: ChangeEvent<HTMLInputElement>) => {

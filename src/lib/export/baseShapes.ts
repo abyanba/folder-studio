@@ -41,7 +41,7 @@ import {
   DEFAULT_YARU_COLOR_PROFILE,
   DEFAULT_YARU_SHAPE,
 } from "@/types/document";
-import { BEAUTYDREAM_LAVENDER, SURU_GRADIENT } from "@/data/gradientPresets";
+import { SURU_GRADIENT } from "@/data/gradientPresets";
 import { gradSVGCoords, gradientElement } from "./gradientSvg";
 
 export interface ShapeColorState {
@@ -113,8 +113,6 @@ export interface BaseShapeDef {
    * clears any custom back to Auto (null). Yaru ships with the suru gradient.
    */
   defaultBackColor?: ColorValue | null;
-  /** Fill applied when the shape is picked, when a solid `defaultHsv` can't express it. */
-  defaultColor?: ColorValue;
 }
 
 /** Screen-% gradient `<defs>` for the simple shapes' `__DEFS__` slot (id "fg"). */
@@ -1895,9 +1893,13 @@ const BD_ALT_BACK =
 const BD_ALT_FRONT =
   "M231.63 63.976C235.385 68.3653 238.285 73.4144 240.186 78.8645C243.924 90.0661 245.654 101.838 245.297 113.638V175.275C245.282 180.466 244.898 185.65 244.15 190.787C242.724 199.854 239.533 208.555 234.761 216.4C232.567 220.189 229.902 223.687 226.831 226.811C212.929 239.57 194.47 246.211 175.608 245.239H80.2526C61.3609 246.205 42.8705 239.566 28.9242 226.811C25.8898 223.681 23.2611 220.183 21.0996 216.4C16.3547 208.561 13.233 199.852 11.9189 190.787C11.0834 185.659 10.6648 180.47 10.667 175.275V113.638C10.665 108.491 10.9436 103.347 11.5017 98.2298C11.619 97.3317 11.795 96.4485 11.9692 95.5749C12.2595 94.1173 12.5449 92.6859 12.5449 91.2544C13.604 85.0784 15.5358 79.0843 18.2829 73.4507C26.4203 56.0635 43.1125 47.2137 70.4462 47.2137H185.206C200.514 46.0297 215.71 50.6385 227.771 60.1237C229.16 61.3018 230.45 62.5898 231.63 63.976Z";
 
-/** The alternate's fixed gradient angles (this app's convention — see the note above). */
-const BD_FRONT_ANGLE = 0;
-const BD_TAB_ANGLE = 240;
+/**
+ * Beautydream sweeps at 60° everywhere (the guide's -120, in this app's
+ * convention — see the note above). The tab reuses it and reverses its stops
+ * instead, so the back runs opposite the front the way the references do.
+ */
+export const BEAUTYDREAM_GRADIENT_ANGLE = 60;
+const BD_ANGLE = BEAUTYDREAM_GRADIENT_ANGLE;
 /** The reference paints the alternate's back tab at half opacity. */
 const BD_TAB_OPACITY = 0.5;
 
@@ -1910,14 +1912,84 @@ function isBeautydreamAlt(variant?: string): boolean {
   return variant === "alternate";
 }
 
-/** Sorted stops for the fill, or a single synthetic stop for a solid pick. */
-function bdStops(cs: ShapeColorState): GradientStop[] {
-  if (cs.mode === "gradient" && cs.stops.length) return [...cs.stops].sort((a, b) => a.pos - b.pos);
-  return [{ id: "0", pos: 0, hue: cs.hue, sat: cs.sat, bri: cs.bri }];
+const isFlatBeautydream = (profile?: string): boolean =>
+  (profile ?? DEFAULT_BEAUTYDREAM_COLOR_PROFILE) === "flat";
+
+/**
+ * Every named color in the color guide, as {picked solid → the far tone the
+ * reference sweeps to}. The guide's colors are SOLID picks, not gradients: the
+ * `authentic` profile derives the second tone from the pick through these
+ * anchors — the same way the Windows and macOS palettes derive theirs — so
+ * picking a named color reproduces its reference exactly and anything in
+ * between interpolates. `flat` is then the same pick with no derived tone.
+ *
+ * These are hand-authored designs, not a formula. Most preserve hue and only
+ * desaturate (#2E4AFA → #8E9EFF), while the warm ones deliberately sweep hue
+ * as well (#FD5900 → #FFDE00). Only anchors reproduce both families; no single
+ * fitted curve does. The last two are the alternate variant's own references.
+ */
+interface BdAnchor {
+  input: Hsv3;
+  far: Hsv3;
+}
+const BD_ANCHORS: BdAnchor[] = [
+  { input: [231.8, 0.816, 0.98], far: [231.5, 0.443, 1] }, // lavender   #2E4AFA → #8E9EFF
+  { input: [21.1, 1, 0.992], far: [52.2, 1, 1] }, // orange     #FD5900 → #FFDE00
+  { input: [273.8, 0.773, 1], far: [300, 0.494, 1] }, // magenta    #A93AFF → #FF81FF
+  { input: [331.8, 0.773, 0.863], far: [3.8, 0.559, 0.996] }, // peach      #DC3282 → #FE7970
+  { input: [299.7, 0.776, 1], far: [299.3, 0.337, 1] }, // pink       #FE39FF → #FEA9FF
+  { input: [154.5, 0.578, 0.91], far: [154.2, 0.287, 0.984] }, // cyan       #62E8AF → #B3FBDC
+  { input: [94.5, 0.578, 0.91], far: [94.4, 0.376, 1] }, // green      #9BE862 → #C8FF9F
+  { input: [199.4, 0.864, 0.98], far: [196.2, 0.51, 1] }, // blue       #22B4FA → #7DDCFF
+  { input: [15.1, 0.624, 1], far: [50.1, 0.825, 0.984] }, // lt orange  #FF8860 → #FBD92C
+  { input: [266.3, 0.663, 1], far: [266.1, 0.391, 0.992] }, // purple     #A056FF → #C59AFD
+  { input: [199.6, 0.89, 1], far: [196.1, 0.498, 1] }, // lt blue    #1CB5FF → #80DDFF
+  { input: [154.7, 0.661, 0.902], far: [154.3, 0.329, 1] }, // lt green   #4EE6A6 → #ABFFDB
+  { input: [212.5, 1, 1], far: [187.1, 0.698, 1] }, // alt blue   #0075FF → #4DEAFF
+  { input: [171.8, 0.988, 0.667], far: [129.9, 0.596, 1] }, // alt green  #02AA93 → #67FF80
+];
+
+/** The far tone a picked solid sweeps to, blended over {@link BD_ANCHORS}. */
+function beautydreamFar(base: Hsv3): Hsv3 {
+  return blendEntry(base, BD_ANCHORS, anchorWeights(base, BD_ANCHORS), (a) => a.far);
+}
+
+const bdStop = (id: string, pos: number, [hue, sat, bri]: Hsv3): GradientStop => ({
+  id,
+  pos,
+  hue,
+  sat,
+  bri,
+});
+
+/**
+ * The tones the folder is painted with, plus the angle they sweep at. A SOLID
+ * pick is the guide's case: the pick is the near tone, {@link beautydreamFar}
+ * supplies the far one, and it sweeps at the shape's own {@link BD_ANGLE}. A
+ * gradient pick is taken as authored, angle included — the multi-stop
+ * Sunset/Custom presets need that, and an explicit angle isn't a default.
+ */
+function bdPaint(cs: ShapeColorState): { stops: GradientStop[]; angle: number } {
+  if (cs.mode === "gradient" && cs.stops.length > 1) {
+    return { stops: [...cs.stops].sort((a, b) => a.pos - b.pos), angle: cs.gradAngle };
+  }
+  const base: Hsv3 =
+    cs.mode === "gradient" && cs.stops.length
+      ? [cs.stops[0].hue, cs.stops[0].sat, cs.stops[0].bri]
+      : [cs.hue, cs.sat, cs.bri];
+  return {
+    stops: [bdStop("0", 0, base), bdStop("1", 1, beautydreamFar(base))],
+    angle: BD_ANGLE,
+  };
 }
 
 /** `{ def, fill }` for a body/tab fill: a screen-% gradient at `angle`, or a flat hex. */
-function bdFill(id: string, stops: GradientStop[], angle: number, flat: boolean): { def: string; fill: string } {
+function bdFill(
+  id: string,
+  stops: GradientStop[],
+  angle: number,
+  flat: boolean,
+): { def: string; fill: string } {
   if (flat || stops.length < 2) {
     const s = stops[0];
     return { def: "", fill: getHex(s.hue, s.sat, s.bri) };
@@ -1926,22 +1998,20 @@ function bdFill(id: string, stops: GradientStop[], angle: number, flat: boolean)
 }
 
 /**
- * The auto (derived) tab for the alternate variant: the front gradient run
- * backwards. Reproduces the references exactly, and — because the tab is drawn
- * at 50% opacity — keeps it visibly lighter than the front rather than merging
- * into it. A solid pick has no second tone to reverse, so it darkens instead.
+ * The alternate's auto tab: the front's own sweep run backwards, which is
+ * exactly what the `folder-alter-*.svg` references do. Flat keeps the far tone
+ * but drops the sweep, so the tab reads as a distinct panel either way.
  */
-function beautydreamAutoTab(stops: GradientStop[], flat: boolean): { def: string; fill: string } {
-  if (stops.length < 2) {
-    const [h, s, v] = [stops[0].hue, stops[0].sat, stops[0].bri];
-    return { def: "", fill: getHex(h, Math.min(1, s * 1.1), v * 0.72) };
-  }
+function beautydreamAutoTab(
+  stops: GradientStop[],
+  flat: boolean,
+): { def: string; fill: string } {
   if (flat) {
     const s = stops[stops.length - 1];
     return { def: "", fill: getHex(s.hue, s.sat, s.bri) };
   }
   const reversed = stops.map((s, i) => ({ ...stops[stops.length - 1 - i], id: s.id, pos: s.pos }));
-  return bdFill("bd_tab", reversed, BD_TAB_ANGLE, false);
+  return bdFill("bd_tab", reversed, BD_ANGLE, false);
 }
 
 /** The custom tab fill (solid or the user's own gradient), else the auto tab. */
@@ -1953,14 +2023,13 @@ function beautydreamTabFill(cs: ShapeColorState, stops: GradientStop[], flat: bo
 }
 
 function buildBeautydreamSvg(cs: ShapeColorState): string {
-  const flat = (cs.beautydreamColorProfile ?? DEFAULT_BEAUTYDREAM_COLOR_PROFILE) === "flat";
-  const stops = bdStops(cs);
+  const flat = isFlatBeautydream(cs.beautydreamColorProfile);
+  const { stops, angle } = bdPaint(cs);
   if (!isBeautydreamAlt(cs.beautydreamVariant ?? DEFAULT_BEAUTYDREAM_VARIANT)) {
-    // Base: one path, the user's own gradient (angle included) sweeps it whole.
-    const body = bdFill("bd_body", stops, cs.gradAngle, flat);
+    const body = bdFill("bd_body", stops, angle, flat);
     return `${SVG_OPEN}<defs>${body.def}</defs><path fill-rule="evenodd" clip-rule="evenodd" d="${BD_BASE}" fill="${body.fill}"/></svg>`;
   }
-  const front = bdFill("bd_front", stops, BD_FRONT_ANGLE, flat);
+  const front = bdFill("bd_front", stops, angle, flat);
   const tab = beautydreamTabFill(cs, stops, flat);
   return (
     `${SVG_OPEN}<defs>${front.def}${tab.def}</defs>` +
@@ -1971,15 +2040,13 @@ function buildBeautydreamSvg(cs: ShapeColorState): string {
 
 /** The Auto (derived) tab color for Beautydream — seeds the custom-back field. */
 export function beautydreamDerivedTabColor(doc: FolderDocument): string {
-  const cs = toShapeColorState(doc.folderColor);
-  if (doc.folderFillMode === "image") {
-    const [h, s, v] = hexToHsv(doc.folderBgImageColor ?? "#888888");
-    return getHex(h, Math.min(1, s * 1.1), v * 0.72);
-  }
-  const stops = bdStops(cs);
-  const last = stops[stops.length - 1];
-  if (stops.length < 2) return getHex(last.hue, Math.min(1, last.sat * 1.1), last.bri * 0.72);
-  return getHex(last.hue, last.sat, last.bri);
+  const cs =
+    doc.folderFillMode === "image"
+      ? toShapeColorState(doc.folderBgImageColor ?? "#888888")
+      : toShapeColorState(doc.folderColor);
+  const { stops } = bdPaint(cs);
+  const far = stops[stops.length - 1];
+  return getHex(far.hue, far.sat, far.bri);
 }
 
 const BD_BASE_MASK = `${SVG_OPEN}<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_BASE}" fill="white"/></svg>`;
@@ -2110,10 +2177,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "beautydream",
     name: "Beautydream",
-    // Solid fallback = the lavender gradient's deep stop; `defaultColor` is what
-    // a pick actually applies (the reference lavender gradient).
-    defaultHsv: [231.76, 0.816, 0.9804],
-    defaultColor: BEAUTYDREAM_LAVENDER,
+    defaultHsv: [231.76, 0.816, 0.9804], // the reference lavender #2E4AFA
     defaultClip: true,
     buildSvg: buildBeautydreamSvg,
     mask: BD_BASE_MASK,
