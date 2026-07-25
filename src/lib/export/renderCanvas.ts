@@ -622,7 +622,7 @@ async function renderPattern(
 ): Promise<void> {
   const body = getPatternBody(doc.pattern.id);
   if (body) {
-    const maskSvg = isFrontPattern(doc.baseShape, doc.pattern)
+    const maskSvg = isFrontPattern(doc.baseShape, doc.pattern, shapeVariant(doc))
       ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc);
     const layer = await loadImage(toSvgDataUrl(buildPatternLayerSvg(doc.pattern, body, maskSvg)));
@@ -633,7 +633,7 @@ async function renderPattern(
   // pattern pick up the grain instead of floating on top of it.
   const materialSvg = buildMaterialLayerSvg(
     doc.material,
-    isFrontMaterial(doc.baseShape, doc.material)
+    isFrontMaterial(doc.baseShape, doc.material, shapeVariant(doc))
       ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc),
   );

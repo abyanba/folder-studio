@@ -44,6 +44,48 @@ describe("ShapePanel", () => {
   });
 });
 
+describe("Beautydream panels", () => {
+  it("picks the shape with its reference gradient and switches variant", async () => {
+    const user = userEvent.setup();
+    render(<ShapePanel />);
+
+    await user.click(screen.getByRole("button", { name: /Beautydream/i }));
+    const doc = useDocumentStore.getState().doc;
+    // The pick applies a GRADIENT default (the reference lavender), not a solid.
+    expect(isGradient(doc.folderColor)).toBe(true);
+    expect(doc.beautydreamVariant).toBe("base");
+
+    await user.click(screen.getByRole("radio", { name: "Alternate" }));
+    expect(useDocumentStore.getState().doc.beautydreamVariant).toBe("alternate");
+    await user.click(screen.getByRole("radio", { name: "Base" }));
+    expect(useDocumentStore.getState().doc.beautydreamVariant).toBe("base");
+  });
+
+  it("offers the color-profile dropdown, and the tab control only on the alternate", async () => {
+    const user = userEvent.setup();
+    useDocumentStore.getState().setBaseShape("beautydream");
+    const { rerender } = render(<ColorPanel />);
+
+    // The one-piece base variant has no tab to color.
+    expect(screen.queryByText("Back (tab)")).not.toBeInTheDocument();
+
+    expect(screen.getByText("Color profile")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Authentic/ }));
+    const flat = screen.getByRole("menuitem", { name: "Flat" });
+    fireEvent.mouseEnter(flat);
+    expect(useUiStore.getState().beautydreamColorProfilePreview).toBe("flat");
+    expect(useDocumentStore.getState().doc.beautydreamColorProfile).toBe("authentic");
+    fireEvent.mouseLeave(flat);
+    expect(useUiStore.getState().beautydreamColorProfilePreview).toBeNull();
+    await user.click(screen.getByRole("menuitem", { name: "Flat" }));
+    expect(useDocumentStore.getState().doc.beautydreamColorProfile).toBe("flat");
+
+    useDocumentStore.getState().setBeautydreamVariant("alternate");
+    rerender(<ColorPanel />);
+    expect(screen.getByText("Back (tab)")).toBeInTheDocument();
+  });
+});
+
 describe("ColorPanel fill modes", () => {
   it("switches solid → gradient → solid, preserving a sensible color", async () => {
     const user = userEvent.setup();

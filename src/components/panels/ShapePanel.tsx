@@ -90,6 +90,33 @@ function YaruShapeControl() {
   );
 }
 
+/** Switch the Beautydream folder between the one-piece base and the tabbed alternate. */
+function BeautydreamVariantControl() {
+  const variant = useDocumentStore((s) => s.doc.beautydreamVariant);
+  const setVariant = useDocumentStore((s) => s.setBeautydreamVariant);
+  return (
+    <PanelSection title="Shape variant" className="px-3 pb-3">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={variant}
+        onValueChange={(v) => {
+          if (v) setVariant(v as "base" | "alternate");
+        }}
+        className="w-full"
+      >
+        <ToggleGroupItem value="base" className="flex-1 text-xs">
+          Base
+        </ToggleGroupItem>
+        <ToggleGroupItem value="alternate" className="flex-1 text-xs">
+          Alternate
+        </ToggleGroupItem>
+      </ToggleGroup>
+    </PanelSection>
+  );
+}
+
 /** Switch the Fluent folder between the acrylic (Fluent) and flat (Tela) paint. */
 function FluentVariantControl() {
   const variant = useDocumentStore((s) => s.doc.fluentVariant);
@@ -133,7 +160,7 @@ export function ShapePanel() {
               type="button"
               onClick={() =>
                 applyBaseShape(shape.id, {
-                  folderColor: getHex(...shape.defaultHsv),
+                  folderColor: shape.defaultColor ?? getHex(...shape.defaultHsv),
                   clipToFolder: shape.defaultClip,
                   folderBackColor: shape.defaultBackColor ?? null,
                 })
@@ -166,6 +193,7 @@ export function ShapePanel() {
       {(baseShape === "windows" || baseShape === "macos") && <FolderStateControl />}
       {baseShape === "yaru" && <YaruShapeControl />}
       {baseShape === "fluent" && <FluentVariantControl />}
+      {baseShape === "beautydream" && <BeautydreamVariantControl />}
     </div>
   );
 }

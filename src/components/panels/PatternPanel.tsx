@@ -20,7 +20,7 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { PATTERN_CATALOG } from "@/data/patterns";
 import { buildPatternLayerSvg, buildPatternSvg } from "@/lib/export/patterns";
-import { baseShapeHasSplit } from "@/lib/export/baseShapes";
+import { baseShapeHasSplit, shapeVariant } from "@/lib/export/baseShapes";
 import {
   getPatternBody,
   loadPatternBodies,
@@ -57,6 +57,7 @@ function tileBackground(id: string, settings: PatternSettings): string | undefin
 export function PatternPanel() {
   const pattern = useDocumentStore((s) => s.doc.pattern);
   const baseShape = useDocumentStore((s) => s.doc.baseShape);
+  const variant = useDocumentStore((s) => shapeVariant(s.doc));
   const setPattern = useDocumentStore((s) => s.setPattern);
   const [view, setView] = useState<"grid" | "adjust">("grid");
   const [search, setSearch] = useState("");
@@ -160,7 +161,7 @@ export function PatternPanel() {
             format={(v) => `${Math.round(v)}`}
           />
 
-          {baseShapeHasSplit(baseShape) && (
+          {baseShapeHasSplit(baseShape, variant) && (
             <PanelSection title="Pattern span">
               <ToggleGroup
                 type="single"

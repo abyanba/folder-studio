@@ -280,6 +280,10 @@ export function withElementMaterial(
  * Whether the material is confined to the front panel. Mirrors the pattern and
  * image-fill rule: only windows/macOS have a front/back split.
  */
-export function isFrontMaterial(baseShape: string, material: MaterialSettings): boolean {
-  return material.span === "front" && baseShapeHasSplit(baseShape);
+export function isFrontMaterial(
+  baseShape: string,
+  material: MaterialSettings,
+  variant?: string,
+): boolean {
+  return material.span === "front" && baseShapeHasSplit(baseShape, variant);
 }

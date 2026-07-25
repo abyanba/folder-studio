@@ -353,7 +353,7 @@ export function buildExportSvg(
   // had no vector form.
   const patternBody = doc.pattern.id !== "none" ? deps.getPatternBody?.(doc.pattern.id) : null;
   if (patternBody) {
-    const patMask = isFrontPattern(doc.baseShape, doc.pattern)
+    const patMask = isFrontPattern(doc.baseShape, doc.pattern, shapeVariant(doc))
       ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc);
     body.push(buildPatternLayerSvg(doc.pattern, patternBody, patMask, "pl"));
@@ -363,7 +363,7 @@ export function buildExportSvg(
   // grain onto the pattern rather than letting it float above.
   const materialSvg = buildMaterialLayerSvg(
     doc.material,
-    isFrontMaterial(doc.baseShape, doc.material)
+    isFrontMaterial(doc.baseShape, doc.material, shapeVariant(doc))
       ? getFrontMask(doc.baseShape, shapeVariant(doc))
       : getBaseShapeFillMask(doc),
     "ml",

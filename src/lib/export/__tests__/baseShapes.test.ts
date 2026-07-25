@@ -996,6 +996,7 @@ describe("BASE_SHAPES ordering", () => {
       "candy",
       "fluent",
       "slot-plasma",
+      "beautydream",
     ]);
   });
 });

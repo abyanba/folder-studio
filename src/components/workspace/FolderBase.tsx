@@ -46,6 +46,7 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
   const papirusSolidPreview = useUiStore((s) => s.papirusColorProfilePreview);
   const yaruProfilePreview = useUiStore((s) => s.yaruColorProfilePreview);
   const candyProfilePreview = useUiStore((s) => s.candyColorProfilePreview);
+  const bdProfilePreview = useUiStore((s) => s.beautydreamColorProfilePreview);
   const imageSpanPreview = useUiStore((s) => s.imageSpanPreview);
   const isColor = rawDoc.folderFillMode === "color";
   const isGrad = isColor && isGradient(rawDoc.folderColor);
@@ -71,6 +72,8 @@ function FolderBaseImpl({ doc: rawDoc }: { doc: FolderDocument }) {
     doc = { ...rawDoc, yaruColorProfile: yaruProfilePreview };
   } else if (candyProfilePreview && rawDoc.baseShape === "candy" && isColor) {
     doc = { ...rawDoc, candyColorProfile: candyProfilePreview };
+  } else if (bdProfilePreview && rawDoc.baseShape === "beautydream" && isColor) {
+    doc = { ...rawDoc, beautydreamColorProfile: bdProfilePreview };
   }
 
   if (doc.folderFillMode === "image" && doc.folderBgImage) {

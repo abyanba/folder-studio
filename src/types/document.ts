@@ -103,6 +103,27 @@ export type FluentVariant = "fluent" | "tela";
 export const DEFAULT_FLUENT_VARIANT: FluentVariant = "fluent";
 
 /**
+ * Beautydream shape variant:
+ * - base      — the one-piece silhouette (the `folder-*.svg` references): a
+ *               single path carrying the whole gradient, no tab of its own.
+ * - alternate — the two-piece silhouette (the `folder-alter-*.svg`
+ *               references): a rounded front over a 50%-opacity back tab whose
+ *               gradient runs the other way.
+ */
+export type BeautydreamVariant = "base" | "alternate";
+export const DEFAULT_BEAUTYDREAM_VARIANT: BeautydreamVariant = "base";
+
+/**
+ * Beautydream fill treatment:
+ * - authentic — the reference render: the gradient sweeps the body (and, on the
+ *               alternate variant, sweeps back the other way across the tab).
+ * - flat      — no gradient: the first stop paints the body, the last stop the
+ *               tab.
+ */
+export type BeautydreamColorProfile = "authentic" | "flat";
+export const DEFAULT_BEAUTYDREAM_COLOR_PROFILE: BeautydreamColorProfile = "authentic";
+
+/**
  * How an *image* fill maps onto the Windows folder (image fill mode only):
  * - full  — the image spans the whole folder icon (front + tab/back).
  * - front — the image covers only the front panel; the tab/back use an
@@ -235,6 +256,10 @@ export interface FolderDocument {
   yaruColorProfile: YaruColorProfile;
   /** Paint variant (acrylic Fluent vs flat Tela) for the Fluent base shape. */
   fluentVariant: FluentVariant;
+  /** Shape variant (one-piece vs tabbed) for the Beautydream base shape. */
+  beautydreamVariant: BeautydreamVariant;
+  /** Fill treatment (reference gradient vs flat) for the Beautydream base shape. */
+  beautydreamColorProfile: BeautydreamColorProfile;
   /** How an image fill maps onto the Windows folder (see {@link WindowsImageMode}). */
   windowsImageMode: WindowsImageMode;
   /** How an image fill maps onto the macOS folder (full vs front-only). */
@@ -279,6 +304,8 @@ export function createEmptyDocument(): FolderDocument {
     yaruShape: DEFAULT_YARU_SHAPE,
     yaruColorProfile: DEFAULT_YARU_COLOR_PROFILE,
     fluentVariant: DEFAULT_FLUENT_VARIANT,
+    beautydreamVariant: DEFAULT_BEAUTYDREAM_VARIANT,
+    beautydreamColorProfile: DEFAULT_BEAUTYDREAM_COLOR_PROFILE,
     windowsImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     macImageMode: DEFAULT_WINDOWS_IMAGE_MODE,
     pattern: {

@@ -15,6 +15,8 @@ import { getHex, hexToHsv } from "@/lib/color";
 import { isGradient } from "@/types/gradient";
 import type { ColorValue, Gradient, GradientStop } from "@/types/gradient";
 import type {
+  BeautydreamColorProfile,
+  BeautydreamVariant,
   CandyColorProfile,
   FolderDocument,
   FolderState,
@@ -28,6 +30,8 @@ import type {
   YaruShape,
 } from "@/types/document";
 import {
+  DEFAULT_BEAUTYDREAM_COLOR_PROFILE,
+  DEFAULT_BEAUTYDREAM_VARIANT,
   DEFAULT_CANDY_COLOR_PROFILE,
   DEFAULT_MAC_COLOR_PROFILE,
   DEFAULT_MAC_GRADIENT_ALGO,
@@ -37,7 +41,7 @@ import {
   DEFAULT_YARU_COLOR_PROFILE,
   DEFAULT_YARU_SHAPE,
 } from "@/types/document";
-import { SURU_GRADIENT } from "@/data/gradientPresets";
+import { BEAUTYDREAM_LAVENDER, SURU_GRADIENT } from "@/data/gradientPresets";
 import { gradSVGCoords, gradientElement } from "./gradientSvg";
 
 export interface ShapeColorState {
@@ -60,6 +64,10 @@ export interface ShapeColorState {
   candyColorProfile?: CandyColorProfile;
   /** Yaru shape variant (defaults to `sharp`). */
   yaruShape?: YaruShape;
+  /** Beautydream shape variant (defaults to `base`). */
+  beautydreamVariant?: BeautydreamVariant;
+  /** Beautydream fill treatment (defaults to `authentic`). */
+  beautydreamColorProfile?: BeautydreamColorProfile;
   /** Fluent shape variant — `tela` paints it flat (defaults to the acrylic `fluent`). */
   telaVariant?: string;
   /** Yaru front-fill treatment (defaults to `gradient`). */
@@ -105,6 +113,8 @@ export interface BaseShapeDef {
    * clears any custom back to Auto (null). Yaru ships with the suru gradient.
    */
   defaultBackColor?: ColorValue | null;
+  /** Fill applied when the shape is picked, when a solid `defaultHsv` can't express it. */
+  defaultColor?: ColorValue;
 }
 
 /** Screen-% gradient `<defs>` for the simple shapes' `__DEFS__` slot (id "fg"). */
@@ -1862,6 +1872,131 @@ const SP_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none"
 /** The slot-plasma drop shadow, drawn below a full-span image fill (the base SVG's shadow only shows in color mode). */
 const SP_UNDERLAY = `<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-2)"><rect width="48" height="41" x="8" y="18.943056" rx="6" ry="7.4027348" fill="#4d4d4d" fill-opacity="0.2"/></g></g></g></svg>`;
 
+/* ------------------------------------------------------------------------ *
+ * Beautydream — a flat, gradient-forward folder. Two variants, both traced
+ * verbatim from the references in docs/attachment/references/beautydream-folder:
+ *
+ * - base      — one path (`folder-*.svg`), the user's gradient sweeps it whole.
+ * - alternate — the `folder-alter-*.svg` pair: a rounded front over a back tab
+ *               painted at 50% opacity with the gradient running back the other
+ *               way.
+ *
+ * Angle note: the reference gradients are authored at fixed angles. The color
+ * guide's angles are Figma's (180° off this app's), so guide -120 = app 60 (the
+ * base presets ship at 60 but the angle stays the user's to change), and the
+ * alternate's guide 180 / 60 = app 0 (front) / 240 (tab) — those two ARE the
+ * variant, so the alternate ignores the document's gradient angle.
+ * ------------------------------------------------------------------------ */
+
+const BD_BASE =
+  "M256 95.088V176C256 184.832 248.832 192 240 192C222.336 192 208 206.336 208 224C208 232.832 200.832 240 192 240C192 240 97.616 240 47.088 240C34.592 240 22.624 235.04 13.792 226.208C4.96 217.376 0 205.408 0 192.912C0 157.168 0 98.832 0 63.088C0 50.592 4.96 38.624 13.792 29.792C22.624 20.96 34.592 16 47.088 16C59.632 16 73.392 16 83.12 16C95.616 16 107.584 20.96 116.416 29.792L130.208 43.584C133.04 46.416 136.88 48 140.88 48H208.912C234.928 48 256 69.072 256 95.088ZM256 224C256 232.832 248.832 240 240 240C231.168 240 224 232.832 224 224C224 215.168 231.168 208 240 208C248.832 208 256 215.168 256 224Z";
+const BD_ALT_BACK =
+  "M185.311 47.2141H150.779C142.176 47.2709 134.009 43.4442 128.557 36.8026L117.185 21.0814C111.825 14.3814 103.658 10.5368 95.0681 10.6698H70.6553C26.8379 10.6698 10.6671 36.3861 10.6671 80.114L10.667 106.666C10.6126 111.864 101.319 74.5246 101.334 69.3332L127.966 60.306C138.667 63.9998 208 53.3332 185.311 47.2141Z";
+const BD_ALT_FRONT =
+  "M231.63 63.976C235.385 68.3653 238.285 73.4144 240.186 78.8645C243.924 90.0661 245.654 101.838 245.297 113.638V175.275C245.282 180.466 244.898 185.65 244.15 190.787C242.724 199.854 239.533 208.555 234.761 216.4C232.567 220.189 229.902 223.687 226.831 226.811C212.929 239.57 194.47 246.211 175.608 245.239H80.2526C61.3609 246.205 42.8705 239.566 28.9242 226.811C25.8898 223.681 23.2611 220.183 21.0996 216.4C16.3547 208.561 13.233 199.852 11.9189 190.787C11.0834 185.659 10.6648 180.47 10.667 175.275V113.638C10.665 108.491 10.9436 103.347 11.5017 98.2298C11.619 97.3317 11.795 96.4485 11.9692 95.5749C12.2595 94.1173 12.5449 92.6859 12.5449 91.2544C13.604 85.0784 15.5358 79.0843 18.2829 73.4507C26.4203 56.0635 43.1125 47.2137 70.4462 47.2137H185.206C200.514 46.0297 215.71 50.6385 227.771 60.1237C229.16 61.3018 230.45 62.5898 231.63 63.976Z";
+
+/** The alternate's fixed gradient angles (this app's convention — see the note above). */
+const BD_FRONT_ANGLE = 0;
+const BD_TAB_ANGLE = 240;
+/** The reference paints the alternate's back tab at half opacity. */
+const BD_TAB_OPACITY = 0.5;
+
+export const BEAUTYDREAM_COLOR_PROFILES: Array<{ id: BeautydreamColorProfile; name: string }> = [
+  { id: "authentic", name: "Authentic" },
+  { id: "flat", name: "Flat" },
+];
+
+function isBeautydreamAlt(variant?: string): boolean {
+  return variant === "alternate";
+}
+
+/** Sorted stops for the fill, or a single synthetic stop for a solid pick. */
+function bdStops(cs: ShapeColorState): GradientStop[] {
+  if (cs.mode === "gradient" && cs.stops.length) return [...cs.stops].sort((a, b) => a.pos - b.pos);
+  return [{ id: "0", pos: 0, hue: cs.hue, sat: cs.sat, bri: cs.bri }];
+}
+
+/** `{ def, fill }` for a body/tab fill: a screen-% gradient at `angle`, or a flat hex. */
+function bdFill(id: string, stops: GradientStop[], angle: number, flat: boolean): { def: string; fill: string } {
+  if (flat || stops.length < 2) {
+    const s = stops[0];
+    return { def: "", fill: getHex(s.hue, s.sat, s.bri) };
+  }
+  return { def: gradientElement(id, { kind: "linear", angle, stops }), fill: `url(#${id})` };
+}
+
+/**
+ * The auto (derived) tab for the alternate variant: the front gradient run
+ * backwards. Reproduces the references exactly, and — because the tab is drawn
+ * at 50% opacity — keeps it visibly lighter than the front rather than merging
+ * into it. A solid pick has no second tone to reverse, so it darkens instead.
+ */
+function beautydreamAutoTab(stops: GradientStop[], flat: boolean): { def: string; fill: string } {
+  if (stops.length < 2) {
+    const [h, s, v] = [stops[0].hue, stops[0].sat, stops[0].bri];
+    return { def: "", fill: getHex(h, Math.min(1, s * 1.1), v * 0.72) };
+  }
+  if (flat) {
+    const s = stops[stops.length - 1];
+    return { def: "", fill: getHex(s.hue, s.sat, s.bri) };
+  }
+  const reversed = stops.map((s, i) => ({ ...stops[stops.length - 1 - i], id: s.id, pos: s.pos }));
+  return bdFill("bd_tab", reversed, BD_TAB_ANGLE, false);
+}
+
+/** The custom tab fill (solid or the user's own gradient), else the auto tab. */
+function beautydreamTabFill(cs: ShapeColorState, stops: GradientStop[], flat: boolean) {
+  const back = cs.backColor;
+  if (!back) return beautydreamAutoTab(stops, flat);
+  if (isGradient(back)) return { def: gradientElement("bd_tab", back), fill: "url(#bd_tab)" };
+  return { def: "", fill: back };
+}
+
+function buildBeautydreamSvg(cs: ShapeColorState): string {
+  const flat = (cs.beautydreamColorProfile ?? DEFAULT_BEAUTYDREAM_COLOR_PROFILE) === "flat";
+  const stops = bdStops(cs);
+  if (!isBeautydreamAlt(cs.beautydreamVariant ?? DEFAULT_BEAUTYDREAM_VARIANT)) {
+    // Base: one path, the user's own gradient (angle included) sweeps it whole.
+    const body = bdFill("bd_body", stops, cs.gradAngle, flat);
+    return `${SVG_OPEN}<defs>${body.def}</defs><path fill-rule="evenodd" clip-rule="evenodd" d="${BD_BASE}" fill="${body.fill}"/></svg>`;
+  }
+  const front = bdFill("bd_front", stops, BD_FRONT_ANGLE, flat);
+  const tab = beautydreamTabFill(cs, stops, flat);
+  return (
+    `${SVG_OPEN}<defs>${front.def}${tab.def}</defs>` +
+    `<path opacity="${BD_TAB_OPACITY}" d="${BD_ALT_BACK}" fill="${tab.fill}"/>` +
+    `<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="${front.fill}"/></svg>`
+  );
+}
+
+/** The Auto (derived) tab color for Beautydream — seeds the custom-back field. */
+export function beautydreamDerivedTabColor(doc: FolderDocument): string {
+  const cs = toShapeColorState(doc.folderColor);
+  if (doc.folderFillMode === "image") {
+    const [h, s, v] = hexToHsv(doc.folderBgImageColor ?? "#888888");
+    return getHex(h, Math.min(1, s * 1.1), v * 0.72);
+  }
+  const stops = bdStops(cs);
+  const last = stops[stops.length - 1];
+  if (stops.length < 2) return getHex(last.hue, Math.min(1, last.sat * 1.1), last.bri * 0.72);
+  return getHex(last.hue, last.sat, last.bri);
+}
+
+const BD_BASE_MASK = `${SVG_OPEN}<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_BASE}" fill="white"/></svg>`;
+const BD_ALT_MASK = `${SVG_OPEN}<path d="${BD_ALT_BACK}" fill="white"/><path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="white"/></svg>`;
+const BD_ALT_FRONT_MASK = `${SVG_OPEN}<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="white"/></svg>`;
+
+/**
+ * Whole-image structure overlay for the alternate variant: darkens the exposed
+ * tab strip (back − front) so a full-span image, pattern or material still
+ * reads as a tab behind a front instead of one merged slab.
+ */
+function beautydreamStructureOverlay(): string {
+  const darken = `<linearGradient id="bdvg" x1="0" y1="10" x2="0" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.34"/><stop offset="1" stop-color="#000000" stop-opacity="0.16"/></linearGradient>`;
+  const mask = `<mask id="bdvm"><path d="${BD_ALT_BACK}" fill="white"/><path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="black"/></mask>`;
+  return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#bdvg)" mask="url(#bdvm)"/></svg>`;
+}
+
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
     id: "classic",
@@ -1973,6 +2108,17 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
     mask: SP_MASK,
   },
   {
+    id: "beautydream",
+    name: "Beautydream",
+    // Solid fallback = the lavender gradient's deep stop; `defaultColor` is what
+    // a pick actually applies (the reference lavender gradient).
+    defaultHsv: [231.76, 0.816, 0.9804],
+    defaultColor: BEAUTYDREAM_LAVENDER,
+    defaultClip: true,
+    buildSvg: buildBeautydreamSvg,
+    mask: BD_BASE_MASK,
+  },
+  {
     id: "glass",
     name: "Glass",
     defaultHsv: [0, 0, 0],
@@ -2067,7 +2213,7 @@ export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   },
 ];
 
-const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma", "file-folder", "glass", "minimal"];
+const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma", "beautydream", "file-folder", "glass", "minimal"];
 
 /**
  * TEMPORARY: the picker is focused on the two highest-demand bases. Every shape
@@ -2075,7 +2221,7 @@ const _SOLID_ORDER = ["windows", "macos", "yaru", "papirus", "candy", "fluent", 
  * shapes keep working — they're just not offered in the panel. Widen this list
  * to bring the others back.
  */
-const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma"];
+const _ENABLED_SHAPES = ["windows", "macos", "yaru", "papirus", "candy", "fluent", "slot-plasma", "beautydream"];
 
 /** Display order: the solid-treatment shapes first, then the rest. */
 export const BASE_SHAPES: BaseShapeDef[] = [
@@ -2141,6 +2287,8 @@ export function buildBaseShapeSvg(doc: FolderDocument): string {
   cs.candyColorProfile = doc.candyColorProfile;
   cs.yaruShape = doc.yaruShape;
   cs.telaVariant = doc.fluentVariant;
+  cs.beautydreamVariant = doc.beautydreamVariant;
+  cs.beautydreamColorProfile = doc.beautydreamColorProfile;
   cs.yaruColorProfile = doc.yaruColorProfile;
   cs.backColor = doc.folderBackColor;
   cs.folderState = doc.folderState;
@@ -2172,8 +2320,10 @@ const YARU_ROUND_MASK = `<svg width="256" height="256" viewBox="0 0 256 256" fil
  * single source of truth for the "front only" option across image/material/
  * pattern, so its four consumers can't drift out of sync.
  */
-export function baseShapeHasSplit(baseShapeId: string): boolean {
+export function baseShapeHasSplit(baseShapeId: string, variant?: string): boolean {
   const id = findShape(baseShapeId).id;
+  // Beautydream's base variant is a single path — only the alternate has a tab.
+  if (id === "beautydream") return isBeautydreamAlt(variant);
   return (
     id === "windows" ||
     id === "macos" ||
@@ -2196,6 +2346,7 @@ export function shapeVariant(doc: FolderDocument): string | undefined {
   if (id === "yaru") return doc.yaruShape;
   if (id === "candy") return doc.candyColorProfile;
   if (isFluent(id)) return doc.fluentVariant;
+  if (id === "beautydream") return doc.beautydreamVariant;
   return undefined;
 }
 
@@ -2205,6 +2356,9 @@ export function shapeVariant(doc: FolderDocument): string | undefined {
  */
 export function getBaseShapeMask(baseShapeId: string, variant?: string): string {
   if (findShape(baseShapeId).id === "yaru" && variant === "rounded") return YARU_ROUND_MASK;
+  if (findShape(baseShapeId).id === "beautydream") {
+    return isBeautydreamAlt(variant) ? BD_ALT_MASK : BD_BASE_MASK;
+  }
   return findShape(baseShapeId).mask;
 }
 
@@ -2284,6 +2438,7 @@ export function buildBaseShapeOverlaySvg(baseShapeId: string, variant?: string):
   if (id === "papirus") return papirusStructureOverlay();
   if (id === "slot-plasma") return slotPlasmaStructureOverlay();
   if (id === "candy") return candyStructureOverlay(isFlatCandy(variant));
+  if (id === "beautydream") return isBeautydreamAlt(variant) ? beautydreamStructureOverlay() : null;
   if (isFluent(id)) return fluStructureOverlay(variant);
   return null;
 }
@@ -2466,9 +2621,10 @@ export function isFrontImage(doc: FolderDocument): boolean {
     id === "papirus" ||
     id === "candy" ||
     id === "slot-plasma" ||
+    id === "beautydream" ||
     isFluent(id)
   ) {
-    return doc.windowsImageMode === "front";
+    return baseShapeHasSplit(id, shapeVariant(doc)) && doc.windowsImageMode === "front";
   }
   return false;
 }
@@ -2494,6 +2650,7 @@ export function getFrontMask(baseShapeId: string, variant?: string): string {
   if (id === "slot-plasma") {
     return `${SVG_OPEN}<g transform="scale(4)"><g transform="${SP_TF}"><g transform="translate(0,-3)"><path d="${SP_FRONT}" fill="white"/></g></g></g></svg>`;
   }
+  if (id === "beautydream") return BD_ALT_FRONT_MASK;
   return `${SVG_OPEN}<path d="${WIN_B}" fill="white"/></svg>`;
 }
 
@@ -2550,6 +2707,12 @@ export function buildFrontImageBackSvg(
     cs.paperColor = paperColor ?? null;
     return buildSlotPlasmaSvg(cs);
   }
+  if (id === "beautydream") {
+    const cs = toShapeColorState(frontAdaptive);
+    cs.backColor = backColor ?? null;
+    cs.beautydreamVariant = variant as BeautydreamVariant;
+    return buildBeautydreamSvg(cs);
+  }
   if (isFluent(id)) return buildFluentImageBackSvg(frontAdaptive, backColor, paperColor, variant);
   return buildWindowsImageBackSvg(frontAdaptive, backColor, frontAdaptive2);
 }
@@ -2570,6 +2733,8 @@ export function buildFrontImageOverlaySvg(baseShapeId: string, variant?: string)
   // Slot Plasma is flat — no front-edge shine (fall-through would wrongly draw
   // the Windows shine line over a pattern/material fill).
   if (id === "slot-plasma") return `${SVG_OPEN}</svg>`;
+  // Beautydream is flat — no front-edge shine to redraw over the image.
+  if (id === "beautydream") return `${SVG_OPEN}</svg>`;
   // Candy's authentic profile redraws its white front wash over the photo (the
   // back layer's is hidden by the image); flat has no wash.
   if (id === "candy") {

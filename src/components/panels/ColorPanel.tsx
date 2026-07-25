@@ -27,6 +27,9 @@ import { FolderMaterialSection } from "@/components/controls/FolderMaterialSecti
 import { SliderField } from "@/components/controls/SliderField";
 import {
   baseShapeHasSplit,
+  BEAUTYDREAM_COLOR_PROFILES,
+  beautydreamDerivedTabColor,
+  shapeVariant,
   CANDY_COLOR_PROFILES,
   candyDerivedTabColor,
   MAC_COLOR_PROFILES,
@@ -192,6 +195,21 @@ function YaruColorProfileControl() {
   );
 }
 
+/** Beautydream fill treatment (reference gradient vs flat two-tone). */
+function BeautydreamColorProfileControl() {
+  const profile = useDocumentStore((s) => s.doc.beautydreamColorProfile);
+  const setProfile = useDocumentStore((s) => s.setBeautydreamColorProfile);
+  const setPreview = useUiStore((s) => s.setBeautydreamColorProfilePreview);
+  return (
+    <ProfileDropdown
+      value={profile}
+      options={BEAUTYDREAM_COLOR_PROFILES}
+      onSelect={setProfile}
+      onPreview={setPreview}
+    />
+  );
+}
+
 /** Papirus solid-fill color profile (authentic clamp vs flat). */
 function PapirusSolidProfile() {
   const profile = useDocumentStore((s) => s.doc.papirusColorProfile);
@@ -342,6 +360,7 @@ function BackTabColor() {
     candy: candyDerivedTabColor,
     fluent: telaDerivedTabColor,
     "slot-plasma": slotPlasmaDerivedTabColor,
+    beautydream: beautydreamDerivedTabColor,
   };
   const derived = (derivedFor[doc.baseShape] ?? windowsDerivedTabColor)(doc);
   return (
@@ -359,7 +378,7 @@ function BackTabColor() {
     >
       {disabled ? (
         <p className="text-[11px] text-muted-foreground">
-          {baseShapeHasSplit(doc.baseShape)
+          {baseShapeHasSplit(doc.baseShape, shapeVariant(doc))
             ? "Set Image span to “Front only” to color the tab."
             : "The image covers the tab."}
         </p>
@@ -513,6 +532,7 @@ export function ColorPanel() {
             {doc.baseShape === "papirus" && <PapirusSolidProfile />}
             {doc.baseShape === "yaru" && <YaruColorProfileControl />}
             {doc.baseShape === "candy" && <CandyColorProfileControl />}
+            {doc.baseShape === "beautydream" && <BeautydreamColorProfileControl />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -527,6 +547,7 @@ export function ColorPanel() {
             {doc.baseShape === "windows" && <WindowsGradientProfile />}
             {doc.baseShape === "macos" && <MacGradientProfile />}
             {doc.baseShape === "candy" && <CandyColorProfileControl />}
+            {doc.baseShape === "beautydream" && <BeautydreamColorProfileControl />}
             <PresetRow
               onPickSolid={setFolderColor}
               onPickGradientStops={pickGradientStops}
@@ -598,14 +619,14 @@ export function ColorPanel() {
               onChange={onUpload}
             />
           </PanelSection>
-          {baseShapeHasSplit(doc.baseShape) && doc.folderBgImage && <ImageSpan />}
+          {baseShapeHasSplit(doc.baseShape, shapeVariant(doc)) && doc.folderBgImage && <ImageSpan />}
           {doc.folderBgImage && <ImageOverlayControls />}
           </>
         )}
 
         <FolderMaterialSection />
 
-        {baseShapeHasSplit(doc.baseShape) && <BackTabColor />}
+        {baseShapeHasSplit(doc.baseShape, shapeVariant(doc)) && <BackTabColor />}
         {/* Papirus, Tela and Slot Plasma always carry a paper sheet; windows/
             macOS only in the "with contents" state. */}
         {((doc.baseShape === "windows" || doc.baseShape === "macos") &&

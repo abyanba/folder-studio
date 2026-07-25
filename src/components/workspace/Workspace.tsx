@@ -65,14 +65,14 @@ export function Workspace() {
   // Papirus drop shadow), so a surface treatment never covers that structure.
   const materialMaskSvg = useMemo(
     () =>
-      isFrontMaterial(doc.baseShape, doc.material)
+      isFrontMaterial(doc.baseShape, doc.material, shapeVariant(doc))
         ? getFrontMask(doc.baseShape, shapeVariant(doc))
         : getBaseShapeFillMask(doc),
     [doc.baseShape, doc.material, shapeVariant(doc), doc.folderState],
   );
   const patternMaskSvg = useMemo(
     () =>
-      isFrontPattern(doc.baseShape, doc.pattern)
+      isFrontPattern(doc.baseShape, doc.pattern, shapeVariant(doc))
         ? getFrontMask(doc.baseShape, shapeVariant(doc))
         : getBaseShapeFillMask(doc),
     [doc.baseShape, doc.pattern, shapeVariant(doc), doc.folderState],

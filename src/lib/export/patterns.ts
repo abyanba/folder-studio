@@ -134,6 +134,10 @@ export function buildPatternLayerSvg(
  * front/back split, so every other base shape spans the full silhouette however
  * `span` is set — mirroring `isFrontImage`'s shape check.
  */
-export function isFrontPattern(baseShape: string, pattern: PatternSettings): boolean {
-  return pattern.span === "front" && baseShapeHasSplit(baseShape);
+export function isFrontPattern(
+  baseShape: string,
+  pattern: PatternSettings,
+  variant?: string,
+): boolean {
+  return pattern.span === "front" && baseShapeHasSplit(baseShape, variant);
 }

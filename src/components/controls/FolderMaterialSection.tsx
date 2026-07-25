@@ -16,7 +16,7 @@ import { PanelSection } from "@/components/controls/PanelSection";
 import { SliderField } from "@/components/controls/SliderField";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MATERIALS, buildMaterialLayerSvg, getMaterialRecipe } from "@/lib/export/materials";
-import { baseShapeHasSplit } from "@/lib/export/baseShapes";
+import { baseShapeHasSplit, shapeVariant } from "@/lib/export/baseShapes";
 import { toSvgDataUrl } from "@/lib/export/svgDataUrl";
 import { useDocumentStore } from "@/store/documentStore";
 import type { MaterialSettings, PatternSpan } from "@/types/document";
@@ -34,6 +34,7 @@ function swatch(id: string, settings: MaterialSettings): string | undefined {
 export function FolderMaterialSection() {
   const material = useDocumentStore((s) => s.doc.material);
   const baseShape = useDocumentStore((s) => s.doc.baseShape);
+  const variant = useDocumentStore((s) => shapeVariant(s.doc));
   const setMaterial = useDocumentStore((s) => s.setMaterial);
   const recipe = getMaterialRecipe(material.id);
 
@@ -123,7 +124,7 @@ export function FolderMaterialSection() {
             />
           )}
 
-          {baseShapeHasSplit(baseShape) && (
+          {baseShapeHasSplit(baseShape, variant) && (
             <ToggleGroup
               type="single"
               size="sm"

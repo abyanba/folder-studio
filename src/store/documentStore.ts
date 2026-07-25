@@ -41,6 +41,8 @@ import type {
   WindowsImageMode,
   YaruColorProfile,
   YaruShape,
+  BeautydreamVariant,
+  BeautydreamColorProfile,
   FluentVariant,
 } from "@/types/document";
 import { createEmptyDocument } from "@/types/document";
@@ -175,6 +177,8 @@ export interface DocumentStore {
   setYaruShape: (shape: YaruShape) => void;
   setFluentVariant: (variant: FluentVariant) => void;
   setYaruColorProfile: (profile: YaruColorProfile) => void;
+  setBeautydreamVariant: (variant: BeautydreamVariant) => void;
+  setBeautydreamColorProfile: (profile: BeautydreamColorProfile) => void;
   /** Pick how an image fill maps onto the macOS folder (full vs front-only). */
   setMacImageMode: (mode: WindowsImageMode) => void;
   /** Pick how an image fill maps onto the Windows folder (full vs front-only). */
@@ -585,6 +589,10 @@ export const useDocumentStore = create<DocumentStore>()(
       setFluentVariant: (variant) => set((s) => ({ doc: { ...s.doc, fluentVariant: variant } })),
       setYaruColorProfile: (profile) =>
         set((s) => ({ doc: { ...s.doc, yaruColorProfile: profile } })),
+      setBeautydreamVariant: (variant) =>
+        set((s) => ({ doc: { ...s.doc, beautydreamVariant: variant } })),
+      setBeautydreamColorProfile: (profile) =>
+        set((s) => ({ doc: { ...s.doc, beautydreamColorProfile: profile } })),
       setMacImageMode: (mode) => set((s) => ({ doc: { ...s.doc, macImageMode: mode } })),
       setWindowsImageMode: (mode) => set((s) => ({ doc: { ...s.doc, windowsImageMode: mode } })),
       setPattern: (patch) => set((s) => ({ doc: { ...s.doc, pattern: { ...s.doc.pattern, ...patch } } })),
