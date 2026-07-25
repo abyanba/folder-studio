@@ -2054,15 +2054,15 @@ const BD_ALT_MASK = `${SVG_OPEN}<path d="${BD_ALT_BACK}" fill="white"/><path fil
 const BD_ALT_FRONT_MASK = `${SVG_OPEN}<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="white"/></svg>`;
 
 /**
- * Whole-image structure overlay for the alternate variant: darkens the exposed
- * tab strip (back − front) so a full-span image, pattern or material still
- * reads as a tab behind a front instead of one merged slab.
+ * Graded alpha mask for a full-span IMAGE fill on the alternate variant: the
+ * back tab is carried at {@link BD_TAB_OPACITY} and the front is opaque, so the
+ * photo picks up the same half-strength tab the color render paints instead of
+ * covering it as one solid slab. The front is drawn over the tab, so the overlap
+ * composites back to 1. (Material and pattern keep the plain opaque fill mask.)
  */
-function beautydreamStructureOverlay(): string {
-  const darken = `<linearGradient id="bdvg" x1="0" y1="10" x2="0" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#000000" stop-opacity="0.34"/><stop offset="1" stop-color="#000000" stop-opacity="0.16"/></linearGradient>`;
-  const mask = `<mask id="bdvm"><path d="${BD_ALT_BACK}" fill="white"/><path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="black"/></mask>`;
-  return `${SVG_OPEN}<defs>${darken}${mask}</defs><rect width="256" height="256" fill="url(#bdvg)" mask="url(#bdvm)"/></svg>`;
-}
+const BD_ALT_IMAGE_MASK =
+  `${SVG_OPEN}<path d="${BD_ALT_BACK}" fill="#ffffff" opacity="${BD_TAB_OPACITY}"/>` +
+  `<path fill-rule="evenodd" clip-rule="evenodd" d="${BD_ALT_FRONT}" fill="#ffffff"/></svg>`;
 
 export const BASE_SHAPES_DEF: BaseShapeDef[] = [
   {
@@ -2470,6 +2470,9 @@ export function getBaseShapeFillMask(doc: FolderDocument): string {
  */
 export function getImageFillMask(doc: FolderDocument): string {
   if (isFluent(findShape(doc.baseShape).id) && !isFlatTela(doc.fluentVariant)) return FLU_IMAGE_MASK;
+  if (findShape(doc.baseShape).id === "beautydream" && isBeautydreamAlt(doc.beautydreamVariant)) {
+    return BD_ALT_IMAGE_MASK;
+  }
   return getBaseShapeFillMask(doc);
 }
 
@@ -2502,7 +2505,9 @@ export function buildBaseShapeOverlaySvg(baseShapeId: string, variant?: string):
   if (id === "papirus") return papirusStructureOverlay();
   if (id === "slot-plasma") return slotPlasmaStructureOverlay();
   if (id === "candy") return candyStructureOverlay(isFlatCandy(variant));
-  if (id === "beautydream") return isBeautydreamAlt(variant) ? beautydreamStructureOverlay() : null;
+  // Beautydream needs no shading overlay: the tab reads as a tab because the
+  // image fill mask carries it at half alpha, exactly like the color render.
+  if (id === "beautydream") return null;
   if (isFluent(id)) return fluStructureOverlay(variant);
   return null;
 }

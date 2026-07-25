@@ -7,6 +7,7 @@ import {
   buildBaseShapeSvg,
   buildFrontImageBackSvg,
   getBaseShapeFillMask,
+  getImageFillMask,
   getFrontMask,
   isFrontImage,
   shapeVariant,
@@ -99,10 +100,16 @@ describe("beautydream image / pattern / material span", () => {
     expect(tab.indexOf('#92bfdd')).toBeLessThan(tab.indexOf('#4488cc'));
   });
 
-  it("full-span fills get a tab-darkening overlay on the alternate only", () => {
-    const overlay = buildBaseShapeOverlaySvg("beautydream", "alternate")!;
-    expect(overlay).toContain('id="bdvm"');
-    expect(overlay).toContain('stop-opacity="0.34"');
+  it("a full-span image carries the tab at half alpha, like the color render", () => {
+    const img = { folderFillMode: "image" as const, windowsImageMode: "full" as const };
+    const mask = getImageFillMask(doc({ ...img, beautydreamVariant: "alternate" }));
+    // Tab at 0.5, front opaque and drawn over it (so the overlap composites to 1).
+    expect(mask).toContain('d="M185.311 47.2141H150.779C142.176 47.2709 134.009 43.4442 128.557 36.8026L117.185 21.0814C111.825 14.3814 103.658 10.5368 95.0681 10.6698H70.6553C26.8379 10.6698 10.6671 36.3861 10.6671 80.114L10.667 106.666C10.6126 111.864 101.319 74.5246 101.334 69.3332L127.966 60.306C138.667 63.9998 208 53.3332 185.311 47.2141Z" fill="#ffffff" opacity="0.5"');
+    expect(mask.indexOf("M185.311")).toBeLessThan(mask.indexOf("M231.63"));
+    // The one-piece base variant has no tab, so it keeps the plain opaque mask.
+    expect(getImageFillMask(doc(img))).not.toContain('opacity="0.5"');
+    // No shading overlay is needed on top — the half-alpha tab does the work.
+    expect(buildBaseShapeOverlaySvg("beautydream", "alternate")).toBeNull();
     expect(buildBaseShapeOverlaySvg("beautydream", "base")).toBeNull();
     // The full-span mask is the whole silhouette (tab + front).
     const fill = getBaseShapeFillMask(alt({ folderFillMode: "image" }));
