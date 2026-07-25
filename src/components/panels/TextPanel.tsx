@@ -123,6 +123,11 @@ function FitButton({ label, onClick }: { label?: string; onClick: () => void }) 
 function SelectedTextEditor({ el }: { el: TextElement }) {
   const updateElement = useDocumentStore((s) => s.updateElement);
   const setFontPreview = useUiStore((s) => s.setFontPreview);
+  // The preview must not outlive this editor: if the dropdown closes without a
+  // pointerleave (item unmounts under the cursor, panel swapped, element
+  // deselected) a stale font would re-apply the next time a text element is
+  // selected, and vanish again on deselect.
+  useEffect(() => () => setFontPreview(null), [setFontPreview]);
 
   return (
     <div className="space-y-4">
@@ -297,7 +302,6 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
         enabled={(el.stroke?.width ?? 0) > 0}
         width={el.stroke?.width ?? 2}
         color={el.stroke?.color ?? "#000000"}
-        position={el.stroke?.position ?? "outside"}
         widthMin={0.5}
         widthMax={8}
         widthStep={0.5}
@@ -310,7 +314,6 @@ function SelectedTextEditor({ el }: { el: TextElement }) {
             stroke: {
               width: patch.width ?? el.stroke?.width ?? 2,
               color: patch.color ?? el.stroke?.color ?? "#000000",
-              position: patch.position ?? el.stroke?.position ?? "outside",
             },
           });
         }}

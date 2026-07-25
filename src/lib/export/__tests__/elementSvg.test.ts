@@ -23,16 +23,16 @@ describe("buildShapeSvg", () => {
   // The reference case, in element pixels: a 5x5 square with a 2-wide stroke.
   // The path always sits ON the element box, so the fill core stays 5x5 for
   // outside, and the box only grows by what the stroke adds beyond it.
-  const square = (position: "outside" | "center" | "inside") => {
+  const square = () => {
     const el = createShapeElement("rect");
     el.borderRadius = 0;
     // viewBox is 100 wide and the element is 5px, so width 40 == 2 element px.
-    el.stroke = { color: "#000000", enabled: true, width: 40, position };
+    el.stroke = { color: "#000000", enabled: true, width: 40 };
     return el;
   };
 
-  it("grows the box by the full width for an outside stroke (5x5 -> 9x9)", () => {
-    const svg = buildShapeSvg(square("outside"), 5, 5);
+  it("grows the box by the full width (strokes are always outside: 5x5 -> 9x9)", () => {
+    const svg = buildShapeSvg(square(), 5, 5);
     // Overflow 40 units == 2px on each side ⇒ 5 + 2 + 2 = 9.
     expect(svg).toContain('width="9" height="9"');
     expect(svg).toContain('viewBox="-40 -40 180 180"');
@@ -43,36 +43,16 @@ describe("buildShapeSvg", () => {
     expect(svg).toContain('x="0" y="0" width="100" height="100"');
   });
 
-  it("grows the box by half the width for a center stroke (5x5 -> 7x7)", () => {
-    const svg = buildShapeSvg(square("center"), 5, 5);
-    // Overflow 20 units == 1px on each side ⇒ 5 + 1 + 1 = 7.
-    expect(svg).toContain('width="7" height="7"');
-    expect(svg).toContain('viewBox="-20 -20 140 140"');
-    expect(svg).toContain('stroke-width="40"'); // straddles: 1px in, 1px out
-    expect(svg).not.toContain("mask=");
-    expect(svg).not.toContain("clip-path=");
-  });
-
-  it("leaves the box unchanged for an inside stroke (5x5 stays 5x5)", () => {
-    const svg = buildShapeSvg(square("inside"), 5, 5);
-    expect(svg).toContain('width="5" height="5"');
-    expect(svg).toContain('viewBox="0 0 100 100"');
-    // Double width clipped to the shape ⇒ 2px eaten off the core, none outside.
-    expect(svg).toContain('stroke-width="80"');
-    expect(svg).toContain("clip-path=");
-  });
-
   it("paints fill and stroke as separate elements, not via paint-order", () => {
     const el = createShapeElement("rect");
     el.borderRadius = 12;
-    el.stroke = { color: "#000000", enabled: true, width: 4, position: "center" };
+    el.stroke = { color: "#000000", enabled: true, width: 4 };
     const svg = buildShapeSvg(el, 100, 100);
     expect(svg).toContain('rx="12"');
     expect(svg).not.toContain("paint-order");
     // An unfilled shape must still show a correctly-sized outside stroke, which
     // the old fill-covers-the-inner-half trick could not do.
     el.fill.enabled = false;
-    el.stroke.position = "outside";
     const unfilled = buildShapeSvg(el, 100, 100);
     expect(unfilled).toContain("mask=");
     expect(unfilled).not.toContain('fill="none" stroke="none"');
@@ -86,7 +66,7 @@ describe("buildShapeSvg", () => {
     expect(buildShapeSvg(el, 100, 100)).not.toContain("#8cf0a8");
 
     // With a stroke it is stroke-only: the fill element is still absent.
-    el.stroke = { color: "#000000", enabled: true, width: 4, position: "inside" };
+    el.stroke = { color: "#000000", enabled: true, width: 4 };
     const stroked = buildShapeSvg(el, 100, 100);
     expect(stroked).toContain('stroke="#000000"');
     expect(stroked).not.toContain("#8cf0a8");
@@ -101,15 +81,15 @@ describe("buildShapeSvg", () => {
     expect(svg).toContain("<linearGradient");
   });
 
-  it("clips inside strokes to the shape's own outline (not just viewBox edges)", () => {
-    // Rects touch all four viewBox edges, so viewBox clipping alone would mask
-    // an inside stroke; ellipses only touch at 4 tangent points, so the old
-    // implementation left a visible bleed around the rest of the circumference.
+  it("masks the stroke band to the outside half for every primitive", () => {
+    // Ellipses only touch the viewBox at 4 tangent points, so the mask (not the
+    // viewBox) is what keeps the inner half off the fill all the way round.
     const el = createShapeElement("ellipse");
-    el.stroke = { color: "#000000", enabled: true, width: 4, position: "inside" };
+    el.stroke = { color: "#000000", enabled: true, width: 4 };
     const svg = buildShapeSvg(el, 100, 100);
-    expect(svg).toContain("<clipPath");
-    expect(svg).toMatch(/clip-path="url\(#gsclip/);
+    expect(svg).toContain("<mask");
+    expect(svg).toMatch(/mask="url\(#gsmask/);
+    expect(svg).not.toContain("clip-path=");
   });
 
   it("renders the right primitive per shapeType", () => {

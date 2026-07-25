@@ -11,6 +11,7 @@ import { GRADIENT_PRESETS } from "@/data/gradientPresets";
 import { gradientToCss } from "@/lib/color";
 import { createId } from "@/lib/id";
 import { usePresetsStore } from "@/store/presetsStore";
+import { notify } from "@/store/toastStore";
 import type { GradientStop } from "@/types/gradient";
 import { cn } from "@/lib/utils";
 
@@ -79,10 +80,14 @@ export function PresetRow({
     saveGradient,
     removeSavedGradient,
     hideGradientPreset,
+    restoreGradientPresets,
   } = usePresetsStore();
 
   const cloneStops = (stops: GradientStop[]) =>
     stops.map((s) => ({ ...s, id: createId() }));
+
+  /** Every swatch removal confirms with an Undo — they are easy to hit by accident. */
+  const removed = (what: string, undo: () => void) => notify.undoable(`Removed ${what}`, undo);
 
   const chips: ReactNode[] = [
     ...defaultPresets.map((hex) => (
@@ -91,7 +96,7 @@ export function PresetRow({
         title={hex}
         background={hex}
         onPick={() => onPickSolid(hex)}
-        onRemove={() => removeDefaultPreset(hex)}
+        onRemove={() => removed(hex, removeDefaultPreset(hex))}
       />
     )),
     ...customPresets.map((hex) => (
@@ -100,7 +105,7 @@ export function PresetRow({
         title={hex}
         background={hex}
         onPick={() => onPickSolid(hex)}
-        onRemove={() => removeCustomPreset(hex)}
+        onRemove={() => removed(hex, removeCustomPreset(hex))}
       />
     )),
   ];
@@ -114,7 +119,7 @@ export function PresetRow({
             title={preset.name}
             background={gradientToCss({ kind: "linear", angle: 135, stops: preset.stops })}
             onPick={() => onPickGradientStops(cloneStops(preset.stops))}
-            onRemove={() => hideGradientPreset(i)}
+            onRemove={() => removed(`${preset.name} preset`, hideGradientPreset(i))}
             removeLabel={`Hide ${preset.name} preset`}
           />
         ),
@@ -125,7 +130,7 @@ export function PresetRow({
           title="Saved gradient"
           background={gradientToCss({ kind: "linear", angle: 135, stops: saved.stops })}
           onPick={() => onPickGradientStops(cloneStops(saved.stops))}
-          onRemove={() => removeSavedGradient(saved.id)}
+          onRemove={() => removed("saved gradient", removeSavedGradient(saved.id))}
         />
       )),
     );
@@ -136,6 +141,17 @@ export function PresetRow({
   return (
     <div className="space-y-2">
       <div className={cn("flex flex-wrap gap-1.5")}>{chips}</div>
+      {onPickGradientStops && hiddenGradPresets.length > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-full text-xs"
+          onClick={restoreGradientPresets}
+        >
+          Restore {hiddenGradPresets.length} hidden preset
+          {hiddenGradPresets.length > 1 ? "s" : ""}
+        </Button>
+      )}
       {canSave && (
         <Button
           variant="outline"

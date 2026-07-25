@@ -12,18 +12,25 @@ import { create } from "zustand";
 
 export type ToastKind = "info" | "success" | "error";
 
+/** Inline call-to-action button (e.g. "Undo"); running it dismisses the toast. */
+export interface ToastAction {
+  label: string;
+  run: () => void;
+}
+
 export interface Toast {
   id: number;
   kind: ToastKind;
   message: string;
   /** Optional second line with remediation guidance. */
   detail?: string;
+  action?: ToastAction;
 }
 
 export interface ToastStore {
   toasts: Toast[];
   /** Append a toast and return its id (so callers can dismiss it early). */
-  push: (kind: ToastKind, message: string, detail?: string) => number;
+  push: (kind: ToastKind, message: string, detail?: string, action?: ToastAction) => number;
   dismiss: (id: number) => void;
   clear: () => void;
 }
@@ -32,9 +39,9 @@ let nextId = 0;
 
 export const useToastStore = create<ToastStore>()((set) => ({
   toasts: [],
-  push: (kind, message, detail) => {
+  push: (kind, message, detail, action) => {
     const id = ++nextId;
-    set((s) => ({ toasts: [...s.toasts, { id, kind, message, detail }] }));
+    set((s) => ({ toasts: [...s.toasts, { id, kind, message, detail, action }] }));
     return id;
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
@@ -43,10 +50,13 @@ export const useToastStore = create<ToastStore>()((set) => ({
 
 /** Fire-and-forget notification API usable from anywhere (no hook required). */
 export const notify = {
-  info: (message: string, detail?: string) =>
-    useToastStore.getState().push("info", message, detail),
-  success: (message: string, detail?: string) =>
-    useToastStore.getState().push("success", message, detail),
-  error: (message: string, detail?: string) =>
-    useToastStore.getState().push("error", message, detail),
+  info: (message: string, detail?: string, action?: ToastAction) =>
+    useToastStore.getState().push("info", message, detail, action),
+  success: (message: string, detail?: string, action?: ToastAction) =>
+    useToastStore.getState().push("success", message, detail, action),
+  error: (message: string, detail?: string, action?: ToastAction) =>
+    useToastStore.getState().push("error", message, detail, action),
+  /** Removal confirmation with an inline Undo (preset/swatch deletions). */
+  undoable: (message: string, undo: () => void) =>
+    useToastStore.getState().push("info", message, undefined, { label: "Undo", run: undo }),
 };

@@ -72,10 +72,13 @@ export function ExportDialog() {
   const [name, setName] = useState("folder-icon");
   const [busy, setBusy] = useState(false);
 
-  // ICO is capped at 256px (EXP-08): restrict single-mode sizes and, in batch,
-  // drop/disable any size above 256 while ICO is one of the chosen formats.
+  // ICO is capped at 256px (EXP-08). In batch the cap no longer constrains the
+  // picker: ICO/ICNS always pack their own full ladder, so the chosen sizes only
+  // decide which PNG/SVG files land in the zip.
   const sizeOptions = format === "ico" ? SIZES.filter((s) => Number(s) <= ICO_MAX) : SIZES;
-  const icoInBatch = batchFormats.includes("ico");
+  const multiResInBatch = batchFormats.some(
+    (f) => f === "ico" || f === "icns",
+  );
 
   function selectFormat(v: ExportFormat) {
     setFormat(v);
@@ -85,7 +88,6 @@ export function ExportDialog() {
   function selectBatchFormats(v: string[]) {
     if (!v.length) return; // keep at least one format
     setBatchFormats(v);
-    if (v.includes("ico")) setBatchSizes((prev) => prev.filter((s) => Number(s) <= ICO_MAX));
   }
 
   async function run(task: () => Promise<void>) {
@@ -245,15 +247,17 @@ export function ExportDialog() {
                   <ToggleGroupItem
                     key={s}
                     value={String(s)}
-                    disabled={icoInBatch && s > ICO_MAX}
                     className="flex-1 text-xs"
                   >
                     {s}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              {icoInBatch && (
-                <span className="text-[11px] text-muted-foreground">ICO supports up to 256 px</span>
+              {multiResInBatch && (
+                <span className="text-[11px] text-muted-foreground">
+                  .ico / .icns always pack every resolution — sizes above only pick the
+                  PNG/SVG files in the zip
+                </span>
               )}
             </div>
             <div className="space-y-1.5">

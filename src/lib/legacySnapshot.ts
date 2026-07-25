@@ -99,7 +99,6 @@ function normalizeElement(e: Legacy, index: number): FolderElement | null {
         color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
         enabled: e.strokeEnabled === true,
         width: Number(e.strokeWidth) || 3,
-        position: e.strokePosition ?? "center",
       },
       borderRadius: Number(e.borderRadius) || 0,
       dropShadow: normalizeShadow(e.dropShadow),
@@ -126,7 +125,6 @@ function normalizeElement(e: Legacy, index: number): FolderElement | null {
           ? {
             color: typeof e.strokeColor === "string" ? e.strokeColor : "#000000",
             width: Number(e.strokeWidth),
-            position: e.strokePosition ?? "outside",
           }
           : undefined,
       shadow: normalizeShadow(e.shadow),

@@ -16,7 +16,7 @@ import { TransformFields } from "@/components/controls/TransformFields";
 import { CDW, CDH } from "@/lib/constants";
 import { useDocumentStore } from "@/store/documentStore";
 import { useSelectionStore } from "@/store/selectionStore";
-import type { ShapeElement, ShapeType, StrokePosition } from "@/types/element";
+import type { ShapeElement, ShapeType } from "@/types/element";
 import { PanelHeader } from "./PanelHeader";
 
 const SHAPE_TYPES: Array<{ id: ShapeType; name: string; icon: ReactNode }> = [
@@ -112,29 +112,6 @@ function SelectedShapeEditor({ el }: { el: ShapeElement }) {
       >
         {el.stroke.enabled && (
           <div className="space-y-2.5">
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              className="w-full"
-              value={el.stroke.position}
-              onValueChange={(v) => {
-                if (v)
-                  updateElement(el.id, {
-                    stroke: { ...el.stroke, position: v as StrokePosition },
-                  });
-              }}
-            >
-              <ToggleGroupItem value="outside" className="flex-1 text-xs">
-                Outside
-              </ToggleGroupItem>
-              <ToggleGroupItem value="center" className="flex-1 text-xs">
-                Center
-              </ToggleGroupItem>
-              <ToggleGroupItem value="inside" className="flex-1 text-xs">
-                Inside
-              </ToggleGroupItem>
-            </ToggleGroup>
             <div className="flex items-end gap-2">
               <SliderField
                 label="Width"

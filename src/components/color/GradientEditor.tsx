@@ -14,6 +14,7 @@ import { FlipHorizontal2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SliderField } from "@/components/controls/SliderField";
+import { NumberField } from "@/components/controls/NumberField";
 import { getHex, gradientToCss, hexToHsv } from "@/lib/color";
 import { createId } from "@/lib/id";
 import type { Gradient, GradientStop } from "@/types/gradient";
@@ -67,6 +68,20 @@ export function GradientEditor({
     return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   };
 
+  /**
+   * Edge stops (lowest/highest position) anchor the ramp — removing one would
+   * leave the gradient undefined past the survivor, so only interior stops are
+   * removable (and never below the two a gradient needs).
+   */
+  const removable = (stop: GradientStop | undefined): boolean =>
+    !!stop && value.stops.length > 2 && stop !== sorted[0] && stop !== sorted[sorted.length - 1];
+
+  const removeStop = (id: string) => {
+    const stops = value.stops.filter((s) => s.id !== id);
+    onChange({ ...value, stops });
+    setSelectedId([...stops].sort((a, b) => a.pos - b.pos)[0]?.id ?? "");
+  };
+
   const addStopAt = (clientX: number) => {
     const pos = posFromClientX(clientX);
     const stop: GradientStop = { id: createId(), ...interpolateStop(value.stops, pos) };
@@ -107,6 +122,15 @@ export function GradientEditor({
             }}
             onPointerMove={(e) => {
               if (e.buttons & 1) updateStop(stop.id, { pos: posFromClientX(e.clientX) });
+            }}
+            // The handle is focused by the pointer-down above, so Delete/Backspace
+            // reaches it here. preventDefault keeps the window-level shortcut from
+            // also deleting the selected *element* (it skips handled events).
+            onKeyDown={(e) => {
+              if (e.key !== "Delete" && e.key !== "Backspace") return;
+              if (!removable(stop)) return;
+              e.preventDefault();
+              removeStop(stop.id);
             }}
           />
         ))}
@@ -152,13 +176,8 @@ export function GradientEditor({
           size="icon"
           className="size-7"
           aria-label="Delete selected stop"
-          disabled={value.stops.length <= 2 || !selected}
-          onClick={() => {
-            if (!selected) return;
-            const stops = value.stops.filter((s) => s.id !== selected.id);
-            onChange({ ...value, stops });
-            setSelectedId([...stops].sort((a, b) => a.pos - b.pos)[0]?.id ?? "");
-          }}
+          disabled={!removable(selected)}
+          onClick={() => selected && removeStop(selected.id)}
         >
           <Trash2 className="size-3.5" />
         </Button>
@@ -177,6 +196,15 @@ export function GradientEditor({
 
       {selected && (
         <>
+          {/* Typed position: dragging a handle can't land on an exact 25% / 75%. */}
+          <NumberField
+            label="Stop position (%)"
+            value={Math.round(selected.pos * 1000) / 10}
+            min={0}
+            max={100}
+            step={1}
+            onCommit={(v) => updateStop(selected.id, { pos: v / 100 })}
+          />
           <div className="fs-colorful" {...previewDrag}>
             <HsvColorPicker
               color={{ h: selected.hue, s: selected.sat * 100, v: selected.bri * 100 }}

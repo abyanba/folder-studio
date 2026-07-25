@@ -337,27 +337,15 @@ function renderText(
   }
 
   if (el.stroke && el.stroke.width > 0) {
-    const pf = el.stroke.position || "outside";
-    // Only "outside" doubles (its inner half is covered by the fill below).
-    // "center" and "inside" use the width as-is; "inside" can't be clipped to
-    // the glyph outline here, so it renders like "center" rather than at 2×.
-    ctx.lineWidth = el.stroke.width * sx * (pf === "outside" ? 2 : 1);
+    // Doubled and stroked UNDER the fill: the fill covering the inner half is
+    // what turns the doubled band into a `width`-wide band outside the glyph.
+    ctx.lineWidth = el.stroke.width * sx * 2;
     ctx.strokeStyle = el.stroke.color || "#000";
     ctx.lineJoin = "round";
     lines.forEach((line, li) => {
       const y = lineY(layout, li);
-      if (pf === "outside") {
-        // Stroke under the fill: the fill covering the inner half is what turns
-        // the doubled band into a `width`-wide band sitting outside the glyph.
-        ctx.strokeText(line, tx, y);
-        fillLine(line, y);
-      } else {
-        // "center"/"inside" straddle the glyph edge, so they paint OVER the
-        // fill — under it, the fill would eat the inner half and leave a
-        // half-width outside stroke instead.
-        fillLine(line, y);
-        ctx.strokeText(line, tx, y);
-      }
+      ctx.strokeText(line, tx, y);
+      fillLine(line, y);
     });
   } else {
     lines.forEach((line, li) => fillLine(line, lineY(layout, li)));

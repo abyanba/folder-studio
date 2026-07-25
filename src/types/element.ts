@@ -64,7 +64,6 @@ export interface BaseElement {
   material?: ElementMaterial;
 }
 
-export type StrokePosition = "center" | "inside" | "outside";
 export type LineCap = "round" | "butt" | "square";
 
 export interface DropShadow {
@@ -96,12 +95,8 @@ export interface ShapeElement extends BaseElement {
   type: "shape";
   shapeType: ShapeType;
   fill: { color: ColorValue; enabled: boolean };
-  stroke: {
-    color: string;
-    enabled: boolean;
-    width: number;
-    position: StrokePosition;
-  };
+  /** Always painted outside the fill boundary (inside/center were removed). */
+  stroke: { color: string; enabled: boolean; width: number };
   borderRadius: number;
   dropShadow?: DropShadow;
   /** Inner shadow, cast inside the shape's own outline (independent of dropShadow). */
@@ -125,7 +120,7 @@ export interface TextElement extends BaseElement {
   underline: boolean;
   /** Clip glyphs to the element box. Default (absent/false) lets them overflow. */
   clip?: boolean;
-  stroke?: { color: string; width: number; position: StrokePosition };
+  stroke?: { color: string; width: number };
   shadow?: DropShadow;
   /** Inner shadow, cast inside the glyph outlines (independent of `shadow`). */
   innerShadow?: DropShadow;

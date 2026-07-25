@@ -154,7 +154,21 @@ export const useUiStore = create<UiStore>()((set) => ({
   shapeCursorPos: null,
   shapeDragPoint: null,
 
-  setActivePanel: (panel) => set({ activePanel: panel }),
+  // Leaving the draw panel exits the draw tool: the canvas kept painting while
+  // an unrelated panel was open, which read as the tool being stuck on.
+  setActivePanel: (panel) =>
+    set(
+      panel === "draw"
+        ? { activePanel: panel }
+        : {
+            activePanel: panel,
+            activeTool: null,
+            currentDraw: null,
+            shapePoints: [],
+            shapeCursorPos: null,
+            shapeDragPoint: null,
+          },
+    ),
   setEditingTextId: (id) => set({ editingTextId: id }),
   setEditingLayerName: (id) => set({ editingLayerName: id }),
   setContextMenu: (menu) => set({ contextMenu: menu }),

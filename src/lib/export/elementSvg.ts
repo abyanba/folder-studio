@@ -247,10 +247,7 @@ function shapeGeometry(el: ShapeElement, off: number): string {
  * ring is cropped — see {@link shapeStrokePadPx}.
  */
 export function shapeStrokeOverflow(el: ShapeElement): number {
-  if (!el.stroke.enabled || el.stroke.width <= 0) return 0;
-  if (el.stroke.position === "outside") return el.stroke.width;
-  if (el.stroke.position === "center") return el.stroke.width / 2;
-  return 0;
+  return el.stroke.enabled && el.stroke.width > 0 ? el.stroke.width : 0;
 }
 
 /** {@link shapeStrokeOverflow} converted to element pixels on each axis. */
@@ -266,7 +263,6 @@ export function shapeStrokePadPx(
 /** Build the SVG for a shape element (rect/ellipse/triangle/star/hexagon). */
 export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string {
   const sw = el.stroke.enabled ? el.stroke.width : 0;
-  const sp = el.stroke.position;
   const linejoinAttr = el.shapeType === "rect" || el.shapeType === "ellipse" ? "" : ` stroke-linejoin="round"`;
 
   // The viewBox grows by the outward reach of the stroke so the ring isn't
@@ -295,24 +291,14 @@ export function buildShapeSvg(el: ShapeElement, ew: number, eh: number): string 
 
   let strokeEl = "";
   if (sw > 0 && el.stroke.enabled) {
-    // "outside"/"inside" stroke a double-width band centred on the path and then
-    // discard the half that falls on the wrong side, which is what makes the
-    // visible band exactly `sw` wide on the intended side.
-    const bandW = sp === "center" ? sw : sw * 2;
-    let clipAttr = "";
-    if (sp === "inside") {
-      const clipId = "gsclip" + el.id;
-      defs += `<clipPath id="${clipId}">${shapeGeometry(el, 0)}/></clipPath>`;
-      clipAttr = ` clip-path="url(#${clipId})"`;
-    } else if (sp === "outside") {
-      const maskId = "gsmask" + el.id;
-      defs +=
-        `<mask id="${maskId}" maskUnits="userSpaceOnUse" x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}">` +
-        `<rect x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}" fill="#fff"/>` +
-        `${shapeGeometry(el, 0)} fill="#000"/></mask>`;
-      clipAttr = ` mask="url(#${maskId})"`;
-    }
-    strokeEl = `${shapeGeometry(el, 0)} fill="none" stroke="${el.stroke.color}" stroke-width="${bandW}"${linejoinAttr}${clipAttr}/>`;
+    // A double-width band centred on the path, masked to drop the inner half:
+    // what is left is exactly `sw` wide and sits wholly outside the geometry.
+    const maskId = "gsmask" + el.id;
+    defs +=
+      `<mask id="${maskId}" maskUnits="userSpaceOnUse" x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}">` +
+      `<rect x="${vbMin}" y="${vbMin}" width="${vbSize}" height="${vbSize}" fill="#fff"/>` +
+      `${shapeGeometry(el, 0)} fill="#000"/></mask>`;
+    strokeEl = `${shapeGeometry(el, 0)} fill="none" stroke="${el.stroke.color}" stroke-width="${sw * 2}"${linejoinAttr} mask="url(#${maskId})"/>`;
   }
 
   let groupOpen = "<g>";

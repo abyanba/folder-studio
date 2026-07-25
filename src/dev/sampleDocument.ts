@@ -53,7 +53,7 @@ export function buildSampleDocument(): FolderDocument {
   shape.width = 90;
   shape.height = 90;
   shape.fill = { color: fillGradient, enabled: true };
-  shape.stroke = { color: "#12151a", enabled: true, width: 3, position: "outside" };
+  shape.stroke = { color: "#12151a", enabled: true, width: 3 };
 
   const icon = createIconElement({
     iconName: "star",

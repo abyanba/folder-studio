@@ -86,11 +86,12 @@ describe("encodeIco", () => {
 });
 
 describe("encodeIcoMulti", () => {
-  it("packs N resolutions with a shared directory and sequential offsets", () => {
-    // Passed largest-first to prove it sorts ascending internally.
+  it("packs N resolutions largest-first with sequential offsets", () => {
+    // Passed smallest-first to prove it sorts descending internally (the order
+    // Windows' own icons use, so viewers report the largest entry).
     const buf = encodeIcoMulti([
-      { size: 2, pixels: make2x2() },
       { size: 1, pixels: make1x1() },
+      { size: 2, pixels: make2x2() },
     ]);
     const dv = new DataView(buf);
     expect(dv.getUint16(4, true)).toBe(2); // image count
@@ -99,18 +100,28 @@ describe("encodeIcoMulti", () => {
     const dib1 = 40 + 1 * 1 * 4 + maskSize(1); // size-1 DIB
     const dib2 = 40 + 2 * 2 * 4 + maskSize(2); // size-2 DIB
 
-    // Entry 0 = smallest (size 1), placed right after the directory.
-    expect(dv.getUint8(6)).toBe(1);
-    expect(dv.getUint32(6 + 8, true)).toBe(dib1);
+    // Entry 0 = largest (size 2), placed right after the directory.
+    expect(dv.getUint8(6)).toBe(2);
+    expect(dv.getUint32(6 + 8, true)).toBe(dib2);
     expect(dv.getUint32(6 + 12, true)).toBe(dirSize);
 
-    // Entry 1 = size 2, offset follows the first image's bytes.
+    // Entry 1 = size 1, offset follows the first image's bytes.
     const e1 = 6 + 16;
-    expect(dv.getUint8(e1)).toBe(2);
-    expect(dv.getUint32(e1 + 8, true)).toBe(dib2);
-    expect(dv.getUint32(e1 + 12, true)).toBe(dirSize + dib1);
+    expect(dv.getUint8(e1)).toBe(1);
+    expect(dv.getUint32(e1 + 8, true)).toBe(dib1);
+    expect(dv.getUint32(e1 + 12, true)).toBe(dirSize + dib2);
 
     expect(buf.byteLength).toBe(dirSize + dib1 + dib2);
+  });
+
+  it("stores a supplied PNG verbatim instead of the raw BMP", () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+    const buf = encodeIcoMulti([{ size: 2, pixels: make2x2(), png }]);
+    const dv = new DataView(buf);
+    const dirSize = 6 + 16;
+    expect(dv.getUint32(6 + 8, true)).toBe(png.length); // resource size = PNG size
+    expect(buf.byteLength).toBe(dirSize + png.length);
+    expect(new Uint8Array(buf).slice(dirSize)).toEqual(png);
   });
 
   it("is byte-identical to encodeIco for a single image", () => {

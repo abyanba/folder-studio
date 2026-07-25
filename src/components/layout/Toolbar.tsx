@@ -54,7 +54,13 @@ export function Toolbar() {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1 border-b px-4">
+    <header
+      className="flex h-14 shrink-0 items-center gap-1 border-b px-4"
+      // Any toolbar action (undo, export, save…) exits the draw tool — capture
+      // so it lands before the button's own handler, and one handler here beats
+      // remembering to add it to every button added later.
+      onPointerDownCapture={() => useUiStore.getState().setActiveTool(null)}
+    >
       <span className="font-semibold tracking-tight">Folder Studio</span>
       <Separator orientation="vertical" className="mx-2 !h-6" />
 

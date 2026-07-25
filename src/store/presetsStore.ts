@@ -60,13 +60,23 @@ export interface PresetsStore {
   /** Indices into GRADIENT_PRESETS the user has hidden. */
   hiddenGradPresets: number[];
 
-  removeDefaultPreset: (hex: string) => void;
+  /**
+   * Removals return the function that puts the swatch back (order included),
+   * so the caller can hand it straight to an Undo toast. Cheaper than four
+   * bespoke restore actions, and each one is exact by construction: it just
+   * reinstates the array it replaced.
+   */
+  removeDefaultPreset: (hex: string) => UndoRemoval;
   saveCustomPreset: (hex: string) => void;
-  removeCustomPreset: (hex: string) => void;
+  removeCustomPreset: (hex: string) => UndoRemoval;
   saveGradient: (stops: GradientStop[]) => void;
-  removeSavedGradient: (id: number) => void;
-  hideGradientPreset: (index: number) => void;
+  removeSavedGradient: (id: number) => UndoRemoval;
+  hideGradientPreset: (index: number) => UndoRemoval;
+  /** Unhide every built-in gradient preset (the way back from an old deletion). */
+  restoreGradientPresets: () => void;
 }
+
+export type UndoRemoval = () => void;
 
 export const usePresetsStore = create<PresetsStore>()((set, get) => ({
   defaultPresets: load(KEYS.defaultPresets, [...DEFAULT_PRESETS]),
@@ -75,9 +85,14 @@ export const usePresetsStore = create<PresetsStore>()((set, get) => ({
   hiddenGradPresets: load(KEYS.hiddenGradPresets, []),
 
   removeDefaultPreset: (hex) => {
-    const defaultPresets = get().defaultPresets.filter((p) => p !== hex);
+    const before = get().defaultPresets;
+    const defaultPresets = before.filter((p) => p !== hex);
     set({ defaultPresets });
     save(KEYS.defaultPresets, defaultPresets);
+    return () => {
+      set({ defaultPresets: before });
+      save(KEYS.defaultPresets, before);
+    };
   },
 
   saveCustomPreset: (hex) => {
@@ -90,9 +105,14 @@ export const usePresetsStore = create<PresetsStore>()((set, get) => ({
   },
 
   removeCustomPreset: (hex) => {
-    const customPresets = get().customPresets.filter((p) => p !== hex);
+    const before = get().customPresets;
+    const customPresets = before.filter((p) => p !== hex);
     set({ customPresets });
     save(KEYS.customPresets, customPresets);
+    return () => {
+      set({ customPresets: before });
+      save(KEYS.customPresets, before);
+    };
   },
 
   saveGradient: (stops) => {
@@ -109,15 +129,30 @@ export const usePresetsStore = create<PresetsStore>()((set, get) => ({
   },
 
   removeSavedGradient: (id) => {
-    const savedGradients = get().savedGradients.filter((g) => g.id !== id);
+    const before = get().savedGradients;
+    const savedGradients = before.filter((g) => g.id !== id);
     set({ savedGradients });
     save(KEYS.savedGradients, savedGradients);
+    return () => {
+      set({ savedGradients: before });
+      save(KEYS.savedGradients, before);
+    };
   },
 
   hideGradientPreset: (index) => {
-    if (get().hiddenGradPresets.includes(index)) return;
-    const hiddenGradPresets = [...get().hiddenGradPresets, index];
+    const before = get().hiddenGradPresets;
+    if (before.includes(index)) return () => {};
+    const hiddenGradPresets = [...before, index];
     set({ hiddenGradPresets });
     save(KEYS.hiddenGradPresets, hiddenGradPresets);
+    return () => {
+      set({ hiddenGradPresets: before });
+      save(KEYS.hiddenGradPresets, before);
+    };
+  },
+
+  restoreGradientPresets: () => {
+    set({ hiddenGradPresets: [] });
+    save(KEYS.hiddenGradPresets, []);
   },
 }));

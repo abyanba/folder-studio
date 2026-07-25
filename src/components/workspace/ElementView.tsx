@@ -166,16 +166,11 @@ function TextContent({ el }: { el: TextElement }) {
     backgroundClip: grad ? "text" : "unset",
     WebkitTextFillColor: grad ? "transparent" : "unset",
     color: grad ? "transparent" : (el.color as string),
-    // Only "outside" doubles the width: the fill painted over the inner half
-    // then leaves a full-width band outside the glyph. "center" and "inside"
-    // use the width as-is — a true inside-only stroke would need the stroke
-    // clipped to the glyph outline, which -webkit-text-stroke can't do, so
-    // "inside" renders like "center" rather than at double thickness.
+    // Doubled width with the fill painted over its inner half — what is left
+    // is a band exactly `width` wide sitting outside the glyph.
     WebkitTextStroke:
-      el.stroke && el.stroke.width > 0
-        ? `${el.stroke.width * (el.stroke.position === "outside" ? 2 : 1)}px ${el.stroke.color}`
-        : "unset",
-    paintOrder: el.stroke?.position === "outside" ? "stroke fill" : "fill stroke",
+      el.stroke && el.stroke.width > 0 ? `${el.stroke.width * 2}px ${el.stroke.color}` : "unset",
+    paintOrder: "stroke fill",
     // `text-shadow` paints in the text layer, which is ABOVE the background
     // layer — and gradient text lives in the background (background-clip:text),
     // so the shadow landed on top of the glyphs. `filter: drop-shadow` applies

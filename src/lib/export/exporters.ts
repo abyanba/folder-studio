@@ -11,7 +11,7 @@ import type { FolderDocument } from "@/types/document";
 import type { TextElement } from "@/types/element";
 import { buildExportCanvas } from "./renderCanvas";
 import type { RenderDeps } from "./renderCanvas";
-import { encodeIco, encodeIcoMulti } from "./ico";
+import { encodeIcoMulti } from "./ico";
 import type { IcoImage } from "./ico";
 import { encodeIcns, isIcnsSize } from "./icns";
 import type { IcnsImage } from "./icns";
@@ -22,8 +22,12 @@ import { collectFontFaceCss } from "./svgFonts";
 
 export type ExportFormat = "png" | "svg" | "ico" | "icns";
 
-/** Standard multi-resolution set packed into an .ico (all ≤256, the ICO cap). */
-export const ICO_SIZES = [16, 32, 48, 64, 128, 256];
+/**
+ * Standard multi-resolution set packed into an .ico (all ≤256, the ICO cap).
+ * Mirrors the ladder in Windows' own folder icons — 20/24/40 are the 125%,
+ * 150% and 250% DPI scalings of 16 and 32, which Explorer resamples without.
+ */
+export const ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256];
 
 /** Standard multi-resolution set packed into an .icns (macOS iconset sizes). */
 export const ICNS_EXPORT_SIZES = [16, 32, 128, 256, 512];
@@ -77,8 +81,18 @@ function icoPixels(canvas: HTMLCanvasElement, size: number): Uint8ClampedArray {
   return ctx.getImageData(0, 0, size, size).data;
 }
 
-function icoBytes(canvas: HTMLCanvasElement, size: number): ArrayBuffer {
-  return encodeIco(icoPixels(canvas, size), size);
+/**
+ * Large entries are stored PNG-compressed (see {@link IcoImage.png}): a raw
+ * 256px BMP is ~264 KB on its own, which is what made a one-size .ico four
+ * times the size of a Windows stock icon carrying eight. Small sizes stay BMP
+ * — they compress to almost nothing anyway, and BMP is the universally read
+ * form for the 16-48px entries Explorer uses most.
+ */
+const ICO_PNG_MIN_SIZE = 128;
+
+async function icoImage(canvas: HTMLCanvasElement, size: number): Promise<IcoImage> {
+  const pixels = icoPixels(canvas, size);
+  return size >= ICO_PNG_MIN_SIZE ? { size, pixels, png: await pngBytes(canvas) } : { size, pixels };
 }
 
 export async function exportPng(
@@ -117,7 +131,8 @@ export async function exportIco(
   deps: RenderDeps,
 ): Promise<ExportBlob> {
   const { canvas, skipped } = await buildExportCanvas(doc, size, deps);
-  return { blob: new Blob([icoBytes(canvas, size)], { type: "image/x-icon" }), skipped };
+  const bytes = encodeIcoMulti([await icoImage(canvas, size)]);
+  return { blob: new Blob([bytes], { type: "image/x-icon" }), skipped };
 }
 
 /**
@@ -136,7 +151,7 @@ export async function exportIcoMulti(
   for (const size of use) {
     const { canvas, skipped: sk } = await buildExportCanvas(doc, size, deps);
     sk.forEach((s) => skipped.add(s));
-    images.push({ size, pixels: icoPixels(canvas, size) });
+    images.push(await icoImage(canvas, size));
   }
   return { blob: new Blob([encodeIcoMulti(images)], { type: "image/x-icon" }), skipped: [...skipped] };
 }
@@ -199,21 +214,36 @@ export async function batchExportZip(
         bgImageSize: await measureBgImage(doc),
       }
     : null;
-  for (const size of sorted) {
+  // ICO/ICNS are single multi-resolution containers, so they always carry their
+  // own full ladder — the size checkboxes pick which PNG/SVG files land in the
+  // zip, not how many resolutions a Windows/macOS icon is worth. Sizes only one
+  // of the two needs still get rendered once and shared.
+  const render = [
+    ...new Set([
+      ...sorted,
+      ...(wantIco ? ICO_SIZES : []),
+      ...(wantIcns ? ICNS_EXPORT_SIZES : []),
+    ]),
+  ].sort((a, b) => a - b);
+  for (const size of render) {
     const result = await buildExportCanvas(doc, size, deps);
     result.skipped.forEach((s) => skipped.add(s));
     const canvas = result.canvas;
-    for (const fmt of formats) {
-      if (fmt === "png") {
-        zip.file(`folder-icon-${size}x${size}.png`, await canvasToBlob(canvas, "image/png"));
-      } else if (fmt === "svg" && svgDeps) {
-        const out = buildExportSvg(doc, size, svgDeps);
-        out.skipped.forEach((s) => skipped.add(s));
-        zip.file(`folder-icon-${size}x${size}.svg`, out.svg);
+    if (sorted.includes(size)) {
+      for (const fmt of formats) {
+        if (fmt === "png") {
+          zip.file(`folder-icon-${size}x${size}.png`, await canvasToBlob(canvas, "image/png"));
+        } else if (fmt === "svg" && svgDeps) {
+          const out = buildExportSvg(doc, size, svgDeps);
+          out.skipped.forEach((s) => skipped.add(s));
+          zip.file(`folder-icon-${size}x${size}.svg`, out.svg);
+        }
       }
     }
-    if (wantIco && size <= 256) icoImages.push({ size, pixels: icoPixels(canvas, size) });
-    if (wantIcns && isIcnsSize(size)) icnsImages.push({ size, png: await pngBytes(canvas) });
+    if (wantIco && ICO_SIZES.includes(size)) icoImages.push(await icoImage(canvas, size));
+    if (wantIcns && ICNS_EXPORT_SIZES.includes(size) && isIcnsSize(size)) {
+      icnsImages.push({ size, png: await pngBytes(canvas) });
+    }
   }
   if (icoImages.length) zip.file("folder-icon.ico", encodeIcoMulti(icoImages));
   if (icnsImages.length) zip.file("folder-icon.icns", encodeIcns(icnsImages));

@@ -119,7 +119,7 @@ describe("buildExportSvg", () => {
     const el = createShapeElement("rect", "Box");
     el.width = 100;
     el.height = 100;
-    el.stroke = { color: "#000000", enabled: true, width: 20, position: "outside" };
+    el.stroke = { color: "#000000", enabled: true, width: 20 };
     doc.elements = [el];
     const { svg } = buildExportSvg(doc, 256, noIcon);
     // Stroke reaches 20/100 of the box (20px) past each edge, so the nested svg

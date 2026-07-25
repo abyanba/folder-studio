@@ -17,6 +17,13 @@
 export interface IcoImage {
   size: number;
   pixels: Uint8ClampedArray;
+  /**
+   * Optional PNG encoding of the same image. When present it is stored verbatim
+   * instead of the raw BMP — the ICO format (Vista+) allows either, and a 256px
+   * entry is ~264 KB as BMP versus tens of KB as PNG. This is what Windows' own
+   * folder icons do, and why a hand-rolled BMP-only .ico comes out ~4× bigger.
+   */
+  png?: Uint8Array;
 }
 
 /** Encode one resolution's DIB (BITMAPINFOHEADER + XOR colour + AND mask). */
@@ -55,10 +62,18 @@ function encodeDib(pixels: Uint8ClampedArray, size: number): Uint8Array {
   return new Uint8Array(buf);
 }
 
-/** Pack one or more resolutions into a single multi-size ICO container. */
+/**
+ * Pack one or more resolutions into a single multi-size ICO container.
+ *
+ * Entries are ordered LARGEST FIRST, matching Windows' own shell32 icons.
+ * Explorer's "Dimensions" column and most third-party viewers report whichever
+ * entry they meet first, so a 16px-first directory made a full multi-res icon
+ * look like a 16/32px file. (Explorer may still report a DPI-appropriate size
+ * instead — that choice is the shell's, not something the file can pin.)
+ */
 export function encodeIcoMulti(images: IcoImage[]): ArrayBuffer {
-  const sorted = [...images].sort((a, b) => a.size - b.size);
-  const dibs = sorted.map((im) => encodeDib(im.pixels, im.size));
+  const sorted = [...images].sort((a, b) => b.size - a.size);
+  const dibs = sorted.map((im) => im.png ?? encodeDib(im.pixels, im.size));
   const n = sorted.length;
   const dirSize = 6 + 16 * n; // ICONDIR + N × ICONDIRENTRY
   const total = dirSize + dibs.reduce((s, d) => s + d.length, 0);

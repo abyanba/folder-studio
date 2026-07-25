@@ -96,6 +96,18 @@ function ToastRow({ toast }: { toast: Toast }) {
         {toast.detail && (
           <p className="mt-0.5 text-xs leading-snug opacity-70">{toast.detail}</p>
         )}
+        {toast.action && (
+          <button
+            type="button"
+            className="mt-1.5 rounded-sm border border-current/30 px-2 py-0.5 text-xs font-medium opacity-90 transition-opacity hover:opacity-100"
+            onClick={() => {
+              toast.action?.run();
+              close();
+            }}
+          >
+            {toast.action.label}
+          </button>
+        )}
       </div>
       <button
         type="button"

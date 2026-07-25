@@ -175,22 +175,22 @@ export function SelectedIconEditor({ el }: { el: IconElement }) {
         </PanelSection>
       )}
 
-      {el.iconVariant === "logo" && (
-        <StrokeControls
-          enabled={el.stroke?.enabled ?? false}
-          width={el.stroke?.width ?? 2}
-          color={el.stroke?.color ?? "#000000"}
-          onChange={(patch) =>
-            updateElement(el.id, {
-              stroke: {
-                enabled: patch.enabled ?? el.stroke?.enabled ?? false,
-                width: patch.width ?? el.stroke?.width ?? 2,
-                color: patch.color ?? el.stroke?.color ?? "#000000",
-              },
-            })
-          }
-        />
-      )}
+      {/* Every icon strokes the same way — the builder dilates the glyph's own
+          alpha, which works for a Phosphor body exactly as for a mono logo. */}
+      <StrokeControls
+        enabled={el.stroke?.enabled ?? false}
+        width={el.stroke?.width ?? 2}
+        color={el.stroke?.color ?? "#000000"}
+        onChange={(patch) =>
+          updateElement(el.id, {
+            stroke: {
+              enabled: patch.enabled ?? el.stroke?.enabled ?? false,
+              width: patch.width ?? el.stroke?.width ?? 2,
+              color: patch.color ?? el.stroke?.color ?? "#000000",
+            },
+          })
+        }
+      />
 
       <ShadowControls
         shadow={el.dropShadow}

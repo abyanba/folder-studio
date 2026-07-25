@@ -50,7 +50,7 @@ export function createShapeElement(
     type: "shape",
     shapeType,
     fill: { color: "#8cf0a8", enabled: true },
-    stroke: { color: "#000000", enabled: false, width: 3, position: "center" },
+    stroke: { color: "#000000", enabled: false, width: 3 },
     borderRadius: 0,
   };
 }
